@@ -1,3 +1,15 @@
+# engineerfamily.net – Single Caddyfile for prod + preprod
+# One caddy instance handles all routing. Preprod services run as separate
+# containers on the same Docker network, named engineerfamily-preprod-*.
+
+# ─── Snippets (must be defined before use) ───────────────────────────────────
+(preprod_auth) {
+  basicauth {
+    # Generate: make hash-password
+    admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
+  }
+}
+
 # ─── Root domain ─────────────────────────────────────────────────────────────
 engineerfamily.net {
   root * /srv/landing
@@ -68,13 +80,6 @@ analytics.engineerfamily.net {
   reverse_proxy analytics:3000
   basicauth {
     # Generate: make hash-password
-    admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
-  }
-}
-
-# ─── Preprod auth snippet ─────────────────────────────────────────────────────
-(preprod_auth) {
-  basicauth {
     admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
   }
 }
