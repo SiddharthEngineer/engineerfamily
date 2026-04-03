@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Engineer Family</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       --bg: #0f0f0f;
@@ -75,7 +82,9 @@
       transform: translateY(-3px);
     }
 
-    .member-card:hover .arrow { color: var(--accent); }
+    .member-card:hover .arrow {
+      color: var(--accent);
+    }
 
     .member-role {
       font-size: 0.75rem;
@@ -112,6 +121,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <header>
@@ -121,28 +131,28 @@
 
   <div class="members">
 
-    <a href="https://siddharth.engineerfamily.net" class="member-card">
+    <a href="#" class="member-card" data-subdomain="siddharth">
       <div class="member-role">Data Science &amp; Engineering</div>
       <div class="member-name">Siddharth</div>
       <p class="member-desc">Work projects, personal visualizations, and data explorations.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="https://shivam.engineerfamily.net" class="member-card">
+    <a href="#" class="member-card" data-subdomain="shivam">
       <div class="member-role">Game Development</div>
       <div class="member-name">Shivam</div>
       <p class="member-desc">Browser-based games, built from scratch.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="https://suryan.engineerfamily.net" class="member-card">
+    <a href="#" class="member-card" data-subdomain="suryan">
       <div class="member-role">Data Visualization</div>
       <div class="member-name">Suryan</div>
       <p class="member-desc">March Madness analytics and interactive data apps.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="https://nivi.engineerfamily.net" class="member-card">
+    <a href="#" class="member-card" data-subdomain="nivi">
       <div class="member-role">Writing</div>
       <div class="member-name">Nivi</div>
       <p class="member-desc">Stories, essays, and whatever else is worth putting into words.</p>
@@ -155,6 +165,22 @@
     <p>engineerfamily.net</p>
   </footer>
 
+  <script>
+    (function setMemberLinks() {
+      var hostname = window.location.hostname;
+      var isPreprod =
+        hostname === 'preprod.engineerfamily.net' ||
+        hostname.endsWith('.preprod.engineerfamily.net');
+      var baseDomain = isPreprod ? 'preprod.engineerfamily.net' : 'engineerfamily.net';
+
+      document.querySelectorAll('.member-card[data-subdomain]').forEach(function (card) {
+        var subdomain = card.getAttribute('data-subdomain');
+        card.href = 'https://' + subdomain + '.' + baseDomain;
+      });
+    })();
+  </script>
+
   <script async src="https://analytics.engineerfamily.net/script.js" data-website-id="REPLACE_ME"></script>
 </body>
+
 </html>

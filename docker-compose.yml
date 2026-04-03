@@ -1,5 +1,4 @@
 services:
-
   # ─── Reverse Proxy ────────────────────────────────────────────────────────
   caddy:
     image: caddy:2-alpine
@@ -9,7 +8,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"   # HTTP/3
+      - "443:443/udp" # HTTP/3
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -20,7 +19,7 @@ services:
     # depends_on cannot reliably reference profiled services.
     networks:
       - web
-    profiles: ["prod", "preprod"]
+    profiles: ["prod"]
 
   # ─── Siddharth (Flask portfolio) ──────────────────────────────────────────
   siddharth:
@@ -108,6 +107,7 @@ services:
 networks:
   web:
     driver: bridge
+    name: engineerfamily_web
 
 volumes:
   caddy_data:

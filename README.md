@@ -73,7 +73,7 @@ GitHub Actions runs `.github/workflows/deploy-prod.yml` → rsync → `docker co
 ```bash
 git push origin preprod
 ```
-Deploys to `/srv/engineerfamily-preprod/` with preprod Caddyfile. All subdomains are
+Deploys to `/srv/engineerfamily-preprod/` using the same Caddyfile as production. All subdomains are
 behind basic auth at `*.preprod.engineerfamily.net`.
 
 ---
