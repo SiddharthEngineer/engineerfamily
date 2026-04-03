@@ -1,6 +1,6 @@
 (preprod_auth) {
   basicauth {
-    admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
+    admin {$CADDY_ADMIN_HASH}
   }
 }
 
@@ -66,7 +66,7 @@ nivi.preprod.engineerfamily.net {
 
 analytics.engineerfamily.net {
   basicauth {
-    admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
+    admin {$CADDY_ADMIN_HASH}
   }
   reverse_proxy analytics:3000
 }
