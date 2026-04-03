@@ -74,9 +74,18 @@ jobs:
           echo "target_sha=$target_sha" >> "$GITHUB_OUTPUT"
 
       - name: Reset origin/preprod to target
+        env:
+          BRANCH_RESET_TOKEN: ${{ secrets.BRANCH_RESET_TOKEN }}
         run: |
           set -euo pipefail
-          git push origin "${{ steps.target.outputs.target_sha }}:refs/heads/preprod" --force
+          if [ -z "${BRANCH_RESET_TOKEN:-}" ]; then
+            echo "ERROR: Missing secret BRANCH_RESET_TOKEN"
+            echo "Create a token with repository Contents: write and Workflows: write, then store it as BRANCH_RESET_TOKEN."
+            exit 1
+          fi
+
+          git push "https://x-access-token:${BRANCH_RESET_TOKEN}@github.com/${{ github.repository }}.git" \
+            "${{ steps.target.outputs.target_sha }}:refs/heads/preprod" --force
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
