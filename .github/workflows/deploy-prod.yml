@@ -81,17 +81,18 @@ jobs:
         run: |
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
             set -euo pipefail
-            cd /srv/engineerfamily
+            repo_dir=/srv/engineerfamily
+            cd "$repo_dir"
 
-            git config --global --add safe.directory /srv/engineerfamily
+            git config --global --add safe.directory "$repo_dir" || true
 
-            git fetch --prune --tags origin
-            if git show-ref --verify --quiet refs/heads/prod; then
-              git checkout prod
+            git -c safe.directory="$repo_dir" fetch --prune --tags origin
+            if git -c safe.directory="$repo_dir" show-ref --verify --quiet refs/heads/prod; then
+              git -c safe.directory="$repo_dir" checkout prod
             else
-              git checkout -B prod origin/prod
+              git -c safe.directory="$repo_dir" checkout -B prod origin/prod
             fi
-            git reset --hard origin/prod
+            git -c safe.directory="$repo_dir" reset --hard origin/prod
 
             # Verify the Caddyfile made it over before restarting
             if [ ! -f caddy/Caddyfile ]; then

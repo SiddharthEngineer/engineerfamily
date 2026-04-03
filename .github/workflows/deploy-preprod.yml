@@ -91,17 +91,18 @@ jobs:
         run: |
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
             set -euo pipefail
-            cd /srv/engineerfamily-preprod
+            repo_dir=/srv/engineerfamily-preprod
+            cd "$repo_dir"
 
-            git config --global --add safe.directory /srv/engineerfamily-preprod
+            git config --global --add safe.directory "$repo_dir" || true
 
-            git fetch --prune --tags origin
-            if git show-ref --verify --quiet refs/heads/preprod; then
-              git checkout preprod
+            git -c safe.directory="$repo_dir" fetch --prune --tags origin
+            if git -c safe.directory="$repo_dir" show-ref --verify --quiet refs/heads/preprod; then
+              git -c safe.directory="$repo_dir" checkout preprod
             else
-              git checkout -B preprod origin/preprod
+              git -c safe.directory="$repo_dir" checkout -B preprod origin/preprod
             fi
-            git reset --hard origin/preprod
+            git -c safe.directory="$repo_dir" reset --hard origin/preprod
 
             docker compose \
               -f docker-compose.yml \
