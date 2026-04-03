@@ -9,6 +9,12 @@
   }
 }
 
+preprod.engineerfamily.net {
+  import preprod_auth
+  root * /srv/landing
+  file_server
+}
+
 siddharth.preprod.engineerfamily.net {
   import preprod_auth
   reverse_proxy siddharth:8000

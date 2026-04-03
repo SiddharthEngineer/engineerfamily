@@ -14,13 +14,11 @@ services:
       - caddy_config:/config
       - ./services/landing:/srv/landing:ro
       - ./services/shivam/public:/srv/shivam/public:ro
-    depends_on:
-      - siddharth
-      - suryan
-      - nivi
-      - analytics
+    # No depends_on — caddy retries upstream connections automatically.
+    # depends_on cannot reliably reference profiled services.
     networks:
       - web
+    profiles: ["prod", "preprod"]
 
   # ─── Siddharth (Flask portfolio) ──────────────────────────────────────────
   siddharth:
@@ -35,7 +33,7 @@ services:
       - web
     profiles: ["prod", "preprod"]
 
-  # ─── Suryan (Streamlit – March Madness / data viz) ────────────────────────
+  # ─── Suryan (Streamlit – data viz) ────────────────────────────────────────
   suryan:
     build:
       context: ./services/suryan
@@ -53,7 +51,7 @@ services:
   # No container needed — Caddy serves ./services/shivam/public as static files.
   # See Caddyfile for routing.
 
-  # ─── Nivi (Ghost CMS – writing) ────────────────────────────────────────────
+  # ─── Nivi (Ghost CMS – writing) ───────────────────────────────────────────
   nivi:
     image: ghost:5-alpine
     restart: unless-stopped
@@ -68,7 +66,7 @@ services:
       - mail__options__auth__user=${GHOST_SMTP_USER}
       - mail__options__auth__pass=${GHOST_SMTP_PASS}
     volumes:
-      - ghost_content:/var/lib/ghost/content
+      - nivi_content:/var/lib/ghost/content
     networks:
       - web
     profiles: ["prod", "preprod"]
@@ -112,5 +110,5 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
-  ghost_content:
+  nivi_content:
   analytics_db:
