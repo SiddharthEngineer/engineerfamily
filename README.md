@@ -1,6 +1,6 @@
 # Engineer Family Website
 
-Personal family website running on a single Hetzner VPS (~$6 total).
+Personal family website running on a single VPS.
 Each family member has their own subdomain under `engineerfamily.net`.
 
 | Subdomain | Owner | Tech |
@@ -27,40 +27,6 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
 
 ---
 
-## First-time VPS Setup
-
-1. Provision a Hetzner CX22 (Ubuntu 24.04, ~$5.59). Note the IP address.
-
-2. SSH in as root and run the setup script:
-   ```bash
-   bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB/engineerfamily/main/scripts/setup-vps.sh)
-   ```
-
-3. Generate your GitHub Actions SSH keypair:
-   ```bash
-   ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/engineerfamily_deploy
-   ```
-   - Add the **public key** (`~/.ssh/engineerfamily_deploy.pub`) to `/home/deploy/.ssh/authorized_keys` on the VPS.
-   - Add the **private key** as a GitHub Actions secret named `VPS_SSH_KEY`.
-
-4. Add these GitHub Actions secrets (Settings → Secrets → Actions):
-   - `VPS_SSH_KEY` — your deploy private key
-   - `VPS_HOST` — your VPS IP address
-
-5. Copy `.env.example` to `.env`, fill in all values, and upload to the VPS:
-   ```bash
-   scp .env deploy@YOUR_VPS_IP:/srv/engineerfamily/.env
-   ```
-
-6. Point your domain's nameservers to Cloudflare. In Cloudflare DNS, add:
-   ```
-   A   engineerfamily.net          → YOUR_VPS_IP
-   A   *.engineerfamily.net        → YOUR_VPS_IP   (wildcard)
-   A   *.preprod.engineerfamily.net → YOUR_VPS_IP
-   ```
-
----
-
 ## Release And Deployment Model
 
 This repo uses four branch/tag concepts:
@@ -69,7 +35,7 @@ This repo uses four branch/tag concepts:
    - Ongoing development and PR merges.
 
 2. `release-v<major>.<minor>`
-   - Minor-line release branches (examples: `release-v1.0`, `release-v12.20`).
+   - Minor-line release branches (examples: `release-v1.0`, `release-v2.7`).
    - Created automatically when first tag for a minor line appears.
 
 3. Release tags
@@ -185,15 +151,6 @@ To add tracking to a page, paste into the `<head>`:
         data-website-id="YOUR_WEBSITE_ID"></script>
 ```
 Get `YOUR_WEBSITE_ID` from the Umami dashboard after adding each site.
-
----
-
-## Generating a Caddy Basic Auth Password Hash
-
-```bash
-make hash-password
-```
-Paste the output into `caddy/Caddyfile` replacing `$2a$14$REPLACE_WITH_HASHED_PASSWORD`.
 
 ---
 

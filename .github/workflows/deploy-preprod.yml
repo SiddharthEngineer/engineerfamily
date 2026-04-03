@@ -93,6 +93,8 @@ jobs:
             set -euo pipefail
             cd /srv/engineerfamily-preprod
 
+            git config --global --add safe.directory /srv/engineerfamily-preprod
+
             git fetch --prune --tags origin
             if git show-ref --verify --quiet refs/heads/preprod; then
               git checkout preprod
