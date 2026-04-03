@@ -86,6 +86,16 @@ jobs:
 
             git config --global --add safe.directory "$repo_dir" || true
 
+            # If previous deploys touched this path with sudo/root, .git may not be writable.
+            if [ ! -w .git ]; then
+              sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir" 2>/dev/null || true
+            fi
+            if [ ! -w .git ]; then
+              echo "ERROR: $repo_dir/.git is not writable by $(id -un)"
+              echo "Run on VPS: sudo chown -R deploy:deploy $repo_dir"
+              exit 1
+            fi
+
             git -c safe.directory="$repo_dir" fetch --prune --tags origin
             if git -c safe.directory="$repo_dir" show-ref --verify --quiet refs/heads/prod; then
               git -c safe.directory="$repo_dir" checkout prod
