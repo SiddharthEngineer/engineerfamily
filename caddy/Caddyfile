@@ -60,7 +60,7 @@ siddharth.engineerfamily.net {
   import rp siddharth:8000
 }
 
-siddharth.preprod.engineerfamily.net {
+siddharth-preprod.engineerfamily.net {
   import rp_preprod siddharth-preprod:8000
 }
 
@@ -73,7 +73,7 @@ suryan.engineerfamily.net {
   encode gzip
 }
 
-suryan.preprod.engineerfamily.net {
+suryan-preprod.engineerfamily.net {
   route {
     import preprod_auth
     reverse_proxy suryan-preprod:8501
@@ -92,7 +92,7 @@ shivam.engineerfamily.net {
   encode gzip
 }
 
-shivam.preprod.engineerfamily.net {
+shivam-preprod.engineerfamily.net {
   import static_preprod /srv/shivam/public
 }
 
@@ -104,7 +104,7 @@ nivi.engineerfamily.net {
   import rp nivi:2368
 }
 
-nivi.preprod.engineerfamily.net {
+nivi-preprod.engineerfamily.net {
   import rp_preprod nivi-preprod:2368
 }
 

@@ -170,12 +170,14 @@
       var hostname = window.location.hostname;
       var isPreprod =
         hostname === 'preprod.engineerfamily.net' ||
-        hostname.endsWith('.preprod.engineerfamily.net');
-      var baseDomain = isPreprod ? 'preprod.engineerfamily.net' : 'engineerfamily.net';
+        hostname.endsWith('.preprod.engineerfamily.net') ||
+        hostname.endsWith('-preprod.engineerfamily.net');
+      var baseDomain = 'engineerfamily.net';
 
       document.querySelectorAll('.member-card[data-subdomain]').forEach(function (card) {
         var subdomain = card.getAttribute('data-subdomain');
-        card.href = 'https://' + subdomain + '.' + baseDomain;
+        var envSubdomain = isPreprod ? subdomain + '-preprod' : subdomain;
+        card.href = 'https://' + envSubdomain + '.' + baseDomain;
       });
     })();
   </script>
