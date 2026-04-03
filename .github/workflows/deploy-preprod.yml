@@ -105,13 +105,13 @@ jobs:
 
             git config --global --add safe.directory "$repo_dir" || true
 
-            # If previous deploys touched this path with sudo/root, .git may not be writable.
-            if [ ! -w .git ]; then
+            # Git fetch needs write access in .git/objects (not just .git itself).
+            if [ ! -w .git ] || [ ! -w .git/objects ] || [ ! -w .git/objects/pack ]; then
               sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir" 2>/dev/null || true
             fi
-            if [ ! -w .git ]; then
-              echo "ERROR: $repo_dir/.git is not writable by $(id -un)"
-              echo "Run on VPS: sudo chown -R deploy:deploy $repo_dir"
+            if [ ! -w .git ] || [ ! -w .git/objects ] || [ ! -w .git/objects/pack ]; then
+              echo "ERROR: git metadata is not writable by $(id -un) in $repo_dir"
+              echo "Run on VPS: sudo chown -R deploy:deploy $repo_dir && sudo find $repo_dir/.git -type d -exec chmod u+rwx {} \\; && sudo find $repo_dir/.git -type f -exec chmod u+rw {} \\;"
               exit 1
             fi
 
