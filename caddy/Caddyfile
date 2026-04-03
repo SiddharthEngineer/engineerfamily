@@ -78,3 +78,4 @@ analytics.engineerfamily.net {
     admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
   }
 }
+EOF
