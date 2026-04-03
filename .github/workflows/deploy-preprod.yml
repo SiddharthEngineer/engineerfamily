@@ -1,11 +1,12 @@
 name: Deploy → Preprod
 
+# Trigger: push a tag like v1.2.3-preprod or v1.2.3-rc1
+# Example: git tag v1.2.3-preprod && git push origin v1.2.3-preprod
+
 on:
   push:
-    branches:
-      - preprod
-  # Allow manual trigger from GitHub UI
-  workflow_dispatch:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 jobs:
   deploy:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout tag
         uses: actions/checkout@v4
 
       - name: Set up SSH
@@ -31,6 +32,7 @@ jobs:
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='__pycache__' \
+            --exclude='*.pyc' \
             ./ deploy@${{ secrets.VPS_HOST }}:/srv/engineerfamily-preprod/
 
       - name: Build & restart preprod containers
@@ -56,3 +58,8 @@ jobs:
               --profile preprod \
               ps --format "table {{.Name}}\t{{.Status}}"
           EOF
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Preprod deploy failed on ${{ github.ref_name }}. Check logs above."

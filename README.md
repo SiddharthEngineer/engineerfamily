@@ -5,7 +5,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 
 | Subdomain | Owner | Tech |
 |---|---|---|
-| `siddharth.engineerfamily.net` | Siddharth |  |
+| `siddharth.engineerfamily.net` | Siddharth | Flask |
 | `shivam.engineerfamily.net` | Shivam | JavaScript |
 | `suryan.engineerfamily.net` | Suryan | Streamlit |
 | `nivi.engineerfamily.net` | Nivi | Ghost CMS |
@@ -89,9 +89,6 @@ make up
 
 # Tail logs
 make logs
-
-# Open a shell in Django container
-make shell-siddharth
 ```
 
 ---
