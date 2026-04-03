@@ -1,0 +1,24 @@
+# Overrides for preprod environment.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d
+
+services:
+
+  caddy:
+    volumes:
+      - ./caddy/Caddyfile.preprod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./services/landing:/srv/landing:ro
+      - ./services/shivam/public:/srv/shivam/public:ro
+
+  siddharth:
+    environment:
+      - FLASK_ENV=development
+      - SECRET_KEY=${SIDDHARTH_SECRET_KEY_PREPROD}
+
+  nivi:
+    environment:
+      - NODE_ENV=development
+      - url=https://nivi.preprod.engineerfamily.net
+      - database__client=sqlite3
+      - database__connection__filename=/var/lib/ghost/content/data/ghost-preprod.db

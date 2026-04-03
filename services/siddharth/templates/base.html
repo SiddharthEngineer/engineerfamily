@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Siddharth Engineer{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-name">Siddharth Engineer</a>
+    <div class="nav-links">
+      <a href="/work/" {% if active == 'work' %}class="active"{% endif %}>Work</a>
+      <a href="/viz/"  {% if active == 'viz'  %}class="active"{% endif %}>Viz</a>
+      <a href="/about/"{% if active == 'about'%}class="active"{% endif %}>About</a>
+    </div>
+  </nav>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> Siddharth Engineer</p>
+  </footer>
+
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+  <script async src="https://analytics.engineerfamily.net/script.js" data-website-id="REPLACE_ME"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

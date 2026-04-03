@@ -1,0 +1,58 @@
+name: Deploy → Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: SSH deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy repo to VPS
+        run: |
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            ./ deploy@${{ secrets.VPS_HOST }}:/srv/engineerfamily/
+
+      - name: Build & restart containers
+        run: |
+          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /srv/engineerfamily
+            # Pull latest base images
+            docker compose pull --ignore-pull-failures
+            # Build custom images and restart changed services only
+            docker compose --profile prod up -d --build --remove-orphans
+            # Clean up dangling images to save disk space
+            docker image prune -f
+          EOF
+
+      - name: Health check
+        run: |
+          sleep 10
+          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+            docker compose ps --format "table {{.Name}}\t{{.Status}}"
+          EOF
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Production deploy failed. Check logs above."
+          # Optional: add a curl call to a webhook/Slack/Discord here

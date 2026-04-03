@@ -1,0 +1,116 @@
+services:
+
+  # ─── Reverse Proxy ────────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./services/landing:/srv/landing:ro
+      - ./services/shivam/public:/srv/shivam/public:ro
+    depends_on:
+      - siddharth
+      - suryan
+      - nivi
+      - analytics
+    networks:
+      - web
+
+  # ─── Siddharth (Flask portfolio) ──────────────────────────────────────────
+  siddharth:
+    build:
+      context: ./services/siddharth
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - SECRET_KEY=${SIDDHARTH_SECRET_KEY}
+    networks:
+      - web
+    profiles: ["prod", "preprod"]
+
+  # ─── Suryan (Streamlit – March Madness / data viz) ────────────────────────
+  suryan:
+    build:
+      context: ./services/suryan
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+    networks:
+      - web
+    profiles: ["prod", "preprod"]
+
+  # ─── Shivam (static files served by Caddy directly) ──────────────────────
+  # No container needed — Caddy serves ./services/shivam/public as static files.
+  # See Caddyfile for routing.
+
+  # ─── Nivi (Ghost CMS – writing) ────────────────────────────────────────────
+  nivi:
+    image: ghost:5-alpine
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - url=https://nivi.engineerfamily.net
+      - database__client=sqlite3
+      - database__connection__filename=/var/lib/ghost/content/data/ghost.db
+      - mail__transport=SMTP
+      - mail__options__host=${GHOST_SMTP_HOST}
+      - mail__options__port=${GHOST_SMTP_PORT:-587}
+      - mail__options__auth__user=${GHOST_SMTP_USER}
+      - mail__options__auth__pass=${GHOST_SMTP_PASS}
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    networks:
+      - web
+    profiles: ["prod", "preprod"]
+
+  # ─── Analytics (Umami – self-hosted, privacy-first) ───────────────────────
+  analytics:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD}@analytics-db:5432/umami
+      - APP_SECRET=${UMAMI_APP_SECRET}
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks:
+      - web
+    profiles: ["prod", "preprod"]
+
+  analytics-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=umami
+      - POSTGRES_USER=umami
+      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD}
+    volumes:
+      - analytics_db:/var/lib/postgresql/data
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles: ["prod", "preprod"]
+
+networks:
+  web:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  ghost_content:
+  analytics_db:

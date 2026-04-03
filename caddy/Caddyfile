@@ -1,0 +1,78 @@
+# engineerfamily.net – Production Caddyfile
+# Caddy auto-provisions SSL for every site block below.
+
+# ─── Root domain → family landing page ──────────────────────────────────────
+engineerfamily.net {
+  root * /srv/landing
+  file_server
+  encode gzip
+  log {
+    output file /var/log/caddy/landing.log
+  }
+}
+
+# ─── Siddharth (Flask) ───────────────────────────────────────────────────────
+siddharth.engineerfamily.net {
+  reverse_proxy siddharth:8000
+  encode gzip
+  log {
+    output file /var/log/caddy/siddharth.log
+  }
+}
+
+# ─── Suryan (Streamlit) ─────────────────────────────────────────────────────
+suryan.engineerfamily.net {
+  reverse_proxy suryan:8501
+
+  # Streamlit needs WebSocket support
+  @websocket {
+    header Connection *Upgrade*
+    header Upgrade websocket
+  }
+  reverse_proxy @websocket suryan:8501
+
+  encode gzip
+  log {
+    output file /var/log/caddy/suryan.log
+  }
+}
+
+# ─── Shivam (static files) ──────────────────────────────────────────────────
+shivam.engineerfamily.net {
+  root * /srv/shivam/public
+  file_server
+
+  # Cache static game assets aggressively
+  header /assets/* Cache-Control "public, max-age=31536000, immutable"
+
+  encode gzip
+  log {
+    output file /var/log/caddy/shivam.log
+  }
+}
+
+# ─── Nivi (Ghost CMS) ────────────────────────────────────────────────────────
+nivi.engineerfamily.net {
+  reverse_proxy nivi:2368
+
+  encode gzip
+  log {
+    output file /var/log/caddy/nivi.log
+  }
+}
+
+# ─── Analytics (Umami – internal, basic-auth protected) ─────────────────────
+analytics.engineerfamily.net {
+  reverse_proxy analytics:3000
+
+  # Restrict dashboard access to you only
+  basicauth {
+    # Generate hash: caddy hash-password --plaintext yourpassword
+    # Then replace the placeholder below
+    admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
+  }
+
+  log {
+    output file /var/log/caddy/analytics.log
+  }
+}
