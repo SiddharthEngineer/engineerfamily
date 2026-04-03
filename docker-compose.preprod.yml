@@ -1,76 +1,23 @@
-name: Deploy → Preprod
+# Overrides for preprod environment.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d
 
-# Trigger: push a tag like v1.2.3-preprod or v1.2.3-rc1
-# Example: git tag v1.2.3-preprod && git push origin v1.2.3-preprod
+services:
 
-on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+-*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Tag to deploy (e.g. v1.2.3-preprod)"
-        required: true
+  caddy:
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./services/landing:/srv/landing:ro
+      - ./services/shivam/public:/srv/shivam/public:ro
 
-jobs:
-  deploy:
-    name: SSH deploy to VPS (preprod)
-    runs-on: ubuntu-latest
+  siddharth:
+    environment:
+      - FLASK_ENV=development
+      - SECRET_KEY=${SIDDHARTH_SECRET_KEY_PREPROD}
 
-    steps:
-      - name: Checkout tag
-        uses: actions/checkout@v4
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: Add VPS to known hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Copy repo to VPS (preprod directory)
-        run: |
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='node_modules' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            ./ deploy@${{ secrets.VPS_HOST }}:/srv/engineerfamily-preprod/
-
-      - name: Build & restart preprod containers
-        run: |
-          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
-            set -e
-            cd /srv/engineerfamily-preprod
-
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.preprod.yml \
-              --profile preprod \
-              up -d --build --remove-orphans
-            docker image prune -f
-
-            # Reload prod caddy so it picks up any Caddyfile changes
-            docker exec engineerfamily-caddy-1 caddy reload --config /etc/caddy/Caddyfile
-          EOF
-
-      - name: Health check
-        run: |
-          sleep 10
-          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
-            cd /srv/engineerfamily-preprod
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.preprod.yml \
-              --profile preprod \
-              ps --format "table {{.Name}}\t{{.Status}}"
-          EOF
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "::error::Preprod deploy failed on ${{ github.ref_name }}. Check logs above."
+  nivi:
+    environment:
+      - NODE_ENV=development
+      - url=https://nivi.preprod.engineerfamily.net
+      - database__client=sqlite3
+      - database__connection__filename=/var/lib/ghost/content/data/ghost-preprod.db
