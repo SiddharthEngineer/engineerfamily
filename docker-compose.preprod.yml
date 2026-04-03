@@ -4,6 +4,8 @@
 services:
 
   caddy:
+    environment:
+      - CADDY_ADMIN_HASH=${CADDY_ADMIN_HASH_PREPROD}
     volumes:
       - caddy_data:/data
       - caddy_config:/config
