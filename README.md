@@ -61,20 +61,93 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
 
 ---
 
+## Release And Deployment Model
+
+This repo uses four branch/tag concepts:
+
+1. `main`
+   - Ongoing development and PR merges.
+
+2. `release-v<major>.<minor>`
+   - Minor-line release branches (examples: `release-v1.0`, `release-v12.20`).
+   - Created automatically when first tag for a minor line appears.
+
+3. Release tags
+   - Production tags: `v<major>.<minor>.<patch>` (example: `v1.2.3`).
+   - Preprod tags: `v<major>.<minor>.<patch>-preprod` (example: `v1.2.3-preprod`).
+
+4. Deployment state branches
+   - `prod`: always points to what is deployed in production.
+   - `preprod`: always points to what is deployed in preprod.
+
+### Tagging Rules
+
+Use Make targets to create tags and keep release branches in sync:
+
+```bash
+make tag-preprod v=1.2.3
+make tag-prod v=1.2.3
+```
+
+Enforced policy:
+
+1. Tags for a minor line must be created from `main` or the matching `release-v<major>.<minor>` branch.
+2. If `release-v<major>.<minor>` is ahead of `main`, tagging from `main` fails.
+3. If tag is created from `main`, `main` is merged into the release branch.
+4. If tag is created from release branch, release branch is aligned to latest tag in that minor line.
+
+Validation/sync logic lives in:
+
+- `scripts/release_branch_sync.sh`
+
 ## Deploying
 
-**Production** — push to `main`:
-```bash
-git push origin main
-```
-GitHub Actions runs `.github/workflows/deploy-prod.yml` → rsync → `docker compose up -d --build`.
+### Preprod Deploy (`.github/workflows/deploy-preprod.yml`)
 
-**Preprod** — push to `preprod`:
+Triggers:
+
+1. Push a preprod tag like `v1.2.3-preprod`.
+2. Manual run with `ref` (tag or branch).
+
+Behavior:
+
+1. If trigger is a preprod tag:
+   - Derives release branch from tag minor line.
+   - Verifies tag is reachable from that release branch.
+   - Force-resets remote `preprod` branch to the resolved tag commit.
+2. If trigger is manual `ref`:
+   - Resolves `ref` as tag or branch commit.
+   - Force-resets remote `preprod` branch to that commit.
+3. VPS deploy then checks out/reset to `origin/preprod` in `/srv/engineerfamily-preprod` and runs preprod compose.
+
+Example:
+
 ```bash
-git push origin preprod
+git tag v1.2.3-preprod
+git push origin v1.2.3-preprod
 ```
-Deploys to `/srv/engineerfamily-preprod/` using the same Caddyfile as production. All subdomains are
-behind basic auth at `*.preprod.engineerfamily.net`.
+
+### Prod Deploy (`.github/workflows/deploy-prod.yml`)
+
+Triggers:
+
+1. Push a prod tag like `v1.2.3`.
+2. Manual run with required `tag` input.
+
+Behavior:
+
+1. Validates tag format `v<major>.<minor>.<patch>`.
+2. Derives release branch from tag minor line.
+3. Verifies the tag exists and is reachable from that release branch.
+4. Force-resets remote `prod` branch to the tag commit.
+5. VPS deploy then checks out/reset to `origin/prod` in `/srv/engineerfamily` and runs prod compose.
+
+Example:
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
 
 ---
 
