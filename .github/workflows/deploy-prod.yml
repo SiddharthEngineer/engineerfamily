@@ -6,7 +6,7 @@ name: Deploy → Production
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       tag:
@@ -17,10 +17,56 @@ jobs:
   deploy:
     name: SSH deploy to VPS (prod)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout tag
-        uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve target commit for prod
+        id: target
+        run: |
+          set -euo pipefail
+
+          git fetch --prune --tags origin +refs/heads/*:refs/remotes/origin/*
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            requested_tag='${{ inputs.tag }}'
+          else
+            requested_tag='${{ github.ref_name }}'
+          fi
+
+          if ! [[ "$requested_tag" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+            echo "ERROR: tag '$requested_tag' does not match v<major>.<minor>.<patch>"
+            exit 1
+          fi
+
+          release_branch="release-v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+
+          if ! git show-ref --verify --quiet "refs/tags/$requested_tag"; then
+            echo "ERROR: tag '$requested_tag' does not exist"
+            exit 1
+          fi
+
+          if ! git show-ref --verify --quiet "refs/remotes/origin/$release_branch"; then
+            echo "ERROR: release branch origin/$release_branch not found"
+            exit 1
+          fi
+
+          tag_commit="$(git rev-parse "refs/tags/$requested_tag^{commit}")"
+          if ! git merge-base --is-ancestor "$tag_commit" "refs/remotes/origin/$release_branch"; then
+            echo "ERROR: tag '$requested_tag' is not reachable from origin/$release_branch"
+            exit 1
+          fi
+
+          echo "requested_tag=$requested_tag" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$tag_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Reset origin/prod to tag
+        run: |
+          set -euo pipefail
+          git push origin "${{ steps.target.outputs.target_sha }}:refs/heads/prod" --force
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -31,21 +77,19 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy repo to VPS
-        run: |
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='node_modules' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            ./ deploy@${{ secrets.VPS_HOST }}:/srv/engineerfamily/
-
       - name: Build & restart containers
         run: |
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
-            set -e
+            set -euo pipefail
             cd /srv/engineerfamily
+
+            git fetch --prune --tags origin
+            if git show-ref --verify --quiet refs/heads/prod; then
+              git checkout prod
+            else
+              git checkout -B prod origin/prod
+            fi
+            git reset --hard origin/prod
 
             # Verify the Caddyfile made it over before restarting
             if [ ! -f caddy/Caddyfile ]; then
@@ -69,4 +113,4 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "::error::Production deploy failed on ${{ github.ref_name }}. Check logs above."
+          echo "::error::Production deploy failed on ${{ steps.target.outputs.requested_tag }}. Check logs above."

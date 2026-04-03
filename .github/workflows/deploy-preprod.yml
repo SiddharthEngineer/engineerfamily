@@ -17,21 +17,66 @@ jobs:
   deploy:
     name: SSH deploy to VPS (preprod)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Resolve ref to deploy
-        id: deploy_ref
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve target commit for preprod
+        id: target
         run: |
+          set -euo pipefail
+
+          git fetch --prune --tags origin +refs/heads/*:refs/remotes/origin/*
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "value=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+            requested_ref='${{ inputs.ref }}'
+            event_mode='manual'
           else
-            echo "value=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+            requested_ref='${{ github.ref_name }}'
+            event_mode='tag_push'
           fi
 
-      - name: Checkout tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.deploy_ref.outputs.value }}
+          if [ "$event_mode" = 'tag_push' ]; then
+            if ! [[ "$requested_ref" =~ ^v([0-9]+)\.([0-9]+)\.[0-9]+-preprod$ ]]; then
+              echo "ERROR: tag '$requested_ref' does not match v<major>.<minor>.<patch>-preprod"
+              exit 1
+            fi
+
+            release_branch="release-v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            tag_commit="$(git rev-parse "refs/tags/$requested_ref^{commit}")"
+
+            if ! git show-ref --verify --quiet "refs/remotes/origin/$release_branch"; then
+              echo "ERROR: release branch origin/$release_branch not found"
+              exit 1
+            fi
+
+            if ! git merge-base --is-ancestor "$tag_commit" "refs/remotes/origin/$release_branch"; then
+              echo "ERROR: tag '$requested_ref' is not reachable from origin/$release_branch"
+              exit 1
+            fi
+
+            target_sha="$tag_commit"
+          else
+            if git show-ref --verify --quiet "refs/tags/$requested_ref"; then
+              target_sha="$(git rev-parse "refs/tags/$requested_ref^{commit}")"
+            elif git show-ref --verify --quiet "refs/remotes/origin/$requested_ref"; then
+              target_sha="$(git rev-parse "refs/remotes/origin/$requested_ref^{commit}")"
+            else
+              echo "ERROR: '$requested_ref' is not a known tag or branch on origin"
+              exit 1
+            fi
+          fi
+
+          echo "requested_ref=$requested_ref" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$target_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Reset origin/preprod to target
+        run: |
+          set -euo pipefail
+          git push origin "${{ steps.target.outputs.target_sha }}:refs/heads/preprod" --force
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -42,21 +87,19 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy repo to VPS (preprod directory)
-        run: |
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='node_modules' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            ./ deploy@${{ secrets.VPS_HOST }}:/srv/engineerfamily-preprod/
-
       - name: Build & restart preprod containers
         run: |
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
-            set -e
+            set -euo pipefail
             cd /srv/engineerfamily-preprod
+
+            git fetch --prune --tags origin
+            if git show-ref --verify --quiet refs/heads/preprod; then
+              git checkout preprod
+            else
+              git checkout -B preprod origin/preprod
+            fi
+            git reset --hard origin/preprod
 
             docker compose \
               -f docker-compose.yml \
@@ -84,4 +127,4 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "::error::Preprod deploy failed on ${{ github.ref_name }}. Check logs above."
+          echo "::error::Preprod deploy failed on ${{ steps.target.outputs.requested_ref }}. Check logs above."

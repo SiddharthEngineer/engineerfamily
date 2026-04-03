@@ -2,8 +2,8 @@
 # Usage: make <target>
 
 .PHONY: help run-siddharth run-suryan up down logs ps build restart \
-        preprod-up preprod-down shell-siddharth shell-suryan \
-        tag-preprod tag-prod hash-password
+	preprod-up preprod-down shell-siddharth shell-suryan \
+	tag-preprod tag-prod validate-release-tagging sync-release-branch hash-password
 
 help:
 	@echo ""
@@ -28,6 +28,8 @@ help:
 	@echo "  Releases:"
 	@echo "    tag-preprod      Tag current commit for preprod  (e.g. make tag-preprod v=1.2.3)"
 	@echo "    tag-prod         Tag current commit for prod     (e.g. make tag-prod v=1.2.3)"
+	@echo "    validate-release-tagging Validate tag branch policy for v=<major.minor.patch>"
+	@echo "    sync-release-branch Ensure release branch points to latest tag for v=<major.minor.patch>"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    shell-siddharth  Open shell in siddharth container"
@@ -81,54 +83,30 @@ preprod-down:
 
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
+	@$(MAKE) validate-release-tagging v=$(v)
 	git tag v$(v)-preprod
 	git push origin v$(v)-preprod
+	@$(MAKE) sync-release-branch v=$(v)
 	@echo "→ Deploying v$(v)-preprod to preprod..."
 
 tag-prod:
 	@test -n "$(v)" || (echo "Usage: make tag-prod v=1.2.3" && exit 1)
+	@$(MAKE) validate-release-tagging v=$(v)
 	git tag v$(v)
 	git push origin v$(v)
+	@$(MAKE) sync-release-branch v=$(v)
 	@echo "→ Deploying v$(v) to production..."
 
-# ─── Shells ──────────────────────────────────────────────
-shell-siddharth:
-	docker compose exec siddharth /bin/bash
+# Policy gate that must pass before creating any tag.
+validate-release-tagging:
+	@test -n "$(v)" || (echo "Usage: make validate-release-tagging v=1.2.3" && exit 1)
+	@./scripts/release_branch_sync.sh validate "$(v)"
 
-shell-suryan:
-	docker compose exec suryan /bin/bash
-
-# ─── Utilities ───────────────────────────────────────────
-hash-password:
-	@read -p "Password: " pw; \
-	docker run --rm caddy:2-alpine caddy hash-password --plaintext "$$pw"
-
-
-# ─── Production ──────────────────────────────────────────
-up:
-	docker compose --profile prod up -d
-
-down:
-	docker compose --profile prod down
-
-build:
-	docker compose --profile prod build
-
-restart:
-	docker compose --profile prod up -d --build --remove-orphans
-
-logs:
-	docker compose --profile prod logs -f --tail=50
-
-ps:
-	docker compose ps
-
-# ─── Preprod ─────────────────────────────────────────────
-preprod-up:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d --build
-
-preprod-down:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod down
+# Ensures a branch named release-v<major>.<minor> exists and enforces tagging
+# policy: tags must be set from main or the matching release branch.
+sync-release-branch:
+	@test -n "$(v)" || (echo "Usage: make sync-release-branch v=1.2.3" && exit 1)
+	@./scripts/release_branch_sync.sh sync "$(v)"
 
 # ─── Shells ──────────────────────────────────────────────
 shell-siddharth:
