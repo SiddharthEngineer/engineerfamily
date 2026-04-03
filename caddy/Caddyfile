@@ -1,23 +1,15 @@
-# engineerfamily.net – Single Caddyfile for prod + preprod
-# One caddy instance handles all routing. Preprod services run as separate
-# containers on the same Docker network, named engineerfamily-preprod-*.
-
-# ─── Snippets (must be defined before use) ───────────────────────────────────
 (preprod_auth) {
   basicauth {
-    # Generate: make hash-password
     admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
   }
 }
 
-# ─── Root domain ─────────────────────────────────────────────────────────────
 engineerfamily.net {
   root * /srv/landing
   file_server
   encode gzip
 }
 
-# ─── Siddharth ───────────────────────────────────────────────────────────────
 siddharth.engineerfamily.net {
   reverse_proxy siddharth:8000
   encode gzip
@@ -29,7 +21,6 @@ siddharth.preprod.engineerfamily.net {
   encode gzip
 }
 
-# ─── Suryan ──────────────────────────────────────────────────────────────────
 suryan.engineerfamily.net {
   reverse_proxy suryan:8501
   @websocket {
@@ -50,7 +41,6 @@ suryan.preprod.engineerfamily.net {
   reverse_proxy @websocket engineerfamily-preprod-suryan-1:8501
 }
 
-# ─── Shivam (static) ─────────────────────────────────────────────────────────
 shivam.engineerfamily.net {
   root * /srv/shivam/public
   file_server
@@ -64,7 +54,6 @@ shivam.preprod.engineerfamily.net {
   file_server
 }
 
-# ─── Nivi ────────────────────────────────────────────────────────────────────
 nivi.engineerfamily.net {
   reverse_proxy nivi:2368
   encode gzip
@@ -75,12 +64,9 @@ nivi.preprod.engineerfamily.net {
   reverse_proxy engineerfamily-preprod-nivi-1:2368
 }
 
-# ─── Analytics ───────────────────────────────────────────────────────────────
 analytics.engineerfamily.net {
-  reverse_proxy analytics:3000
   basicauth {
-    # Generate: make hash-password
     admin $2a$14$REPLACE_WITH_HASHED_PASSWORD
   }
+  reverse_proxy analytics:3000
 }
-EOF
