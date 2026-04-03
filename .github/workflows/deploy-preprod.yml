@@ -7,6 +7,11 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to deploy (e.g. v1.2.3-preprod)"
+        required: true
 
 jobs:
   deploy:
@@ -37,8 +42,15 @@ jobs:
 
       - name: Build & restart preprod containers
         run: |
-          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
+            set -e
             cd /srv/engineerfamily-preprod
+
+            if [ ! -f caddy/Caddyfile.preprod ]; then
+              echo "ERROR: caddy/Caddyfile.preprod not found"
+              exit 1
+            fi
+
             docker compose \
               -f docker-compose.yml \
               -f docker-compose.preprod.yml \
@@ -50,7 +62,7 @@ jobs:
       - name: Health check
         run: |
           sleep 10
-          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
             cd /srv/engineerfamily-preprod
             docker compose \
               -f docker-compose.yml \

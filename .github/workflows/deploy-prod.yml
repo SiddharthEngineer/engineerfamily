@@ -7,6 +7,11 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to deploy (e.g. v1.2.3)"
+        required: true
 
 jobs:
   deploy:
@@ -37,8 +42,16 @@ jobs:
 
       - name: Build & restart containers
         run: |
-          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
+            set -e
             cd /srv/engineerfamily
+
+            # Verify the Caddyfile made it over before restarting
+            if [ ! -f caddy/Caddyfile ]; then
+              echo "ERROR: caddy/Caddyfile not found in /srv/engineerfamily"
+              exit 1
+            fi
+
             docker compose pull --ignore-pull-failures
             docker compose --profile prod up -d --build --remove-orphans
             docker image prune -f
@@ -47,7 +60,8 @@ jobs:
       - name: Health check
         run: |
           sleep 10
-          ssh deploy@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << 'EOF'
+            cd /srv/engineerfamily
             docker compose ps --format "table {{.Name}}\t{{.Status}}"
           EOF
 
