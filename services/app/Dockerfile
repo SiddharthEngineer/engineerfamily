@@ -1,3 +1,14 @@
+FROM node:22-alpine AS vite-builder
+
+WORKDIR /frontend
+
+COPY services/app/vite/package*.json ./
+RUN npm ci
+
+COPY services/app/vite/ ./
+COPY services/app/portfolios/ ../portfolios/
+RUN npm run build
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -6,7 +17,7 @@ COPY services/app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/app/ ./
-COPY templates/ ./templates/
+COPY --from=vite-builder /frontend/dist ./vite/dist
 
 EXPOSE 8000
 

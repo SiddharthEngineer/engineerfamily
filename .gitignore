@@ -1,7 +1,15 @@
-*.code-workspace
+### Packages ###
+node_modules/
 env/
+.venv/
+
+### VS Code ###
+*.code-workspace
+
+### Secrets ###
 .env
-__pycache__/
+
+### Miscellaneous ###
 *.sqlite3
 .DS_Store
-.venv/
+__pycache__/
