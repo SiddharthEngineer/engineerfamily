@@ -11,10 +11,25 @@ const PEOPLE = [
   { slug: 'nivi', profile: nivi },
 ];
 
+function getStreamlitUrl() {
+  const { hostname } = window.location;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `http://${hostname}:8501`;
+  }
+
+  if (hostname.includes('preprod')) {
+    return 'https://streamlit-preprod.engineerfamily.net';
+  }
+
+  return 'https://streamlit.engineerfamily.net';
+}
+
 function Navbar() {
   const location = useLocation();
   const isPortfolioPage = PEOPLE.some((p) => location.pathname.startsWith(`/${p.slug}`));
   const isGamesPage = location.pathname.startsWith('/games');
+  const streamlitUrl = getStreamlitUrl();
 
   return (
     <header className="site-header">
@@ -49,7 +64,7 @@ function Navbar() {
             </a>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href="https://streamlit.engineerfamily.net" target="_blank" rel="noreferrer noopener">
+            <a className="nav-link" href={streamlitUrl} target="_blank" rel="noreferrer noopener">
               Streamlit
             </a>
           </li>

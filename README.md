@@ -122,11 +122,14 @@ git push origin v1.2.3
 # Copy env
 cp .env.example .env
 
-# Start Flask app only (local)
-docker compose up -d --build app
+# Start Flask app + Streamlit (local)
+docker compose --profile local up -d --build app streamlit
 
 # Open home page
 http://localhost:8000/
+
+# Streamlit (linked from nav)
+http://localhost:8501/
 
 # Stop app
 docker compose down

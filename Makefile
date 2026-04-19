@@ -1,7 +1,8 @@
 # Makefile – common dev and deploy helpers
 # Usage: make <target>
 
-.PHONY: help run-app run-streamlit up down logs ps build restart \
+
+.PHONY: help run-app run-streamlit local-up local-down up down logs ps build restart \
 	preprod-up preprod-down shell-app shell-streamlit \
 	tag-preprod tag-prod validate-release-tagging sync-release-branch
 
@@ -12,6 +13,8 @@ help:
 	@echo "  Local dev (no Docker):"
 	@echo "    run-app          Run Flask app locally on :5000"
 	@echo "    run-streamlit    Run Streamlit app locally on :8501"
+	@echo "    local-up         Start app + Streamlit in Docker for localhost"
+	@echo "    local-down       Stop local Docker stack"
 	@echo ""
 	@echo "  Production:"
 	@echo "    up               Start all prod containers"
@@ -49,6 +52,12 @@ run-streamlit:
 	cd services/streamlit && \
 	  . .venv/bin/activate && \
 	  streamlit run app.py --server.port 8501
+
+local-up:
+	docker compose --profile local up -d --build app streamlit
+
+local-down:
+	docker compose down
 
 # ─── Production ──────────────────────────────────────────
 up:
