@@ -131,28 +131,28 @@
 
   <div class="members">
 
-    <a href="#" class="member-card" data-subdomain="siddharth">
+    <a href="/siddharth/" class="member-card">
       <div class="member-role">Data Science &amp; Engineering</div>
       <div class="member-name">Siddharth</div>
       <p class="member-desc">Work projects, personal visualizations, and data explorations.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="#" class="member-card" data-subdomain="shivam">
+    <a href="/shivam/" class="member-card">
       <div class="member-role">Game Development</div>
       <div class="member-name">Shivam</div>
       <p class="member-desc">Browser-based games, built from scratch.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="#" class="member-card" data-subdomain="suryan">
+    <a href="/suryan/" class="member-card">
       <div class="member-role">Data Visualization</div>
       <div class="member-name">Suryan</div>
       <p class="member-desc">March Madness analytics and interactive data apps.</p>
       <div class="arrow">→</div>
     </a>
 
-    <a href="#" class="member-card" data-subdomain="nivi">
+    <a href="/nivi/" class="member-card">
       <div class="member-role">Writing</div>
       <div class="member-name">Nivi</div>
       <p class="member-desc">Stories, essays, and whatever else is worth putting into words.</p>
@@ -164,23 +164,6 @@
   <footer>
     <p>engineerfamily.net</p>
   </footer>
-
-  <script>
-    (function setMemberLinks() {
-      var hostname = window.location.hostname;
-      var isPreprod =
-        hostname === 'preprod.engineerfamily.net' ||
-        hostname.endsWith('.preprod.engineerfamily.net') ||
-        hostname.endsWith('-preprod.engineerfamily.net');
-      var baseDomain = 'engineerfamily.net';
-
-      document.querySelectorAll('.member-card[data-subdomain]').forEach(function (card) {
-        var subdomain = card.getAttribute('data-subdomain');
-        var envSubdomain = isPreprod ? subdomain + '-preprod' : subdomain;
-        card.href = 'https://' + envSubdomain + '.' + baseDomain;
-      });
-    })();
-  </script>
 
   <script async src="https://analytics.engineerfamily.net/script.js" data-website-id="REPLACE_ME"></script>
 </body>

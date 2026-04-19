@@ -5,11 +5,10 @@ Each family member has their own subdomain under `engineerfamily.net`.
 
 | Subdomain | Owner | Tech |
 |---|---|---|
-| `siddharth.engineerfamily.net` | Siddharth | Flask |
-| `shivam.engineerfamily.net` | Shivam | JavaScript |
-| `suryan.engineerfamily.net` | Suryan | Streamlit |
-| `nivi.engineerfamily.net` | Nivi | Ghost CMS |
-| `analytics.engineerfamily.net` | Siddharth | Umami |
+| `engineerfamily.net` | All | Flask |
+| `streamlit.engineerfamily.net` | Siddharth | Streamlit |
+| `bookstack.engineerfamily.net` | Nivi | BookStack |
+| `umami.engineerfamily.net` | Siddharth | Umami |
 
 ---
 
@@ -17,13 +16,13 @@ Each family member has their own subdomain under `engineerfamily.net`.
 
 ```
 Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
-                                              └── Caddy (reverse proxy)
-                                                    ├── siddharth → Django container
-                                                    ├── suryan    → Streamlit container
-                                                    ├── shivam    → Static files
-                                                    ├── nivi       → Ghost container
-                                                    └── analytics → Umami container
+                         ├── app (Flask + Gunicorn)
+                         ├── streamlit
+                         ├── umami
+                         └── analytics (Postgres)
 ```
+
+Routing for site pages is managed in Flask (`services/app/app.py`).
 
 ---
 
@@ -123,27 +122,23 @@ git push origin v1.2.3
 # Copy env
 cp .env.example .env
 
-# Start everything
-make up
+# Start Flask app only (local)
+docker compose up -d --build app
 
-# Tail logs
-make logs
+# Open home page
+http://localhost:8000/
+
+# Stop app
+docker compose down
 ```
 
 ---
-
-## Adding a New Family Member
-
-1. Add a service block to `docker-compose.yml`.
-2. Add a routing block to `caddy/Caddyfile`.
-3. Add `subdomain.engineerfamily.net → YOUR_VPS_IP` in Cloudflare DNS.
-4. Create `services/newperson/` with a Dockerfile or use a pre-built image.
 
 ---
 
 ## Analytics
 
-Umami is at `analytics.engineerfamily.net` (password protected).
+Umami is at `umami.engineerfamily.net` (password protected).
 
 To add tracking to a page, paste into the `<head>`:
 ```html
@@ -154,6 +149,27 @@ Get `YOUR_WEBSITE_ID` from the Umami dashboard after adding each site.
 
 ---
 
+## Ingress Strategy (Recommended)
+
+Ingress is the path internet traffic takes into your VPS and containers.
+
+Recommended pattern for this repo now:
+
+1. Keep Cloudflare in front for DNS, TLS, and DDoS protection.
+2. Expose only ports 80/443 publicly on the VPS.
+3. Run a single edge reverse proxy on the VPS (Nginx, Traefik, or Caddy).
+4. Route traffic by hostname/path to containers on the internal Docker network:
+   - `engineerfamily.net` -> `app:8000`
+   - `analytics.engineerfamily.net` -> `umami:3000`
+   - `suryan.engineerfamily.net` or `/suryan` -> `streamlit:8501`
+5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
+
+Why this is preferred:
+
+- One place to manage TLS, redirects, headers, and rate limits.
+- Cleaner security boundary (single public entrypoint).
+- Easier migration as services grow.
+
 ## Useful Commands
 
 ```bash
@@ -161,5 +177,6 @@ make ps              # container status
 make logs            # tail all logs
 make restart         # rebuild + restart changed services
 make preprod-up      # start preprod
-make hash-password   # generate basic auth hash
+make run-app         # run Flask locally without Docker
+make run-streamlit   # run Streamlit locally without Docker
 ```

@@ -2,28 +2,17 @@
 # Usage: docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d
 
 services:
-  siddharth:
+  app:
     environment:
       - FLASK_ENV=development
       - SECRET_KEY=${SIDDHARTH_SECRET_KEY_PREPROD}
     networks:
       web:
         aliases:
-          - siddharth-preprod
+          - app-preprod
 
-  nivi:
-    environment:
-      - NODE_ENV=development
-      - url=https://nivi.preprod.engineerfamily.net
-      - database__client=sqlite3
-      - database__connection__filename=/var/lib/ghost/content/data/ghost-preprod.db
+  streamlit:
     networks:
       web:
         aliases:
-          - nivi-preprod
-
-  suryan:
-    networks:
-      web:
-        aliases:
-          - suryan-preprod
+          - streamlit-preprod

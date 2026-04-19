@@ -1,43 +1,22 @@
 services:
-  # ─── Reverse Proxy ────────────────────────────────────────────────────────
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    environment:
-      - CADDY_ADMIN_HASH=${CADDY_ADMIN_HASH}
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp" # HTTP/3
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-      - ./services/landing:/srv/landing:ro
-      - ./services/shivam/public:/srv/shivam/public:ro
-    # No depends_on — caddy retries upstream connections automatically.
-    # depends_on cannot reliably reference profiled services.
-    networks:
-      - web
-    profiles: ["prod"]
-
-  # ─── Siddharth (Flask portfolio) ──────────────────────────────────────────
-  siddharth:
+  # ─── Home Page ──────────────────────────────────────────
+  app:
     build:
-      context: ./services/siddharth
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/app/Dockerfile
     restart: unless-stopped
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - SECRET_KEY=${SIDDHARTH_SECRET_KEY}
+    ports:
+      - "8000:8000"
     networks:
       - web
-    profiles: ["prod", "preprod"]
 
-  # ─── Suryan (Streamlit – data viz) ────────────────────────────────────────
-  suryan:
+  # ─── Streamlit ────────────────────────────────────────
+  streamlit:
     build:
-      context: ./services/suryan
+      context: ./services/streamlit
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
@@ -48,32 +27,28 @@ services:
       - web
     profiles: ["prod", "preprod"]
 
-  # ─── Shivam (static files served by Caddy directly) ──────────────────────
-  # No container needed — Caddy serves ./services/shivam/public as static files.
-  # See Caddyfile for routing.
-
-  # ─── Nivi (Ghost CMS – writing) ───────────────────────────────────────────
-  nivi:
-    image: ghost:5-alpine
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - url=https://nivi.engineerfamily.net
-      - database__client=sqlite3
-      - database__connection__filename=/var/lib/ghost/content/data/ghost.db
-      - mail__transport=SMTP
-      - mail__options__host=${GHOST_SMTP_HOST}
-      - mail__options__port=${GHOST_SMTP_PORT:-587}
-      - mail__options__auth__user=${GHOST_SMTP_USER}
-      - mail__options__auth__pass=${GHOST_SMTP_PASS}
-    volumes:
-      - nivi_content:/var/lib/ghost/content
-    networks:
-      - web
-    profiles: ["prod", "preprod"]
+  # ─── Nivi (Bookstack CMS – writing) ───────────────────────────────────────────
+  # bookstack:
+  #   image: ghost:5-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     - NODE_ENV=production
+  #     - url=https://nivi.engineerfamily.net
+  #     - database__client=sqlite3
+  #     - database__connection__filename=/var/lib/ghost/content/data/ghost.db
+  #     - mail__transport=SMTP
+  #     - mail__options__host=${GHOST_SMTP_HOST}
+  #     - mail__options__port=${GHOST_SMTP_PORT:-587}
+  #     - mail__options__auth__user=${GHOST_SMTP_USER}
+  #     - mail__options__auth__pass=${GHOST_SMTP_PASS}
+  #   volumes:
+  #     - nivi_content:/var/lib/ghost/content
+  #   networks:
+  #     - web
+  #   profiles: ["prod", "preprod"]
 
   # ─── Analytics (Umami – self-hosted, privacy-first) ───────────────────────
-  analytics:
+  umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
@@ -110,7 +85,5 @@ networks:
     name: engineerfamily_web
 
 volumes:
-  caddy_data:
-  caddy_config:
   nivi_content:
   analytics_db:

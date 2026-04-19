@@ -1,17 +1,17 @@
 # Makefile – common dev and deploy helpers
 # Usage: make <target>
 
-.PHONY: help run-siddharth run-suryan up down logs ps build restart \
-	preprod-up preprod-down shell-siddharth shell-suryan \
-	tag-preprod tag-prod validate-release-tagging sync-release-branch hash-password
+.PHONY: help run-app run-streamlit up down logs ps build restart \
+	preprod-up preprod-down shell-app shell-streamlit \
+	tag-preprod tag-prod validate-release-tagging sync-release-branch
 
 help:
 	@echo ""
 	@echo "  Engineer Family – make targets"
 	@echo ""
 	@echo "  Local dev (no Docker):"
-	@echo "    run-siddharth    Run Flask app locally on :5000"
-	@echo "    run-suryan       Run Streamlit app locally on :8501"
+	@echo "    run-app          Run Flask app locally on :5000"
+	@echo "    run-streamlit    Run Streamlit app locally on :8501"
 	@echo ""
 	@echo "  Production:"
 	@echo "    up               Start all prod containers"
@@ -32,22 +32,21 @@ help:
 	@echo "    sync-release-branch Ensure release branch points to latest tag for v=<major.minor.patch>"
 	@echo ""
 	@echo "  Utilities:"
-	@echo "    shell-siddharth  Open shell in siddharth container"
-	@echo "    shell-suryan     Open shell in Streamlit container"
-	@echo "    hash-password    Generate a Caddy basicauth hash"
+	@echo "    shell-app        Open shell in app container"
+	@echo "    shell-streamlit  Open shell in Streamlit container"
 	@echo ""
 
 # ─── Local dev ───────────────────────────────────────────
 # Each service has its own venv at services/<name>/.venv
-# First time: cd services/siddharth && python -m venv .venv && pip install -r requirements.txt
+# First time: cd services/app && python -m venv .venv && pip install -r requirements.txt
 
-run-siddharth:
-	cd services/siddharth && \
+run-app:
+	cd services/app && \
 	  . .venv/bin/activate && \
-	  FLASK_ENV=development FLASK_DEBUG=1 flask run --port 5000
+	  FLASK_ENV=development FLASK_DEBUG=1 flask --app app run --port 5000
 
-run-suryan:
-	cd services/suryan && \
+run-streamlit:
+	cd services/streamlit && \
 	  . .venv/bin/activate && \
 	  streamlit run app.py --server.port 8501
 
@@ -109,13 +108,8 @@ sync-release-branch:
 	@./scripts/release_branch_sync.sh sync "$(v)"
 
 # ─── Shells ──────────────────────────────────────────────
-shell-siddharth:
-	docker compose exec siddharth /bin/bash
+shell-app:
+	docker compose exec app /bin/bash
 
-shell-suryan:
-	docker compose exec suryan /bin/bash
-
-# ─── Utilities ───────────────────────────────────────────
-hash-password:
-	@read -p "Password: " pw; \
-	docker run --rm caddy:2-alpine caddy hash-password --plaintext "$$pw"
+shell-streamlit:
+	docker compose exec streamlit /bin/bash
