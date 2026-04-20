@@ -6,12 +6,16 @@ services:
     environment:
       - FLASK_ENV=development
       - SECRET_KEY=${SIDDHARTH_SECRET_KEY_PREPROD}
+    ports:
+      - "8001:8000"
     networks:
       web:
         aliases:
           - app-preprod
 
   streamlit:
+    ports:
+      - "127.0.0.1:8502:8501"
     networks:
       web:
         aliases:

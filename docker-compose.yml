@@ -80,7 +80,7 @@ services:
         condition: service_healthy
     networks:
       - web
-    profiles: ["prod", "preprod"]
+    profiles: ["prod"]
 
   analytics-db:
     image: postgres:16-alpine
@@ -98,7 +98,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    profiles: ["prod", "preprod"]
+    profiles: ["prod"]
 
 networks:
   web:
