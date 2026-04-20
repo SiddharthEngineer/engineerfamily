@@ -23,6 +23,8 @@ services:
     build:
       context: .
       dockerfile: services/app/Dockerfile
+      args:
+        UMAMI_APP_ID: ${UMAMI_APP_ID}
     restart: unless-stopped
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
@@ -43,6 +45,8 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ENABLE_CORS=false
+      - UMAMI_HOST=${UMAMI_HOST:-https://analytics.engineerfamily.net}
+      - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
     ports:
       - "127.0.0.1:8501:8501"
     networks:

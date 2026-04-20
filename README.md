@@ -137,18 +137,36 @@ docker compose down
 
 ---
 
----
-
 ## Analytics
 
-Umami is at `umami.engineerfamily.net` (password protected).
+Umami is at `umami.engineerfamily.net`.
+
+This repo uses a hybrid analytics model:
+
+- Product analytics (sessions, visitors, campaign attribution): Umami JS tracker where supported.
+- Request analytics (all hostnames/services): Caddy access logs in JSON.
 
 To add tracking to a page, paste into the `<head>`:
 ```html
-<script async src="https://analytics.engineerfamily.net/script.js"
+<script async src="https://umami.engineerfamily.net/script.js"
         data-website-id="YOUR_WEBSITE_ID"></script>
 ```
 Get `YOUR_WEBSITE_ID` from the Umami dashboard after adding each site.
+
+For the main Vite app, the tracker website ID is injected at build time from
+`UMAMI_APP_ID` (mapped to Vite env `VITE_UMAMI_APP_ID` during Docker build).
+
+Current service behavior:
+
+- Main Flask/Vite site: Umami script is included in the Vite app entry HTML.
+- Streamlit: Umami script is injected via `streamlit.components.v1` when
+   `UMAMI_HOST` and `UMAMI_STREAMLIT_ID` are set.
+
+View access logs:
+
+```bash
+docker compose logs -f caddy
+```
 
 ---
 
@@ -163,7 +181,8 @@ Recommended pattern for this repo now:
 3. Run a single edge reverse proxy on the VPS (Nginx, Traefik, or Caddy).
 4. Route traffic by hostname/path to containers on the internal Docker network:
    - `engineerfamily.net` -> `app:8000`
-   - `analytics.engineerfamily.net` -> `umami:3000`
+   - `umami.engineerfamily.net` -> `umami:3000`
+   - `analytics.engineerfamily.net` -> `umami:3000` (alias)
    - `suryan.engineerfamily.net` or `/suryan` -> `streamlit:8501`
 5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
 

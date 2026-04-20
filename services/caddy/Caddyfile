@@ -2,15 +2,25 @@
   email admin@engineerfamily.net
 }
 
+(access_json) {
+  log {
+    output stdout
+    format json
+  }
+}
+
 engineerfamily.net, www.engineerfamily.net {
+  import access_json
   reverse_proxy app:8000
 }
 
 streamlit.engineerfamily.net {
+  import access_json
   reverse_proxy streamlit:8501
 }
 
 preprod.engineerfamily.net {
+  import access_json
   basicauth {
     admin {$CADDY_ADMIN_HASH}
   }
@@ -18,12 +28,14 @@ preprod.engineerfamily.net {
 }
 
 preprod-streamlit.engineerfamily.net, streamlit-preprod.engineerfamily.net {
+  import access_json
   basicauth {
     admin {$CADDY_ADMIN_HASH}
   }
   reverse_proxy streamlit-preprod:8501
 }
 
-umami.engineerfamily.net, analytics.engineerfamily.net {
+analytics.engineerfamily.net, umami.engineerfamily.net {
+  import access_json
   reverse_proxy umami:3000
 }
