@@ -10,7 +10,17 @@ streamlit.engineerfamily.net {
   reverse_proxy streamlit:8501
 }
 
-streamlit-preprod.engineerfamily.net {
+preprod.engineerfamily.net {
+  basicauth {
+    admin {$CADDY_ADMIN_HASH}
+  }
+  reverse_proxy app-preprod:8000
+}
+
+preprod-streamlit.engineerfamily.net, streamlit-preprod.engineerfamily.net {
+  basicauth {
+    admin {$CADDY_ADMIN_HASH}
+  }
   reverse_proxy streamlit-preprod:8501
 }
 
