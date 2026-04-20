@@ -1,4 +1,21 @@
 services:
+  # ─── Edge Router (Caddy) ─────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./services/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - web
+    profiles: ["prod"]
+
   # ─── Home Page ──────────────────────────────────────────
   app:
     build:
@@ -89,3 +106,5 @@ networks:
 volumes:
   nivi_content:
   analytics_db:
+  caddy_data:
+  caddy_config:

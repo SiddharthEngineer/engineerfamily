@@ -131,6 +131,10 @@ jobs:
             docker image prune -f
 
             # Reload prod caddy so it picks up any Caddyfile changes
+            if [ ! -f /srv/engineerfamily/services/caddy/Caddyfile ]; then
+              echo "ERROR: /srv/engineerfamily/services/caddy/Caddyfile not found"
+              exit 1
+            fi
             docker exec engineerfamily-caddy-1 caddy reload --config /etc/caddy/Caddyfile
           EOF
 

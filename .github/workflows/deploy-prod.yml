@@ -115,8 +115,8 @@ jobs:
             git -c safe.directory="$repo_dir" reset --hard origin/prod
 
             # Verify the Caddyfile made it over before restarting
-            if [ ! -f caddy/Caddyfile ]; then
-              echo "ERROR: caddy/Caddyfile not found in /srv/engineerfamily"
+            if [ ! -f services/caddy/Caddyfile ]; then
+              echo "ERROR: services/caddy/Caddyfile not found in /srv/engineerfamily"
               exit 1
             fi
 

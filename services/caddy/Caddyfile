@@ -1,0 +1,19 @@
+{
+  email admin@engineerfamily.net
+}
+
+engineerfamily.net, www.engineerfamily.net {
+  reverse_proxy app:8000
+}
+
+streamlit.engineerfamily.net {
+  reverse_proxy streamlit:8501
+}
+
+streamlit-preprod.engineerfamily.net {
+  reverse_proxy streamlit-preprod:8501
+}
+
+umami.engineerfamily.net, analytics.engineerfamily.net {
+  reverse_proxy umami:3000
+}
