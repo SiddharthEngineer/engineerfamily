@@ -2,20 +2,30 @@
 # Usage: docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d
 
 services:
-  app:
+  app-preprod:
+    build:
+      context: .
+      dockerfile: services/app/Dockerfile
+    restart: unless-stopped
     environment:
       - FLASK_ENV=development
       - SECRET_KEY=${SIDDHARTH_SECRET_KEY_PREPROD}
-    ports:
-      - "8001:8000"
+    profiles: ["preprod"]
     networks:
       web:
         aliases:
           - app-preprod
 
-  streamlit:
-    ports:
-      - "127.0.0.1:8502:8501"
+  streamlit-preprod:
+    build:
+      context: ./services/streamlit
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+    profiles: ["preprod"]
     networks:
       web:
         aliases:

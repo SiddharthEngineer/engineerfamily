@@ -31,6 +31,7 @@ services:
       - "8000:8000"
     networks:
       - web
+    profiles: ["local", "prod"]
 
   # ─── Streamlit ────────────────────────────────────────
   streamlit:
@@ -46,7 +47,7 @@ services:
       - "127.0.0.1:8501:8501"
     networks:
       - web
-    profiles: ["local", "prod", "preprod"]
+    profiles: ["local", "prod"]
 
   # ─── Nivi (Bookstack CMS – writing) ───────────────────────────────────────────
   # bookstack:

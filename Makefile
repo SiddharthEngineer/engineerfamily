@@ -80,7 +80,7 @@ ps:
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d --build
+	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d --build --remove-orphans
 
 preprod-down:
 	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod down
