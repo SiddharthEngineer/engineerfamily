@@ -106,6 +106,16 @@ jobs:
               exit 1
             fi
 
+            # Git checkout/reset also needs to replace tracked files outside .git.
+            if find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit | grep -q .; then
+              sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir" 2>/dev/null || true
+            fi
+            if find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit | grep -q .; then
+              echo "ERROR: working tree contains files or directories not writable by $(id -un) in $repo_dir"
+              echo "Run on VPS: sudo chown -R deploy:deploy $repo_dir && sudo find $repo_dir -path '$repo_dir/.git' -prune -o -type d -exec chmod u+rwx {} \\; && sudo find $repo_dir -path '$repo_dir/.git' -prune -o -type f -exec chmod u+rw {} \\;"
+              exit 1
+            fi
+
             git -c safe.directory="$repo_dir" fetch --prune --tags origin
             if git -c safe.directory="$repo_dir" show-ref --verify --quiet refs/heads/prod; then
               git -c safe.directory="$repo_dir" checkout prod
