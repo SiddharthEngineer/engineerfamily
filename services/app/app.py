@@ -15,6 +15,13 @@ for base in [current_dir, *current_dir.parents]:
         break
 
 
+@app.route("/favicon.ico", defaults={"filename": "favicon.ico"})
+def vite_root_static_file(filename):
+    if filename != "favicon.ico" or not portfolio_dist_dir.exists():
+        abort(404)
+    return send_from_directory(portfolio_dist_dir, filename)
+
+
 @app.route("/")
 def home():
     return serve_vite_portfolio_app()
