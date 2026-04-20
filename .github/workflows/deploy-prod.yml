@@ -96,11 +96,24 @@ jobs:
 
             git config --global --add safe.directory "$repo_dir" || true
 
+            repair_repo_permissions() {
+              if ! sudo -n true >/dev/null 2>&1; then
+                return 1
+              fi
+
+              sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir"
+              sudo -n find "$repo_dir/.git" -type d -exec chmod u+rwx {} \;
+              sudo -n find "$repo_dir/.git" -type f -exec chmod u+rw {} \;
+              sudo -n find "$repo_dir" -path "$repo_dir/.git" -prune -o -type d -exec chmod u+rwx {} \;
+              sudo -n find "$repo_dir" -path "$repo_dir/.git" -prune -o -type f -exec chmod u+rw {} \;
+            }
+
             # Git fetch needs write access in .git/objects (not just .git itself).
             if [ ! -w .git ] || [ ! -w .git/objects ] || [ ! -w .git/objects/pack ]; then
-              sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir" 2>/dev/null || true
-              sudo -n find "$repo_dir/.git" -type d -exec chmod u+rwx {} \; 2>/dev/null || true
-              sudo -n find "$repo_dir/.git" -type f -exec chmod u+rw {} \; 2>/dev/null || true
+              if ! repair_repo_permissions; then
+                echo "ERROR: passwordless sudo is required to repair repo permissions in $repo_dir"
+                exit 1
+              fi
             fi
             if [ ! -w .git ] || [ ! -w .git/objects ] || [ ! -w .git/objects/pack ]; then
               echo "ERROR: git metadata is not writable by $(id -un) in $repo_dir"
@@ -109,13 +122,19 @@ jobs:
             fi
 
             # Git checkout/reset also needs to replace tracked files outside .git.
-            if find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit | grep -q .; then
-              sudo -n chown -R "$(id -un):$(id -gn)" "$repo_dir" 2>/dev/null || true
-              sudo -n find "$repo_dir" -path "$repo_dir/.git" -prune -o -type d -exec chmod u+rwx {} \; 2>/dev/null || true
-              sudo -n find "$repo_dir" -path "$repo_dir/.git" -prune -o -type f -exec chmod u+rw {} \; 2>/dev/null || true
+            first_unwritable_path="$(find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit)"
+            if [ -n "$first_unwritable_path" ]; then
+              if ! repair_repo_permissions; then
+                echo "ERROR: passwordless sudo is required to repair repo permissions in $repo_dir"
+                echo "First unwritable path: $repo_dir/${first_unwritable_path#./}"
+                exit 1
+              fi
             fi
-            if find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit | grep -q .; then
+            first_unwritable_path="$(find . -path './.git' -prune -o -path './.git/*' -prune -o \( -type f -o -type d \) ! -writable -print -quit)"
+            if [ -n "$first_unwritable_path" ]; then
               echo "ERROR: working tree contains files or directories not writable by $(id -un) in $repo_dir"
+              echo "First unwritable path: $repo_dir/${first_unwritable_path#./}"
+              ls -ld "$first_unwritable_path" || true
               echo "Run on VPS: sudo chown -R deploy:deploy $repo_dir && sudo find $repo_dir -path '$repo_dir/.git' -prune -o -type d -exec chmod u+rwx {} \\; && sudo find $repo_dir -path '$repo_dir/.git' -prune -o -type f -exec chmod u+rw {} \\;"
               exit 1
             fi
