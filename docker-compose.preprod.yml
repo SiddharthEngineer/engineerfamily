@@ -1,5 +1,5 @@
 # Overrides for preprod environment.
-# Usage: docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml up -d
 
 services:
   app-preprod:
@@ -8,10 +8,10 @@ services:
       dockerfile: services/app/Dockerfile
       args:
         UMAMI_APP_ID: ${UMAMI_APP_ID}
+        UMAMI_HOST: ${UMAMI_HOST:-https://umami.engineerfamily.net}
     restart: unless-stopped
     environment:
       - FLASK_ENV=development
-    profiles: ["preprod"]
     networks:
       web:
         aliases:
@@ -28,7 +28,6 @@ services:
       - STREAMLIT_SERVER_ENABLE_CORS=false
       - UMAMI_HOST=${UMAMI_HOST:-https://umami.engineerfamily.net}
       - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
-    profiles: ["preprod"]
     networks:
       web:
         aliases:
@@ -46,9 +45,41 @@ services:
       - app-preprod
     networks:
       - web
-    profiles: ["preprod"]
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # ─── Preprod Analytics ──────────────────────────────────
+  umami-preprod:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_PREPROD}@analytics-db-preprod:5432/umami
+      - APP_SECRET=${UMAMI_APP_SECRET_PREPROD}
+    depends_on:
+      analytics-db-preprod:
+        condition: service_healthy
+    networks:
+      - web
+
+  analytics-db-preprod:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=umami
+      - POSTGRES_USER=umami
+      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD_PREPROD}
+    volumes:
+      - analytics_db_preprod:/var/lib/postgresql/data
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  analytics_db_preprod:

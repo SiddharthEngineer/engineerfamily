@@ -54,36 +54,36 @@ run-streamlit:
 	  streamlit run app.py --server.port 8501
 
 local-up:
-	docker compose --profile local up -d --build app streamlit nginx-local
+	docker compose -f docker-compose.local.yml up -d --build
 
 local-down:
-	docker compose down
+	docker compose -f docker-compose.local.yml down
 
 # ─── Production ──────────────────────────────────────────
 up:
-	docker compose --profile prod up -d
+	docker compose -f docker-compose.prod.yml up -d
 
 down:
-	docker compose --profile prod down
+	docker compose -f docker-compose.prod.yml down
 
 build:
-	docker compose --profile prod build
+	docker compose -f docker-compose.prod.yml build
 
 restart:
-	docker compose --profile prod up -d --build --remove-orphans
+	docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 
 logs:
-	docker compose --profile prod logs -f --tail=50
+	docker compose -f docker-compose.prod.yml logs -f --tail=50
 
 ps:
-	docker compose ps
+	docker compose -f docker-compose.prod.yml ps
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d --build --remove-orphans
+	docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml up -d --build --remove-orphans
 
 preprod-down:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod down
+	docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml down
 
 # ─── Releases ────────────────────────────────────────────
 # Usage: make tag-preprod v=1.2.3  → creates and pushes tag v1.2.3-preprod
@@ -118,7 +118,7 @@ sync-release-branch:
 
 # ─── Shells ──────────────────────────────────────────────
 shell-app:
-	docker compose exec app /bin/bash
+	docker compose -f docker-compose.prod.yml exec app /bin/bash
 
 shell-streamlit:
-	docker compose exec streamlit /bin/bash
+	docker compose -f docker-compose.prod.yml exec streamlit /bin/bash

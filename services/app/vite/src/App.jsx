@@ -11,25 +11,31 @@ const PEOPLE = [
   { slug: 'nivi', profile: nivi },
 ];
 
-function getStreamlitUrl() {
+function getSubdomainUrl(subdomain) {
   const { hostname } = window.location;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://${hostname}:8501`;
+    if (subdomain === 'streamlit') return `http://${hostname}:8501`;
+    return `http://${subdomain}.${hostname}`;
+  }
+
+  if (hostname.endsWith('.test') || hostname === 'engineerfamily.test') {
+    return `http://${subdomain}.engineerfamily.test`;
   }
 
   if (hostname.includes('preprod')) {
-    return 'https://streamlit-preprod.engineerfamily.net';
+    if (subdomain === 'analytics') return 'https://analytics-preprod.engineerfamily.net';
+    return `https://${subdomain}-preprod.engineerfamily.net`;
   }
 
-  return 'https://streamlit.engineerfamily.net';
+  if (subdomain === 'analytics') return 'https://analytics.engineerfamily.net';
+  return `https://${subdomain}.engineerfamily.net`;
 }
 
 function Navbar() {
   const location = useLocation();
   const isPortfolioPage = PEOPLE.some((p) => location.pathname.startsWith(`/${p.slug}`));
   const isGamesPage = location.pathname.startsWith('/games');
-  const streamlitUrl = getStreamlitUrl();
 
   return (
     <header className="site-header">
@@ -54,7 +60,7 @@ function Navbar() {
             </ul>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href="https://writing.engineerfamily.net" target="_blank" rel="noreferrer noopener">
+            <a className="nav-link" href={getSubdomainUrl('bookstack')} target="_blank" rel="noreferrer noopener">
               Writing
             </a>
           </li>
@@ -64,7 +70,7 @@ function Navbar() {
             </a>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href={streamlitUrl} target="_blank" rel="noreferrer noopener">
+            <a className="nav-link" href={getSubdomainUrl('streamlit')} target="_blank" rel="noreferrer noopener">
               Streamlit
             </a>
           </li>
