@@ -4,4 +4,3 @@
 networks:
   web:
     driver: bridge
-    name: engineerfamily_web
