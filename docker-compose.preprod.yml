@@ -2,6 +2,21 @@
 # Usage: docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml up -d
 
 services:
+  # ─── Suppress prod host-port bindings ─────────────────────
+  # When layered on top of docker-compose.prod.yml the base services
+  # (nginx, app, streamlit) are also started.  Their host ports
+  # conflict with the already-running production stack, so we clear
+  # them here — only the *-preprod services need to bind.
+  nginx:
+    ports: []
+
+  app:
+    ports: []
+
+  streamlit:
+    ports: []
+
+  # ─── Preprod services ─────────────────────────────────────
   app-preprod:
     build:
       context: .
