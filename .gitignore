@@ -9,6 +9,7 @@ env/
 
 ### Secrets ###
 .env
+services/nginx/ssl/
 
 ### Miscellaneous ###
 *.sqlite3
