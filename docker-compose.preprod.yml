@@ -1,53 +1,8 @@
-# Overrides for preprod environment.
-# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml up -d
+# Preprod stack – fully independent from the production stack.
+# Usage: docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d
 
 services:
-  # ─── Suppress prod host-port bindings ─────────────────────
-  # When layered on top of docker-compose.prod.yml the base services
-  # (nginx, app, streamlit) are also started.  Their host ports
-  # conflict with the already-running production stack, so we clear
-  # them here — only the *-preprod services need to bind.
-  nginx:
-    ports: []
-
-  app:
-    ports: []
-
-  streamlit:
-    ports: []
-
-  # ─── Preprod services ─────────────────────────────────────
-  app-preprod:
-    build:
-      context: .
-      dockerfile: services/app/Dockerfile
-      args:
-        UMAMI_APP_ID: ${UMAMI_APP_ID}
-        UMAMI_HOST: ${UMAMI_HOST:-https://umami.engineerfamily.net}
-    restart: unless-stopped
-    environment:
-      - FLASK_ENV=development
-    networks:
-      web:
-        aliases:
-          - app-preprod
-
-  streamlit-preprod:
-    build:
-      context: ./services/streamlit
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - STREAMLIT_SERVER_HEADLESS=true
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ENABLE_CORS=false
-      - UMAMI_HOST=${UMAMI_HOST:-https://umami.engineerfamily.net}
-      - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
-    networks:
-      web:
-        aliases:
-          - streamlit-preprod
-
+  # ─── Edge Router (nginx) ─────────────────────────────────
   nginx-preprod:
     image: nginx:alpine
     restart: unless-stopped
@@ -66,7 +21,40 @@ services:
       timeout: 5s
       retries: 3
 
-  # ─── Preprod Analytics ──────────────────────────────────
+  # ─── Home Page ──────────────────────────────────────────
+  app-preprod:
+    build:
+      context: .
+      dockerfile: services/app/Dockerfile
+      args:
+        UMAMI_APP_ID: ${UMAMI_APP_ID}
+        UMAMI_HOST: ${UMAMI_HOST:-https://umami.engineerfamily.net}
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=development
+    networks:
+      web:
+        aliases:
+          - app-preprod
+
+  # ─── Streamlit ────────────────────────────────────────
+  streamlit-preprod:
+    build:
+      context: ./services/streamlit
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - UMAMI_HOST=${UMAMI_HOST:-https://umami.engineerfamily.net}
+      - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
+    networks:
+      web:
+        aliases:
+          - streamlit-preprod
+
+  # ─── Analytics (Umami – self-hosted, privacy-first) ───────────────────────
   umami-preprod:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped

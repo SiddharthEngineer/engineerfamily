@@ -80,11 +80,6 @@ services:
       timeout: 5s
       retries: 5
 
-networks:
-  web:
-    driver: bridge
-    name: engineerfamily_web
-
 volumes:
   nivi_content:
   analytics_db:

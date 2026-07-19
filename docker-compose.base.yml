@@ -1,0 +1,7 @@
+# Shared configuration used by both prod and preprod stacks.
+# Usage: docker compose -f docker-compose.base.yml -f docker-compose.<env>.yml up -d
+
+networks:
+  web:
+    driver: bridge
+    name: engineerfamily_web
