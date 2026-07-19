@@ -54,7 +54,7 @@ run-streamlit:
 	  streamlit run app.py --server.port 8501
 
 local-up:
-	docker compose --profile local up -d --build app streamlit
+	docker compose --profile local up -d --build app streamlit nginx-local
 
 local-down:
 	docker compose down

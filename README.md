@@ -144,7 +144,7 @@ Umami is at `umami.engineerfamily.net`.
 This repo uses a hybrid analytics model:
 
 - Product analytics (sessions, visitors, campaign attribution): Umami JS tracker where supported.
-- Request analytics (all hostnames/services): Caddy access logs in JSON.
+- Request analytics (all hostnames/services): nginx access logs in JSON.
 
 To add tracking to a page, paste into the `<head>`:
 ```html
@@ -165,7 +165,7 @@ Current service behavior:
 View access logs:
 
 ```bash
-docker compose logs -f caddy
+docker compose logs -f nginx
 ```
 
 ---
@@ -178,12 +178,11 @@ Recommended pattern for this repo now:
 
 1. Keep Cloudflare in front for DNS, TLS, and DDoS protection.
 2. Expose only ports 80/443 publicly on the VPS.
-3. Run a single edge reverse proxy on the VPS (Nginx, Traefik, or Caddy).
+3. Run a single edge reverse proxy on the VPS (Nginx).
 4. Route traffic by hostname/path to containers on the internal Docker network:
    - `engineerfamily.net` -> `app:8000`
-   - `umami.engineerfamily.net` -> `umami:3000`
-   - `analytics.engineerfamily.net` -> `umami:3000` (alias)
-   - `suryan.engineerfamily.net` or `/suryan` -> `streamlit:8501`
+   - `streamlit.engineerfamily.net` -> `streamlit:8501`
+   - `analytics.engineerfamily.net` -> `umami:3000`
 5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
 
 Why this is preferred:

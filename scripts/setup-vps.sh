@@ -42,11 +42,6 @@ ufw allow http
 ufw allow https
 ufw --force enable
 
-echo "==> Setting up log directory for Caddy..."
-mkdir -p /var/log/caddy
-# Caddy runs in Docker, logs go to container stdout by default.
-# The Caddyfile 'log' directives write inside the container volume.
-
 echo ""
 echo "✅ VPS setup complete."
 echo ""
@@ -55,5 +50,9 @@ echo "  1. Copy your .env file to /srv/engineerfamily/.env"
 echo "  2. Add the GitHub Actions SSH public key to /home/deploy/.ssh/authorized_keys"
 echo "  3. Push to main — the GitHub Action will do the first deploy"
 echo ""
-echo "To generate a Caddy basic-auth password hash, run:"
-echo "  docker run --rm caddy:2-alpine caddy hash-password --plaintext 'yourpassword'"
+echo "To generate a basic-auth password hash for preprod, run:"
+echo "  docker run --rm httpd:2.4-alpine htpasswd -nb admin 'yourpassword'"
+echo ""
+echo "Cloudflare Origin Rules (configure in Cloudflare dashboard):"
+echo "  Rule 1: http.host eq 'preprod.engineerfamily.net' or http.host eq 'streamlit-preprod.engineerfamily.net' → Set origin port to 8080"
+echo "  Rule 2: http.host eq 'engineerfamily.net' or http.host eq 'www.engineerfamily.net' or http.host eq 'streamlit.engineerfamily.net' or http.host eq 'analytics.engineerfamily.net' or http.host eq 'umami.engineerfamily.net' → Set origin port to 80 (default, may not need a rule)"

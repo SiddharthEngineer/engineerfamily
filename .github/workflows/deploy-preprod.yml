@@ -163,23 +163,8 @@ jobs:
               up -d --build --remove-orphans
             docker image prune -f
 
-            # Keep the single shared Caddy config in prod repo in sync with preprod deploys.
-            if [ ! -f "$repo_dir/services/caddy/Caddyfile" ]; then
-              echo "ERROR: $repo_dir/services/caddy/Caddyfile not found"
-              exit 1
-            fi
-            if [ ! -d /srv/engineerfamily/services/caddy ]; then
-              echo "ERROR: /srv/engineerfamily/services/caddy directory not found"
-              exit 1
-            fi
-
-            # Replace the shared Caddyfile atomically so reload never sees a partial write.
-            tmp_caddyfile="$(mktemp /srv/engineerfamily/services/caddy/Caddyfile.tmp.XXXXXX)"
-            cp "$repo_dir/services/caddy/Caddyfile" "$tmp_caddyfile"
-            mv "$tmp_caddyfile" /srv/engineerfamily/services/caddy/Caddyfile
-
-            # Reload prod caddy so it picks up any Caddyfile changes.
-            docker exec engineerfamily-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+            # Reload nginx-preprod config
+            docker exec engineerfamily-nginx-preprod-1 nginx -s reload
           EOF
 
       - name: Health check

@@ -147,15 +147,18 @@ jobs:
             fi
             git -c safe.directory="$repo_dir" reset --hard origin/prod
 
-            # Verify the Caddyfile made it over before restarting
-            if [ ! -f services/caddy/Caddyfile ]; then
-              echo "ERROR: services/caddy/Caddyfile not found in /srv/engineerfamily"
+            # Verify the nginx config made it over before restarting
+            if [ ! -f services/nginx/nginx.prod.conf ]; then
+              echo "ERROR: services/nginx/nginx.prod.conf not found in /srv/engineerfamily"
               exit 1
             fi
 
             docker compose pull --ignore-pull-failures
             docker compose --profile prod up -d --build --remove-orphans
             docker image prune -f
+
+            # Reload nginx config
+            docker exec engineerfamily-nginx-1 nginx -s reload
           EOF
 
       - name: Health check
