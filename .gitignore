@@ -9,6 +9,8 @@ env/
 
 ### Secrets ###
 .env
+services/nginx/ssl/
+services/nginx/.htpasswd
 
 ### Miscellaneous ###
 *.sqlite3

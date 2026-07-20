@@ -1,31 +1,27 @@
-# Preprod stack – fully independent from the production stack.
-# Usage: docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d
-
 services:
   # ─── Edge Router (nginx) ─────────────────────────────────
-  nginx-preprod:
+  nginx-local:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
-      - ./services/nginx/nginx.preprod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./services/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./services/nginx/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - app-preprod
-      - umami-preprod
-      - streamlit-preprod
+      - app
+      - umami-local
+      - streamlit
     networks:
       - web
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:80/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 40s
 
   # ─── Home Page ──────────────────────────────────────────
-  app-preprod:
+  app:
     build:
       context: .
       dockerfile: services/app/Dockerfile
@@ -34,14 +30,14 @@ services:
         UMAMI_HOST: ${UMAMI_HOST:-https://umami.engineerfamily.net}
     restart: unless-stopped
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=${FLASK_ENV:-development}
+    ports:
+      - "8000:8000"
     networks:
-      web:
-        aliases:
-          - app-preprod
+      - web
 
   # ─── Streamlit ────────────────────────────────────────
-  streamlit-preprod:
+  streamlit:
     build:
       context: ./services/streamlit
       dockerfile: Dockerfile
@@ -52,33 +48,33 @@ services:
       - STREAMLIT_SERVER_ENABLE_CORS=false
       - UMAMI_HOST=${UMAMI_HOST:-https://umami.engineerfamily.net}
       - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
+    ports:
+      - "127.0.0.1:8501:8501"
     networks:
-      web:
-        aliases:
-          - streamlit-preprod
+      - web
 
-  # ─── Analytics (Umami – self-hosted, privacy-first) ───────────────────────
-  umami-preprod:
+  # ─── Local Analytics ──────────────────────────────────
+  umami-local:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_PREPROD}@analytics-db-preprod:5432/umami
-      - APP_SECRET=${UMAMI_APP_SECRET_PREPROD}
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_LOCAL:-localpass}@analytics-db-local:5432/umami
+      - APP_SECRET=${UMAMI_APP_SECRET_LOCAL:-local-dev-secret}
     depends_on:
-      analytics-db-preprod:
+      analytics-db-local:
         condition: service_healthy
     networks:
       - web
 
-  analytics-db-preprod:
+  analytics-db-local:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       - POSTGRES_DB=umami
       - POSTGRES_USER=umami
-      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD_PREPROD}
+      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD_LOCAL:-localpass}
     volumes:
-      - analytics_db_preprod:/var/lib/postgresql/data
+      - analytics_db_local:/var/lib/postgresql/data
     networks:
       - web
     healthcheck:
@@ -87,5 +83,10 @@ services:
       timeout: 5s
       retries: 5
 
+networks:
+  web:
+    driver: bridge
+    name: engineerfamily_web
+
 volumes:
-  analytics_db_preprod:
+  analytics_db_local:

@@ -3,7 +3,9 @@ FROM node:22-alpine AS vite-builder
 WORKDIR /frontend
 
 ARG UMAMI_APP_ID
+ARG UMAMI_HOST=https://umami.engineerfamily.net
 ENV VITE_UMAMI_APP_ID=${UMAMI_APP_ID}
+ENV VITE_UMAMI_HOST=${UMAMI_HOST}
 
 COPY services/app/vite/package*.json ./
 RUN npm ci

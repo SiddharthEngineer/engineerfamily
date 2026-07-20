@@ -2,8 +2,11 @@
 # Usage: make <target>
 
 
-.PHONY: help run-app run-streamlit local-up local-down up down logs ps build restart \
-	preprod-up preprod-down shell-app shell-streamlit \
+.PHONY: help run-app run-streamlit \
+	local-up local-down local-build local-logs local-ps \
+	up down build restart logs ps \
+	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
+	shell-app shell-streamlit \
 	tag-preprod tag-prod validate-release-tagging sync-release-branch
 
 help:
@@ -13,8 +16,13 @@ help:
 	@echo "  Local dev (no Docker):"
 	@echo "    run-app          Run Flask app locally on :5000"
 	@echo "    run-streamlit    Run Streamlit app locally on :8501"
+	@echo ""
+	@echo "  Local (Docker):"
 	@echo "    local-up         Start app + Streamlit in Docker for localhost"
 	@echo "    local-down       Stop local Docker stack"
+	@echo "    local-build      Rebuild local images"
+	@echo "    local-logs       Tail logs for local containers"
+	@echo "    local-ps         Show local container status"
 	@echo ""
 	@echo "  Production:"
 	@echo "    up               Start all prod containers"
@@ -27,6 +35,9 @@ help:
 	@echo "  Preprod:"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
+	@echo "    preprod-build    Rebuild preprod images"
+	@echo "    preprod-logs     Tail logs for preprod containers"
+	@echo "    preprod-ps       Show preprod container status"
 	@echo ""
 	@echo "  Releases:"
 	@echo "    tag-preprod      Tag current commit for preprod  (e.g. make tag-preprod v=1.2.3)"
@@ -54,36 +65,42 @@ run-streamlit:
 	  streamlit run app.py --server.port 8501
 
 local-up:
-	docker compose --profile local up -d --build app streamlit
+	docker compose -f docker-compose.local.yml up -d --build --force-recreate --remove-orphans
 
 local-down:
-	docker compose down
+	docker compose -f docker-compose.local.yml down
+
+local-logs:
+	docker compose -f docker-compose.local.yml logs -f --tail=50
+
+local-ps:
+	docker compose -f docker-compose.local.yml ps
 
 # ─── Production ──────────────────────────────────────────
 up:
-	docker compose --profile prod up -d
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
 
 down:
-	docker compose --profile prod down
-
-build:
-	docker compose --profile prod build
-
-restart:
-	docker compose --profile prod up -d --build --remove-orphans
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml down
 
 logs:
-	docker compose --profile prod logs -f --tail=50
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml logs -f --tail=50
 
 ps:
-	docker compose ps
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml ps
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod up -d --build --remove-orphans
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build --force-recreate --remove-orphans
 
 preprod-down:
-	docker compose -f docker-compose.yml -f docker-compose.preprod.yml --profile preprod down
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml down
+
+preprod-logs:
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml logs -f --tail=50
+
+preprod-ps:
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml ps
 
 # ─── Releases ────────────────────────────────────────────
 # Usage: make tag-preprod v=1.2.3  → creates and pushes tag v1.2.3-preprod
@@ -118,7 +135,7 @@ sync-release-branch:
 
 # ─── Shells ──────────────────────────────────────────────
 shell-app:
-	docker compose exec app /bin/bash
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml exec app /bin/bash
 
 shell-streamlit:
-	docker compose exec streamlit /bin/bash
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml exec streamlit /bin/bash
