@@ -65,7 +65,7 @@ run-streamlit:
 	  streamlit run app.py --server.port 8501
 
 local-up:
-	docker compose -f docker-compose.local.yml up -d --build --remove-orphans
+	docker compose -f docker-compose.local.yml up -d --build --force-recreate --remove-orphans
 
 local-down:
 	docker compose -f docker-compose.local.yml down
@@ -78,7 +78,7 @@ local-ps:
 
 # ─── Production ──────────────────────────────────────────
 up:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
 
 down:
 	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml down
@@ -91,7 +91,7 @@ ps:
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build --remove-orphans
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build --force-recreate --remove-orphans
 
 preprod-down:
 	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml down
