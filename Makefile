@@ -109,17 +109,17 @@ preprod-ps:
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
 	@$(MAKE) validate-release-tagging v=$(v)
+	@$(MAKE) sync-release-branch v=$(v)
 	git tag v$(v)-preprod
 	git push origin v$(v)-preprod
-	@$(MAKE) sync-release-branch v=$(v)
 	@echo "→ Deploying v$(v)-preprod to preprod..."
 
 tag-prod:
 	@test -n "$(v)" || (echo "Usage: make tag-prod v=1.2.3" && exit 1)
 	@$(MAKE) validate-release-tagging v=$(v)
+	@$(MAKE) sync-release-branch v=$(v)
 	git tag v$(v)
 	git push origin v$(v)
-	@$(MAKE) sync-release-branch v=$(v)
 	@echo "→ Deploying v$(v) to production..."
 
 # Policy gate that must pass before creating any tag.
