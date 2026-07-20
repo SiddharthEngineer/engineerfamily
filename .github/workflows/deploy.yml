@@ -135,11 +135,11 @@ jobs:
 
           if [ "$environment" = "prod" ]; then
             repo_dir="/srv/engineerfamily"
-            compose_cmd="docker compose -f docker-compose.prod.yml"
+            compose_cmd="docker compose -f docker-compose.base.yml -f docker-compose.prod.yml"
             nginx_container="engineerfamily-nginx-1"
           else
             repo_dir="/srv/engineerfamily-preprod"
-            compose_cmd="docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml"
+            compose_cmd="docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml"
             nginx_container="engineerfamily-nginx-preprod-1"
           fi
 
@@ -214,10 +214,10 @@ jobs:
 
           if [ "$environment" = "prod" ]; then
             repo_dir="/srv/engineerfamily"
-            compose_cmd="docker compose -f docker-compose.prod.yml"
+            compose_cmd="docker compose -f docker-compose.base.yml -f docker-compose.prod.yml"
           else
             repo_dir="/srv/engineerfamily-preprod"
-            compose_cmd="docker compose -f docker-compose.prod.yml -f docker-compose.preprod.yml"
+            compose_cmd="docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml"
           fi
 
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << EOF
