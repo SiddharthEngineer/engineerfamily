@@ -82,37 +82,18 @@ find_latest_tag_for_minor() {
   fi
 }
 
-merge_main_into_release() {
-  local tmp_dir merged_sha
-
-  echo "Tag created from main; merging origin/main into ${RELEASE_BRANCH}"
-  tmp_dir="$(mktemp -d)"
-
-  git worktree add --detach "$tmp_dir" "origin/${RELEASE_BRANCH}"
-  if (cd "$tmp_dir" && git merge --no-ff --no-edit origin/main); then
-    merged_sha="$(git -C "$tmp_dir" rev-parse HEAD)"
-    git push origin "${merged_sha}:refs/heads/${RELEASE_BRANCH}"
-    git worktree remove --force "$tmp_dir" >/dev/null 2>&1 || true
-    rm -rf "$tmp_dir"
-  else
-    echo "Automatic merge failed for ${RELEASE_BRANCH} <- main. Resolve manually."
-    git worktree remove --force "$tmp_dir" >/dev/null 2>&1 || true
-    rm -rf "$tmp_dir"
-    exit 1
-  fi
-}
-
 sync_release_branch() {
   find_latest_tag_for_minor
 
   if [[ -z "$LATEST_TAG" ]]; then
     echo "No existing tags found for minor line v${MINOR_LINE}.x; initializing it from the current commit."
-    if [[ "$RELEASE_EXISTS" -eq 1 ]]; then
-      if [[ "$CURRENT_BRANCH" == "main" ]]; then
-        merge_main_into_release
-      fi
-    else
+    if [[ "$RELEASE_EXISTS" -eq 0 ]]; then
       git push -u origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+    elif [[ "$CURRENT_BRANCH" == "main" ]]; then
+      echo "Resetting ${RELEASE_BRANCH} to main's tip (HEAD)."
+      git push --force-with-lease origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+    elif [[ "$CURRENT_BRANCH" == "$RELEASE_BRANCH" ]]; then
+      echo "Tagging from ${RELEASE_BRANCH}; branch is already at the correct position."
     fi
     exit 0
   fi
@@ -120,14 +101,14 @@ sync_release_branch() {
   if [[ "$RELEASE_EXISTS" -eq 1 ]]; then
     echo "Detected tagging branch: ${CURRENT_BRANCH}"
     if [[ "$CURRENT_BRANCH" == "main" ]]; then
-      merge_main_into_release
-    else
-      echo "Tag created from ${RELEASE_BRANCH}; aligning branch to latest tag ${LATEST_TAG}"
-      git push --force-with-lease origin "${LATEST_TAG}:refs/heads/${RELEASE_BRANCH}"
+      echo "Resetting ${RELEASE_BRANCH} to main's tip (HEAD)."
+      git push --force-with-lease origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+    elif [[ "$CURRENT_BRANCH" == "$RELEASE_BRANCH" ]]; then
+      echo "Tagging from ${RELEASE_BRANCH}; branch is already at the correct position."
     fi
   else
-    echo "Creating ${RELEASE_BRANCH} at ${LATEST_TAG}"
-    git push -u origin "${LATEST_TAG}:refs/heads/${RELEASE_BRANCH}"
+    echo "Creating ${RELEASE_BRANCH} at HEAD."
+    git push -u origin "HEAD:refs/heads/${RELEASE_BRANCH}"
   fi
 }
 
