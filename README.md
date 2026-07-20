@@ -182,7 +182,7 @@ Recommended pattern for this repo now:
 4. Route traffic by hostname/path to containers on the internal Docker network:
    - `engineerfamily.net` -> `app:8000`
    - `streamlit.engineerfamily.net` -> `streamlit:8501`
-   - `analytics.engineerfamily.net` -> `umami:3000`
+   - `umami.engineerfamily.net` -> `umami:3000`
 5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
 
 Why this is preferred:

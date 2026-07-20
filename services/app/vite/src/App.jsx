@@ -24,11 +24,11 @@ function getSubdomainUrl(subdomain) {
   }
 
   if (hostname.includes('preprod')) {
-    if (subdomain === 'analytics') return 'https://analytics-preprod.engineerfamily.net';
+    if (subdomain === 'analytics') return 'https://umami-preprod.engineerfamily.net';
     return `https://${subdomain}-preprod.engineerfamily.net`;
   }
 
-  if (subdomain === 'analytics') return 'https://analytics.engineerfamily.net';
+  if (subdomain === 'analytics') return 'https://umami.engineerfamily.net';
   return `https://${subdomain}.engineerfamily.net`;
 }
 
