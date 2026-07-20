@@ -7,7 +7,15 @@
 	up down build restart logs ps \
 	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
 	shell-app shell-streamlit \
-	tag-preprod tag-prod validate-release-tagging sync-release-branch
+	tag-preprod tag-prod validate-release-tagging sync-release-branch check-github-cli
+
+# Make does not load interactive shell configuration, so also check the
+# standard Homebrew locations used on macOS.
+GH ?= $(shell command -v gh 2>/dev/null || { \
+	for path in /opt/homebrew/bin/gh /usr/local/bin/gh; do \
+		if [ -x "$$path" ]; then echo "$$path"; break; fi; \
+	done; \
+})
 
 help:
 	@echo ""
@@ -108,23 +116,35 @@ preprod-ps:
 
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
-	@command -v gh >/dev/null 2>&1 || (echo "Error: gh CLI not found. Install from https://cli.github.com/" && exit 1)
+	@$(MAKE) check-github-cli
 	@$(MAKE) validate-release-tagging v=$(v)
 	@$(MAKE) sync-release-branch v=$(v)
 	git tag -f v$(v)-preprod
 	git push origin v$(v)-preprod --force
 	@echo "→ Triggering deploy of v$(v)-preprod to preprod..."
-	gh workflow run deploy.yml --ref main -f environment=preprod -f ref=v$(v)-preprod
+	"$(GH)" workflow run deploy.yml --ref main -f environment=preprod -f ref=v$(v)-preprod
 
 tag-prod:
 	@test -n "$(v)" || (echo "Usage: make tag-prod v=1.2.3" && exit 1)
-	@command -v gh >/dev/null 2>&1 || (echo "Error: gh CLI not found. Install from https://cli.github.com/" && exit 1)
+	@$(MAKE) check-github-cli
 	@$(MAKE) validate-release-tagging v=$(v)
 	@$(MAKE) sync-release-branch v=$(v)
 	git tag -f v$(v)
 	git push origin v$(v) --force
 	@echo "→ Triggering deploy of v$(v) to production..."
-	gh workflow run deploy.yml --ref main -f environment=prod -f ref=v$(v)
+	"$(GH)" workflow run deploy.yml --ref main -f environment=prod -f ref=v$(v)
+
+check-github-cli:
+	@if [ -z "$(GH)" ] || [ ! -x "$(GH)" ]; then \
+		echo "Error: GitHub CLI (gh) not found. Git and GitHub CLI are separate programs."; \
+		echo "Install gh from https://cli.github.com/ or run make with GH=/path/to/gh."; \
+		exit 1; \
+	fi
+	@if ! "$(GH)" auth status --hostname github.com >/dev/null 2>&1; then \
+		echo "Error: GitHub CLI is not authenticated."; \
+		echo "Run '$(GH) auth login' or set GH_TOKEN to a GitHub token."; \
+		exit 1; \
+	fi
 
 delete-tag:
 	git tag -d $(v)

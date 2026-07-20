@@ -22,19 +22,34 @@ parse_version() {
 }
 
 load_repo_state() {
-  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  if ! CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"; then
+    echo "Error: could not determine the current Git branch." >&2
+    exit 1
+  fi
 
-  git fetch origin main --tags --quiet
+  echo "Fetching main and tags from origin..."
+  if ! git fetch --force origin main --tags; then
+    echo "Error: could not fetch main and tags from origin." >&2
+    exit 1
+  fi
 
   RELEASE_EXISTS=0
   if git ls-remote --exit-code --heads origin "$RELEASE_BRANCH" >/dev/null 2>&1; then
     RELEASE_EXISTS=1
-    git fetch origin "$RELEASE_BRANCH" --quiet
+    echo "Fetching ${RELEASE_BRANCH} from origin..."
+    if ! git fetch origin "$RELEASE_BRANCH"; then
+      echo "Error: could not fetch ${RELEASE_BRANCH} from origin." >&2
+      exit 1
+    fi
   fi
 
   AHEAD_COUNT=0
   if [[ "$RELEASE_EXISTS" -eq 1 ]]; then
-    AHEAD_COUNT="$(git rev-list --count origin/main..origin/${RELEASE_BRANCH})"
+    if ! AHEAD_COUNT="$(git rev-list --count "origin/main..origin/${RELEASE_BRANCH}")"; then
+      echo "Error: could not compare origin/main with origin/${RELEASE_BRANCH}." >&2
+      echo "Ensure both remote-tracking branches exist locally and retry." >&2
+      exit 1
+    fi
   fi
 }
 
@@ -53,7 +68,7 @@ validate_tagging_policy() {
 
 find_latest_tag_for_minor() {
   local latest_patch
-  latest_patch="$(git tag -l | sed -n "s/^v${MINOR_LINE}\.\([0-9][0-9]*\)\(-preprod\)\?$/\1/p" | sort -n | tail -n1)"
+  latest_patch="$(git tag -l | sed -E -n "s/^v${MAJOR}\\.${MINOR}\\.([0-9]+)(-preprod)?$/\1/p" | sort -n | tail -n1)"
 
   if [[ -z "$latest_patch" ]]; then
     LATEST_TAG=""
@@ -91,7 +106,14 @@ sync_release_branch() {
   find_latest_tag_for_minor
 
   if [[ -z "$LATEST_TAG" ]]; then
-    echo "No tags found for minor line v${MINOR_LINE}.x. Skipping release branch sync."
+    echo "No existing tags found for minor line v${MINOR_LINE}.x; initializing it from the current commit."
+    if [[ "$RELEASE_EXISTS" -eq 1 ]]; then
+      if [[ "$CURRENT_BRANCH" == "main" ]]; then
+        merge_main_into_release
+      fi
+    else
+      git push -u origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+    fi
     exit 0
   fi
 

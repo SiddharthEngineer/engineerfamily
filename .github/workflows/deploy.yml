@@ -40,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          git fetch --prune --tags origin +refs/heads/*:refs/remotes/origin/*
+          git fetch --prune --force --tags origin +refs/heads/*:refs/remotes/origin/*
 
           requested_ref='${{ inputs.ref }}'
           if [ -z "$requested_ref" ]; then
@@ -141,7 +141,7 @@ jobs:
               exit 1
             fi
 
-            git -c safe.directory="\$repo_dir" fetch --prune --tags origin
+            git -c safe.directory="\$repo_dir" fetch --prune --force --tags origin
             if git -c safe.directory="\$repo_dir" show-ref --verify --quiet "refs/heads/$environment"; then
               git -c safe.directory="\$repo_dir" checkout "$environment"
             else
