@@ -108,19 +108,27 @@ preprod-ps:
 
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
+	@command -v gh >/dev/null 2>&1 || (echo "Error: gh CLI not found. Install from https://cli.github.com/" && exit 1)
 	@$(MAKE) validate-release-tagging v=$(v)
 	@$(MAKE) sync-release-branch v=$(v)
-	git tag v$(v)-preprod
-	git push origin v$(v)-preprod
-	@echo "→ Deploying v$(v)-preprod to preprod..."
+	git tag -f v$(v)-preprod
+	git push origin v$(v)-preprod --force
+	@echo "→ Triggering deploy of v$(v)-preprod to preprod..."
+	gh workflow run deploy.yml --ref main -f environment=preprod -f ref=v$(v)-preprod
 
 tag-prod:
 	@test -n "$(v)" || (echo "Usage: make tag-prod v=1.2.3" && exit 1)
+	@command -v gh >/dev/null 2>&1 || (echo "Error: gh CLI not found. Install from https://cli.github.com/" && exit 1)
 	@$(MAKE) validate-release-tagging v=$(v)
 	@$(MAKE) sync-release-branch v=$(v)
-	git tag v$(v)
-	git push origin v$(v)
-	@echo "→ Deploying v$(v) to production..."
+	git tag -f v$(v)
+	git push origin v$(v) --force
+	@echo "→ Triggering deploy of v$(v) to production..."
+	gh workflow run deploy.yml --ref main -f environment=prod -f ref=v$(v)
+
+delete-tag:
+	git tag -d $(v)
+	git push origin --delete $(v)
 
 # Policy gate that must pass before creating any tag.
 validate-release-tagging:

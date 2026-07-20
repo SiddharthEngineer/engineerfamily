@@ -67,52 +67,35 @@ Validation/sync logic lives in:
 
 ## Deploying
 
-### Preprod Deploy (`.github/workflows/deploy-preprod.yml`)
+Deploys are triggered via Make targets, which create/push a tag and then invoke `gh workflow run` to dispatch `.github/workflows/deploy.yml` with explicit `environment` and `ref` inputs.
 
-Triggers:
-
-1. Push a preprod tag like `v1.2.3-preprod`.
-2. Manual run with `ref` (tag or branch).
-
-Behavior:
-
-1. If trigger is a preprod tag:
-   - Derives release branch from tag minor line.
-   - Verifies tag is reachable from that release branch.
-   - Force-resets remote `preprod` branch to the resolved tag commit.
-2. If trigger is manual `ref`:
-   - Resolves `ref` as tag or branch commit.
-   - Force-resets remote `preprod` branch to that commit.
-3. VPS deploy then checks out/reset to `origin/preprod` in `/srv/engineerfamily-preprod` and runs preprod compose.
-
-Example:
+### Preprod Deploy
 
 ```bash
-git tag v1.2.3-preprod
-git push origin v1.2.3-preprod
+make tag-preprod v=1.2.3
 ```
 
-### Prod Deploy (`.github/workflows/deploy-prod.yml`)
+This runs the following steps:
 
-Triggers:
+1. `validate-release-tagging` — policy gate (must be on main or release branch).
+2. `sync-release-branch` — merges origin/main into release branch if needed.
+3. `git tag -f v1.2.3-preprod` — creates or overwrites the local tag.
+4. `git push origin v1.2.3-preprod --force` — pushes the tag to remote.
+5. `gh workflow run deploy.yml --ref main -f environment=preprod -f ref=v1.2.3-preprod` — triggers the deploy workflow.
 
-1. Push a prod tag like `v1.2.3`.
-2. Manual run with required `tag` input.
-
-Behavior:
-
-1. Validates tag format `v<major>.<minor>.<patch>`.
-2. Derives release branch from tag minor line.
-3. Verifies the tag exists and is reachable from that release branch.
-4. Force-resets remote `prod` branch to the tag commit.
-5. VPS deploy then checks out/reset to `origin/prod` in `/srv/engineerfamily` and runs prod compose.
-
-Example:
+### Prod Deploy
 
 ```bash
-git tag v1.2.3
-git push origin v1.2.3
+make tag-prod v=1.2.3
 ```
+
+Same flow as preprod but pushes a prod tag (`v1.2.3`) and triggers the workflow with `environment=prod`.
+
+### How the workflow works
+
+1. Resolves `ref` as a tag or branch commit on origin.
+2. Force-resets the deployment state branch (`preprod` or `prod`) to that commit.
+3. SSHs into the VPS, pulls the updated branch, rebuilds containers, and reloads nginx.
 
 ---
 

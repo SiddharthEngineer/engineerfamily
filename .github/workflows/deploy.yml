@@ -2,10 +2,6 @@ name: Deploy to VPS
 run-name: Deploy ${{ inputs.ref }} to ${{ inputs.environment }}
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
-      - "v*.*.*-preprod"
   workflow_dispatch:
     inputs:
       environment:
@@ -17,7 +13,7 @@ on:
           - preprod
       ref:
         description: "Branch or tag to deploy (e.g. main, v1.2.3, v1.2.3-preprod)"
-        required: false
+        required: true
 
 jobs:
   deploy:
@@ -35,13 +31,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            environment="${{ inputs.environment }}"
-          elif [[ "${{ github.ref_name }}" =~ -preprod$ ]]; then
-            environment="preprod"
-          else
-            environment="prod"
-          fi
+          environment="${{ inputs.environment }}"
 
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
 
@@ -52,56 +42,19 @@ jobs:
 
           git fetch --prune --tags origin +refs/heads/*:refs/remotes/origin/*
 
-          environment="${{ steps.env.outputs.environment }}"
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            requested_ref='${{ inputs.ref }}'
-            if [ -z "$requested_ref" ]; then
-              echo "ERROR: 'ref' input is required for manual dispatch"
-              exit 1
-            fi
-            event_mode='manual'
-          else
-            requested_ref='${{ github.ref_name }}'
-            event_mode='tag_push'
+          requested_ref='${{ inputs.ref }}'
+          if [ -z "$requested_ref" ]; then
+            echo "ERROR: 'ref' input is required for manual dispatch"
+            exit 1
           fi
 
-          if [ "$event_mode" = 'tag_push' ]; then
-            if [ "$environment" = "prod" ]; then
-              if ! [[ "$requested_ref" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-                echo "ERROR: tag '$requested_ref' does not match v<major>.<minor>.<patch>"
-                exit 1
-              fi
-            else
-              if ! [[ "$requested_ref" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)-preprod$ ]]; then
-                echo "ERROR: tag '$requested_ref' does not match v<major>.<minor>.<patch>-preprod"
-                exit 1
-              fi
-            fi
-
-            release_branch="release-v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-            tag_commit="$(git rev-parse "refs/tags/$requested_ref^{commit}")"
-
-            if ! git show-ref --verify --quiet "refs/remotes/origin/$release_branch"; then
-              echo "ERROR: release branch origin/$release_branch not found"
-              exit 1
-            fi
-
-            if ! git merge-base --is-ancestor "$tag_commit" "refs/remotes/origin/$release_branch"; then
-              echo "ERROR: tag '$requested_ref' is not reachable from origin/$release_branch"
-              exit 1
-            fi
-
-            target_sha="$tag_commit"
+          if git show-ref --verify --quiet "refs/tags/$requested_ref"; then
+            target_sha="$(git rev-parse "refs/tags/$requested_ref^{commit}")"
+          elif git show-ref --verify --quiet "refs/remotes/origin/$requested_ref"; then
+            target_sha="$(git rev-parse "refs/remotes/origin/$requested_ref^{commit}")"
           else
-            if git show-ref --verify --quiet "refs/tags/$requested_ref"; then
-              target_sha="$(git rev-parse "refs/tags/$requested_ref^{commit}")"
-            elif git show-ref --verify --quiet "refs/remotes/origin/$requested_ref"; then
-              target_sha="$(git rev-parse "refs/remotes/origin/$requested_ref^{commit}")"
-            else
-              echo "ERROR: '$requested_ref' is not a known tag or branch on origin"
-              exit 1
-            fi
+            echo "ERROR: '$requested_ref' is not a known tag or branch on origin"
+            exit 1
           fi
 
           echo "requested_ref=$requested_ref" >> "$GITHUB_OUTPUT"

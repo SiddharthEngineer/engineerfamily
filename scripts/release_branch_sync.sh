@@ -73,8 +73,8 @@ merge_main_into_release() {
   echo "Tag created from main; merging origin/main into ${RELEASE_BRANCH}"
   tmp_dir="$(mktemp -d)"
 
-  git worktree add --detach "$tmp_dir" "origin/${RELEASE_BRANCH}" >/dev/null
-  if (cd "$tmp_dir" && git merge --no-ff --no-edit origin/main >/dev/null 2>&1); then
+  git worktree add --detach "$tmp_dir" "origin/${RELEASE_BRANCH}"
+  if (cd "$tmp_dir" && git merge --no-ff --no-edit origin/main); then
     merged_sha="$(git -C "$tmp_dir" rev-parse HEAD)"
     git push origin "${merged_sha}:refs/heads/${RELEASE_BRANCH}"
     git worktree remove --force "$tmp_dir" >/dev/null 2>&1 || true
