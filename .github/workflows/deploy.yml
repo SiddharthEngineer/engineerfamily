@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy ${{ inputs.ref }} to ${{ inputs.environment }}
 
 on:
   push:
@@ -140,7 +140,7 @@ jobs:
           else
             repo_dir="/srv/engineerfamily-preprod"
             compose_cmd="docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml"
-            nginx_container="engineerfamily-nginx-preprod-1"
+            nginx_container="engineerfamily-preprod-nginx-1"
           fi
 
           ssh -T deploy@${{ secrets.VPS_HOST }} bash -s << EOF

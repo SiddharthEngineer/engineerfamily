@@ -3,7 +3,7 @@
 
 services:
   # ─── Edge Router (nginx) ─────────────────────────────────
-  nginx-preprod:
+  nginx:
     image: nginx:alpine
     restart: unless-stopped
     ports:
@@ -12,9 +12,9 @@ services:
       - ./services/nginx/nginx.preprod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./services/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     depends_on:
-      - app-preprod
-      - umami-preprod
-      - streamlit-preprod
+      - app
+      - umami
+      - streamlit
     networks:
       - web
     healthcheck:
@@ -25,7 +25,7 @@ services:
       start_period: 40s
 
   # ─── Home Page ──────────────────────────────────────────
-  app-preprod:
+  app:
     build:
       context: .
       dockerfile: services/app/Dockerfile
@@ -36,12 +36,10 @@ services:
     environment:
       - FLASK_ENV=development
     networks:
-      web:
-        aliases:
-          - app-preprod
+      - web
 
   # ─── Streamlit ────────────────────────────────────────
-  streamlit-preprod:
+  streamlit:
     build:
       context: ./services/streamlit
       dockerfile: Dockerfile
@@ -53,24 +51,22 @@ services:
       - UMAMI_HOST=${UMAMI_HOST:-https://umami.engineerfamily.net}
       - UMAMI_STREAMLIT_ID=${UMAMI_STREAMLIT_ID:-}
     networks:
-      web:
-        aliases:
-          - streamlit-preprod
+      - web
 
   # ─── Analytics (Umami – self-hosted, privacy-first) ───────────────────────
-  umami-preprod:
+  umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_PREPROD}@analytics-db-preprod:5432/umami
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_PREPROD}@analytics-db:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET_PREPROD}
     depends_on:
-      analytics-db-preprod:
+      analytics-db:
         condition: service_healthy
     networks:
       - web
 
-  analytics-db-preprod:
+  analytics-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
