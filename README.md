@@ -9,6 +9,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | `streamlit.engineerfamily.net` | Siddharth | Streamlit |
 | `bookstack.engineerfamily.net` | Nivi | BookStack |
 | `umami.engineerfamily.net` | Siddharth | Umami |
+| `applypilot.engineerfamily.net` | Siddharth | Static (nginx): ApplyPilot homepage + privacy policy for its Google OAuth consent screen |
 
 ---
 
@@ -166,6 +167,7 @@ Recommended pattern for this repo now:
    - `engineerfamily.net` -> `app:8000`
    - `streamlit.engineerfamily.net` -> `streamlit:8501`
    - `umami.engineerfamily.net` -> `umami:3000`
+   - `applypilot.engineerfamily.net` -> static files in `services/applypilot/` (served by nginx)
 5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
 
 Why this is preferred:
