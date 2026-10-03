@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ApplyPilot Privacy Policy</title>
+  <meta name="description" content="How ApplyPilot handles your data, including Google Drive access.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <a class="brand" href="/">ApplyPilot</a>
+    <nav><a href="/privacy">Privacy</a><a href="https://github.com/SiddharthEngineer/ApplyPilot">GitHub</a></nav>
+  </header>
+
+  <h1>Privacy policy</h1>
+  <p class="lede">Last updated: October 2, 2026</p>
+
+  <p>ApplyPilot is open-source software that you install and run yourself, on your own computer or server. There is no
+    ApplyPilot account and no ApplyPilot server. The people who make ApplyPilot don't receive, store or see your data.</p>
+
+  <h2>Data ApplyPilot handles</h2>
+  <ul>
+    <li><strong>Your profile and resume</strong>, which you provide during setup, stored in files on your machine.</li>
+    <li><strong>Job postings</strong> collected from public job boards and career pages, stored in a database on your machine.</li>
+    <li><strong>Generated documents</strong>: tailored resumes and cover letters, created on your machine.</li>
+  </ul>
+  <p>To score postings and write documents, ApplyPilot sends your resume text and the job description to the AI
+    model provider you configure (for example Google Gemini). That provider's own terms and privacy policy apply to
+    those requests.</p>
+
+  <h2>Google user data</h2>
+  <p>If you connect Google Drive, ApplyPilot asks for one permission:
+    <code>https://www.googleapis.com/auth/drive.file</code>. This permission only covers files and folders that
+    ApplyPilot creates. ApplyPilot can't see, read or change any other file in your Drive.</p>
+  <p>ApplyPilot uses this access only to:</p>
+  <ul>
+    <li>create folders named after the company, role and date of a job application;</li>
+    <li>upload your tailored resume and cover letter PDFs into those folders, and update them when you regenerate them;</li>
+    <li>download those same PDFs back to your machine when you apply to that job;</li>
+    <li>record each file's Drive link in the database on your machine, so you can find it later.</li>
+  </ul>
+  <p>Your Google sign-in token is saved only on your machine, in ApplyPilot's settings folder, readable only by your
+    user account. Google Drive data is never sent to the ApplyPilot developers or to anyone else, never sold, and never
+    used for advertising or to train AI models.</p>
+  <p>ApplyPilot's use and transfer of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+    including the Limited Use requirements.</p>
+
+  <h2>Removing access and deleting data</h2>
+  <ul>
+    <li>Revoke ApplyPilot's Google access at any time at
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>, and delete
+      <code>~/.applypilot/google_token.json</code>.</li>
+    <li>Files ApplyPilot put in your Drive are yours. Delete them in Google Drive like any other file.</li>
+    <li>Delete the <code>~/.applypilot</code> folder to remove everything ApplyPilot stored on your machine.</li>
+  </ul>
+
+  <h2>Changes and contact</h2>
+  <p>Changes to this policy are published on this page and in the project's
+    <a href="https://github.com/SiddharthEngineer/ApplyPilot">GitHub repository</a>. Questions can be raised as a
+    <a href="https://github.com/SiddharthEngineer/ApplyPilot/issues">GitHub issue</a>.</p>
+
+  <footer>ApplyPilot · <a href="/">Home</a> · <a href="https://engineerfamily.net">engineerfamily.net</a></footer>
+</main>
+</body>
+</html>
