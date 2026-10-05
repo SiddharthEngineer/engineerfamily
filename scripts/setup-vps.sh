@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # scripts/setup-vps.sh
+# NOTE: superseded for the deploy user by scripts/vps/ (locked-down, no docker group).
 # Run once on a fresh Hetzner/DigitalOcean Ubuntu 24.04 VPS as root.
 # Usage: curl -fsSL https://raw.githubusercontent.com/.../setup-vps.sh | bash
 

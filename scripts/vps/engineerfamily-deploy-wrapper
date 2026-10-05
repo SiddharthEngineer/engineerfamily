@@ -1,0 +1,7 @@
+#!/bin/bash
+# sshd ForceCommand for the `deploy` account: nothing but these four commands is allowed.
+case "${SSH_ORIGINAL_COMMAND:-}" in
+  "deploy prod"|"deploy preprod"|"status prod"|"status preprod")
+    exec sudo -n /usr/local/sbin/engineerfamily-deploy $SSH_ORIGINAL_COMMAND ;;
+  *) echo "Rejected. Allowed: 'deploy prod|preprod' or 'status prod|preprod'" >&2; exit 1 ;;
+esac
