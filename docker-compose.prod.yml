@@ -33,7 +33,7 @@ services:
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"  # loopback only; nginx reaches app over the web network
     networks:
       - web
 
