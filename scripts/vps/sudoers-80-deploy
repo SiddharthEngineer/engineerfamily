@@ -1,0 +1,2 @@
+# GitHub Actions deploy account: may run only the deploy entrypoint, with fixed arguments.
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/engineerfamily-deploy deploy prod, /usr/local/sbin/engineerfamily-deploy deploy preprod, /usr/local/sbin/engineerfamily-deploy status prod, /usr/local/sbin/engineerfamily-deploy status preprod

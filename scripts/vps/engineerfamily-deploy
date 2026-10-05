@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Root-owned deploy entrypoint for engineerfamily. The `deploy` SSH account can run
+# only this (via sudo), only as "deploy|status prod|preprod". It always deploys
+# exactly what is on GitHub; git runs as `deploy`, docker compose as root.
+set -euo pipefail
+action="${1:-}"; env="${2:-}"
+REMOTE=https://github.com/SiddharthEngineer/engineerfamily.git
+case "$env" in
+  prod)    dir=/srv/engineerfamily;         compose=(docker compose -f docker-compose.base.yml -f docker-compose.prod.yml);    nginx=engineerfamily-nginx-1 ;;
+  preprod) dir=/srv/engineerfamily-preprod; compose=(docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml); nginx=engineerfamily-preprod-nginx-1 ;;
+  *) echo "usage: deploy|status prod|preprod" >&2; exit 2 ;;
+esac
+cd "$dir"
+g() { runuser -u deploy -- git -c safe.directory="$dir" "$@"; }
+case "$action" in
+  deploy)
+    g remote set-url origin "$REMOTE"
+    g fetch --prune --force --tags origin
+    g checkout -q -B "$env" "origin/$env"
+    g reset -q --hard "origin/$env"
+    "${compose[@]}" pull --ignore-pull-failures --quiet
+    "${compose[@]}" up -d --build --remove-orphans
+    docker image prune -f >/dev/null
+    docker exec "$nginx" nginx -s reload
+    echo "Deployed $(g rev-parse --short HEAD) to $env" ;;
+  status)
+    "${compose[@]}" ps --format "table {{.Name}}\t{{.Status}}" ;;
+  *) echo "usage: deploy|status prod|preprod" >&2; exit 2 ;;
+esac
