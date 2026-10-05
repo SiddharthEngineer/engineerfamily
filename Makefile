@@ -4,7 +4,7 @@
 
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
-	up down build restart logs ps \
+	up down build restart logs ps applypilot-db-init \
 	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
 	shell-app shell-streamlit \
 	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
@@ -39,6 +39,7 @@ help:
 	@echo "    restart          Rebuild + restart changed services"
 	@echo "    logs             Tail logs for all containers"
 	@echo "    ps               Show container status"
+	@echo "    applypilot-db-init Create the applypilot role + DBs in analytics-db (idempotent)"
 	@echo ""
 	@echo "  Preprod:"
 	@echo "    preprod-up       Start preprod containers"
@@ -98,6 +99,9 @@ logs:
 
 ps:
 	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml ps
+
+applypilot-db-init:
+	bash scripts/init-applypilot-db.sh
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:

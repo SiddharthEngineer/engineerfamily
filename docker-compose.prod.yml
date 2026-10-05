@@ -76,6 +76,9 @@ services:
       - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD}
     volumes:
       - analytics_db:/var/lib/postgresql/data
+    # Loopback only: the host's ApplyPilot CLI uses the `applypilot` DB (make applypilot-db-init).
+    ports:
+      - "127.0.0.1:5432:5432"
     networks:
       - web
     healthcheck:

@@ -20,7 +20,7 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── app (Flask + Gunicorn)
                          ├── streamlit
                          ├── umami
-                         └── analytics (Postgres)
+                         └── analytics (Postgres; also hosts the `applypilot` DB on 127.0.0.1:5432, see `make applypilot-db-init`)
 ```
 
 Routing for site pages is managed in Flask (`services/app/app.py`).
