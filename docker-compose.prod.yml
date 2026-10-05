@@ -8,6 +8,7 @@ services:
     volumes:
       - ./services/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./services/applypilot:/usr/share/nginx/applypilot:ro
+      - ./services/nginx/.htpasswd-applypilot:/etc/nginx/.htpasswd-applypilot:ro
     depends_on:
       - app
       - umami
@@ -86,6 +87,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ─── ApplyPilot dashboard (applypilot.engineerfamily.net/app/, basic auth in nginx) ───
+  # Built from the sibling checkout /srv/ApplyPilot; `make applypilot-up` rebuilds just this service.
+  applypilot:
+    build:
+      context: ../ApplyPilot
+    restart: unless-stopped
+    # Runs as the host user that owns ~/.applypilot (dev), at the same HOME path, so the files it writes stay
+    # dev's and the absolute paths stored in the DB resolve. Override with APPLYPILOT_UID/GID in .env.
+    user: "${APPLYPILOT_UID:-1000}:${APPLYPILOT_GID:-1001}"
+    environment:
+      # Overrides the host-only 127.0.0.1 URL in ~/.applypilot/.env (load_dotenv never overrides set variables).
+      - APPLYPILOT_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
+    volumes:
+      # Profile, resume template, content library, Drive token, llm_usage.json, tailored files.
+      - /home/dev/.applypilot:/home/dev/.applypilot
+      # Gemini key + LLM limits (multi-line JSON values, so not env_file); load_env reads the CWD .env.
+      - ../ApplyPilot/.env:/app/.env:ro
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks:
+      - web
 
 volumes:
   nivi_content:

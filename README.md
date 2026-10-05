@@ -9,7 +9,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | `streamlit.engineerfamily.net` | Siddharth | Streamlit |
 | `bookstack.engineerfamily.net` | Nivi | BookStack |
 | `umami.engineerfamily.net` | Siddharth | Umami |
-| `applypilot.engineerfamily.net` | Siddharth | Static (nginx): ApplyPilot homepage + privacy policy for its Google OAuth consent screen |
+| `applypilot.engineerfamily.net` | Siddharth | Static (nginx): ApplyPilot homepage + privacy policy for its Google OAuth consent screen; `/app/` = ApplyPilot job dashboard (FastAPI + React, basic auth) |
 
 ---
 
@@ -20,6 +20,7 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── app (Flask + Gunicorn)
                          ├── streamlit
                          ├── umami
+                         ├── applypilot (job dashboard, built from /srv/ApplyPilot; nginx /app/ + basic auth)
                          └── analytics (Postgres; also hosts the `applypilot` DB on 127.0.0.1:5432, see `make applypilot-db-init`)
 ```
 
@@ -168,7 +169,9 @@ Recommended pattern for this repo now:
    - `streamlit.engineerfamily.net` -> `streamlit:8501`
    - `umami.engineerfamily.net` -> `umami:3000`
    - `applypilot.engineerfamily.net` -> static files in `services/applypilot/` (served by nginx)
-5. Keep app containers (`app`, `streamlit`, `umami`) off public ports in production; publish only for local development.
+   - `applypilot.engineerfamily.net/app/` -> `applypilot:8000` (basic auth: untracked `services/nginx/.htpasswd-applypilot`;
+     ship ApplyPilot changes with `make applypilot-up`)
+5. Keep app containers (`app`, `streamlit`, `umami`, `applypilot`) off public ports in production; publish only for local development.
 
 Why this is preferred:
 
