@@ -6,6 +6,7 @@
 	local-up local-down local-build local-logs local-ps \
 	up down build restart logs ps applypilot-db-init applypilot-up applypilot-logs \
 	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
+	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
 	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
 
@@ -49,6 +50,9 @@ help:
 	@echo "    preprod-build    Rebuild preprod images"
 	@echo "    preprod-logs     Tail logs for preprod containers"
 	@echo "    preprod-ps       Show preprod container status"
+	@echo "    preprod-applypilot-db-init Create the applypilot role + applypilot_preprod DB (idempotent)"
+	@echo "    preprod-applypilot-up      Rebuild + restart only the preprod dashboard (from /srv/ApplyPilot-preprod)"
+	@echo "    preprod-applypilot-logs    Tail the preprod dashboard logs"
 	@echo ""
 	@echo "  Releases:"
 	@echo "    tag-preprod      Tag current commit for preprod         (e.g. make tag-preprod v=1.2.3)"
@@ -123,6 +127,15 @@ preprod-logs:
 
 preprod-ps:
 	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml ps
+
+preprod-applypilot-db-init:
+	bash scripts/init-applypilot-db.sh preprod
+
+preprod-applypilot-up:
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build applypilot
+
+preprod-applypilot-logs:
+	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml logs -f --tail=100 applypilot
 
 # ─── Releases ────────────────────────────────────────────
 # Usage: make tag-preprod v=1.2.3     → creates and pushes tag v1.2.3-preprod

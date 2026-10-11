@@ -16,6 +16,7 @@ services:
       - app
       - umami
       - streamlit
+      - applypilot
     networks:
       - web
     healthcheck:
@@ -83,6 +84,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ─── ApplyPilot dashboard (review PRs; applypilot-preprod.engineerfamily.net/app/ and 127.0.0.1:8080/app/) ───
+  # Built from /srv/ApplyPilot-preprod, which scripts/agent/preprod.sh (ApplyPilot repo) checks out at the PR head.
+  # Disposable data only: its own applypilot_preprod DB and an empty app dir, never prod's ~/.applypilot or LLM keys.
+  applypilot:
+    build:
+      context: ../ApplyPilot-preprod
+    restart: unless-stopped
+    user: "${APPLYPILOT_UID:-1000}:${APPLYPILOT_GID:-1001}"
+    environment:
+      - APPLYPILOT_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD_PREPROD}@analytics-db:5432/applypilot_preprod
+    volumes:
+      - ${APPLYPILOT_PREPROD_DATA:-/home/dev/.applypilot-preprod}:/home/dev/.applypilot
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    networks:
+      - web
 
 volumes:
   analytics_db_preprod:
