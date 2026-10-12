@@ -27,7 +27,8 @@ if ! [[ "$APPLYPILOT_DB_PASSWORD" =~ ^[A-Za-z0-9]+$ ]]; then
 	exit 1
 fi
 
-COMPOSE="docker compose -f docker-compose.base.yml -f docker-compose.${env}.yml"
+project=engineerfamily; [ "$env" = preprod ] && project=engineerfamily-preprod
+COMPOSE="docker compose -p ${project} -f docker-compose.base.yml -f docker-compose.${env}.yml"
 psql_su() { $COMPOSE exec -T analytics-db psql -v ON_ERROR_STOP=1 -U umami -d umami -tA "$@"; }
 
 if [ "$(psql_su -c "SELECT 1 FROM pg_roles WHERE rolname = 'applypilot'")" = "1" ]; then

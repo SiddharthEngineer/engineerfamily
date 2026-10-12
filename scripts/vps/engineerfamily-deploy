@@ -6,8 +6,8 @@ set -euo pipefail
 action="${1:-}"; env="${2:-}"
 REMOTE=https://github.com/SiddharthEngineer/engineerfamily.git
 case "$env" in
-  prod)    dir=/srv/engineerfamily;         compose=(docker compose -f docker-compose.base.yml -f docker-compose.prod.yml);    nginx=engineerfamily-nginx-1 ;;
-  preprod) dir=/srv/engineerfamily-preprod; compose=(docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml); nginx=engineerfamily-preprod-nginx-1 ;;
+  prod)    dir=/srv/engineerfamily-prod;    compose=(docker compose -p engineerfamily -f docker-compose.base.yml -f docker-compose.prod.yml);            nginx=engineerfamily-nginx-1 ;;
+  preprod) dir=/srv/engineerfamily-preprod; compose=(docker compose -p engineerfamily-preprod -f docker-compose.base.yml -f docker-compose.preprod.yml); nginx=engineerfamily-preprod-nginx-1 ;;
   *) echo "usage: deploy|status prod|preprod" >&2; exit 2 ;;
 esac
 cd "$dir"

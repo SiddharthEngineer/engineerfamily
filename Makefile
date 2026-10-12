@@ -4,11 +4,16 @@
 
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
-	up down build restart logs ps applypilot-db-init applypilot-up applypilot-logs \
+	up down build restart logs ps applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
 	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
+
+# Compose project names are pinned, not taken from the checkout's directory name: the project name
+# prefixes container and volume names, so a renamed checkout would otherwise start with empty volumes.
+PROD = docker compose -p engineerfamily -f docker-compose.base.yml -f docker-compose.prod.yml
+PREPROD = docker compose -p engineerfamily-preprod -f docker-compose.base.yml -f docker-compose.preprod.yml
 
 # Make does not load interactive shell configuration, so also check the
 # standard Homebrew locations used on macOS.
@@ -41,7 +46,8 @@ help:
 	@echo "    logs             Tail logs for all containers"
 	@echo "    ps               Show container status"
 	@echo "    applypilot-db-init Create the applypilot role + DBs in analytics-db (idempotent)"
-	@echo "    applypilot-up    Rebuild + restart only the ApplyPilot dashboard (from /srv/ApplyPilot)"
+	@echo "    applypilot-up    Rebuild + restart only the ApplyPilot dashboard (from /srv/ApplyPilot-prod as checked out)"
+	@echo "    applypilot-deploy Check out ApplyPilot origin/trunk (or ref=<sha|tag>) in /srv/ApplyPilot-prod, then applypilot-up"
 	@echo "    applypilot-logs  Tail the ApplyPilot dashboard logs"
 	@echo ""
 	@echo "  Preprod:"
@@ -95,47 +101,54 @@ local-ps:
 
 # ─── Production ──────────────────────────────────────────
 up:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+	$(PROD) up -d --build --force-recreate --remove-orphans
 
 down:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml down
+	$(PROD) down
 
 logs:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml logs -f --tail=50
+	$(PROD) logs -f --tail=50
 
 ps:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml ps
+	$(PROD) ps
 
 applypilot-db-init:
 	bash scripts/init-applypilot-db.sh
 
 applypilot-up:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build applypilot
+	$(PROD) up -d --build applypilot
+
+# Prod ApplyPilot builds from a detached, pinned commit; nobody edits /srv/ApplyPilot-prod by hand.
+applypilot-deploy:
+	git -C ../ApplyPilot-prod fetch -q --prune origin
+	git -C ../ApplyPilot-prod checkout -q --detach $(or $(ref),origin/trunk)
+	@echo "→ ApplyPilot-prod at $$(git -C ../ApplyPilot-prod log --oneline -1)"
+	$(PROD) up -d --build applypilot
 
 applypilot-logs:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml logs -f --tail=100 applypilot
+	$(PROD) logs -f --tail=100 applypilot
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build --force-recreate --remove-orphans
+	$(PREPROD) up -d --build --force-recreate --remove-orphans
 
 preprod-down:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml down
+	$(PREPROD) down
 
 preprod-logs:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml logs -f --tail=50
+	$(PREPROD) logs -f --tail=50
 
 preprod-ps:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml ps
+	$(PREPROD) ps
 
 preprod-applypilot-db-init:
 	bash scripts/init-applypilot-db.sh preprod
 
 preprod-applypilot-up:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml up -d --build applypilot
+	$(PREPROD) up -d --build applypilot
 
 preprod-applypilot-logs:
-	docker compose -f docker-compose.base.yml -f docker-compose.preprod.yml logs -f --tail=100 applypilot
+	$(PREPROD) logs -f --tail=100 applypilot
 
 # ─── Releases ────────────────────────────────────────────
 # Usage: make tag-preprod v=1.2.3     → creates and pushes tag v1.2.3-preprod
@@ -202,7 +215,7 @@ sync-release-branch:
 
 # ─── Shells ──────────────────────────────────────────────
 shell-app:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml exec app /bin/bash
+	$(PROD) exec app /bin/bash
 
 shell-streamlit:
-	docker compose -f docker-compose.base.yml -f docker-compose.prod.yml exec streamlit /bin/bash
+	$(PROD) exec streamlit /bin/bash

@@ -20,7 +20,7 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── app (Flask + Gunicorn)
                          ├── streamlit
                          ├── umami
-                         ├── applypilot (job dashboard, built from /srv/ApplyPilot; nginx /app/ + basic auth)
+                         ├── applypilot (job dashboard, built from /srv/ApplyPilot-prod; nginx /app/ + basic auth)
                          └── analytics (Postgres; also hosts the `applypilot` DB on 127.0.0.1:5432, see `make applypilot-db-init`)
 ```
 
@@ -170,7 +170,7 @@ Recommended pattern for this repo now:
    - `umami.engineerfamily.net` -> `umami:3000`
    - `applypilot.engineerfamily.net` -> static files in `services/applypilot/` (served by nginx)
    - `applypilot.engineerfamily.net/app/` -> `applypilot:8000` (basic auth: untracked `services/nginx/.htpasswd-applypilot`;
-     ship ApplyPilot changes with `make applypilot-up`)
+     ship ApplyPilot trunk with `make applypilot-deploy`)
 5. Keep app containers (`app`, `streamlit`, `umami`, `applypilot`) off public ports in production; publish only for local development.
 
 Why this is preferred:
@@ -178,6 +178,20 @@ Why this is preferred:
 - One place to manage TLS, redirects, headers, and rate limits.
 - Cleaner security boundary (single public entrypoint).
 - Easier migration as services grow.
+
+## VPS Layout
+
+| Path | Role |
+|---|---|
+| `~dev/src/{engineerfamily,ApplyPilot,…}` | Development clones. All editing and commits happen here. |
+| `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
+| `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
+| `/srv/ApplyPilot-prod` | Prod dashboard build context, detached at a trunk commit (`make applypilot-deploy`). |
+| `/srv/ApplyPilot-preprod` | Preprod dashboard build context, moved to review-PR heads by ApplyPilot's `scripts/agent/preprod.sh`. |
+
+`/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
+pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
+never changes container or volume names.
 
 ## Useful Commands
 

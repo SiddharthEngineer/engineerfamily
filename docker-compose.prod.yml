@@ -89,10 +89,10 @@ services:
       retries: 5
 
   # ─── ApplyPilot dashboard (applypilot.engineerfamily.net/app/, basic auth in nginx) ───
-  # Built from the sibling checkout /srv/ApplyPilot; `make applypilot-up` rebuilds just this service.
+  # Built from /srv/ApplyPilot-prod, a detached trunk commit; `make applypilot-deploy` moves it and rebuilds just this service.
   applypilot:
     build:
-      context: ../ApplyPilot
+      context: ../ApplyPilot-prod
     restart: unless-stopped
     # Runs as the host user that owns ~/.applypilot (dev), at the same HOME path, so the files it writes stay
     # dev's and the absolute paths stored in the DB resolve. Override with APPLYPILOT_UID/GID in .env.
@@ -104,7 +104,7 @@ services:
       # Profile, resume template, content library, Drive token, llm_usage.json, tailored files.
       - /home/dev/.applypilot:/home/dev/.applypilot
       # Gemini key + LLM limits (multi-line JSON values, so not env_file); load_env reads the CWD .env.
-      - ../ApplyPilot/.env:/app/.env:ro
+      - ../ApplyPilot-prod/.env:/app/.env:ro
     depends_on:
       analytics-db:
         condition: service_healthy

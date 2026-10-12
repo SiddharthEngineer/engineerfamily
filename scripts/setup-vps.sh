@@ -30,9 +30,9 @@ chmod 700 /home/deploy/.ssh
 chmod 600 /home/deploy/.ssh/authorized_keys
 
 echo "==> Creating app directories..."
-mkdir -p /srv/engineerfamily
+mkdir -p /srv/engineerfamily-prod
 mkdir -p /srv/engineerfamily-preprod
-chown -R deploy:deploy /srv/engineerfamily /srv/engineerfamily-preprod
+chown -R deploy:deploy /srv/engineerfamily-prod /srv/engineerfamily-preprod
 
 echo "==> Configuring UFW firewall..."
 apt-get install -y ufw
@@ -47,7 +47,7 @@ echo ""
 echo "✅ VPS setup complete."
 echo ""
 echo "Next steps:"
-echo "  1. Copy your .env file to /srv/engineerfamily/.env"
+echo "  1. Copy your .env file to /srv/engineerfamily-prod/.env"
 echo "  2. Add the GitHub Actions SSH public key to /home/deploy/.ssh/authorized_keys"
 echo "  3. Push to main — the GitHub Action will do the first deploy"
 echo ""
