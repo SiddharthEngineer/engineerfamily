@@ -193,6 +193,11 @@ Why this is preferred:
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
 never changes container or volume names.
 
+Every prod and preprod `make` target acts on these `/srv` checkouts, so it can be run from the dev clone.
+`make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
+Edits reach prod or preprod only by pushing to `main` and deploying (`make tag-preprod` / `make tag-prod`), or for
+ApplyPilot with `make applypilot-deploy`. Use `make local-up` to run the dev tree.
+
 ## Useful Commands
 
 ```bash
