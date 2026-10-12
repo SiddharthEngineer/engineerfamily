@@ -10,10 +10,18 @@
 	shell-app shell-streamlit \
 	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
 
+# Prod and preprod targets always act on the deploy checkouts in /srv, wherever make runs from (e.g. the dev clone
+# in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned ApplyPilot
+# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, applypilot-deploy).
 # Compose project names are pinned, not taken from the checkout's directory name: the project name
 # prefixes container and volume names, so a renamed checkout would otherwise start with empty volumes.
-PROD = docker compose -p engineerfamily -f docker-compose.base.yml -f docker-compose.prod.yml
-PREPROD = docker compose -p engineerfamily-preprod -f docker-compose.base.yml -f docker-compose.preprod.yml
+PROD_DIR ?= /srv/engineerfamily-prod
+PREPROD_DIR ?= /srv/engineerfamily-preprod
+APPLYPILOT_PROD_DIR ?= /srv/ApplyPilot-prod
+PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
+	-f $(PROD_DIR)/docker-compose.base.yml -f $(PROD_DIR)/docker-compose.prod.yml
+PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
+	-f $(PREPROD_DIR)/docker-compose.base.yml -f $(PREPROD_DIR)/docker-compose.preprod.yml
 
 # Make does not load interactive shell configuration, so also check the
 # standard Homebrew locations used on macOS.
@@ -38,7 +46,7 @@ help:
 	@echo "    local-logs       Tail logs for local containers"
 	@echo "    local-ps         Show local container status"
 	@echo ""
-	@echo "  Production:"
+	@echo "  Production (acts on $(PROD_DIR), from any directory):"
 	@echo "    up               Start all prod containers"
 	@echo "    down             Stop all prod containers"
 	@echo "    build            Rebuild all images"
@@ -50,7 +58,7 @@ help:
 	@echo "    applypilot-deploy Check out ApplyPilot origin/trunk (or ref=<sha|tag>) in /srv/ApplyPilot-prod, then applypilot-up"
 	@echo "    applypilot-logs  Tail the ApplyPilot dashboard logs"
 	@echo ""
-	@echo "  Preprod:"
+	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
 	@echo "    preprod-build    Rebuild preprod images"
@@ -93,6 +101,9 @@ local-up:
 local-down:
 	docker compose -f docker-compose.local.yml down
 
+local-build:
+	docker compose -f docker-compose.local.yml build
+
 local-logs:
 	docker compose -f docker-compose.local.yml logs -f --tail=50
 
@@ -106,6 +117,13 @@ up:
 down:
 	$(PROD) down
 
+build:
+	$(PROD) build
+
+# Recreates only services whose image or config changed (`up` force-recreates everything).
+restart:
+	$(PROD) up -d --build --remove-orphans
+
 logs:
 	$(PROD) logs -f --tail=50
 
@@ -113,16 +131,16 @@ ps:
 	$(PROD) ps
 
 applypilot-db-init:
-	bash scripts/init-applypilot-db.sh
+	bash $(PROD_DIR)/scripts/init-applypilot-db.sh
 
 applypilot-up:
 	$(PROD) up -d --build applypilot
 
 # Prod ApplyPilot builds from a detached, pinned commit; nobody edits /srv/ApplyPilot-prod by hand.
 applypilot-deploy:
-	git -C ../ApplyPilot-prod fetch -q --prune origin
-	git -C ../ApplyPilot-prod checkout -q --detach $(or $(ref),origin/trunk)
-	@echo "→ ApplyPilot-prod at $$(git -C ../ApplyPilot-prod log --oneline -1)"
+	git -C $(APPLYPILOT_PROD_DIR) fetch -q --prune origin
+	git -C $(APPLYPILOT_PROD_DIR) checkout -q --detach $(or $(ref),origin/trunk)
+	@echo "→ ApplyPilot-prod at $$(git -C $(APPLYPILOT_PROD_DIR) log --oneline -1)"
 	$(PROD) up -d --build applypilot
 
 applypilot-logs:
@@ -135,6 +153,9 @@ preprod-up:
 preprod-down:
 	$(PREPROD) down
 
+preprod-build:
+	$(PREPROD) build
+
 preprod-logs:
 	$(PREPROD) logs -f --tail=50
 
@@ -142,7 +163,7 @@ preprod-ps:
 	$(PREPROD) ps
 
 preprod-applypilot-db-init:
-	bash scripts/init-applypilot-db.sh preprod
+	bash $(PREPROD_DIR)/scripts/init-applypilot-db.sh preprod
 
 preprod-applypilot-up:
 	$(PREPROD) up -d --build applypilot
