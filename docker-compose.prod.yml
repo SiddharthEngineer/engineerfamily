@@ -101,10 +101,9 @@ services:
       # Overrides the host-only 127.0.0.1 URL in ~/.applypilot/.env (load_dotenv never overrides set variables).
       - APPLYPILOT_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
     volumes:
-      # Profile, resume template, content library, Drive token, llm_usage.json, tailored files.
+      # Profile, resume template, content library, Drive token, llm_usage.json, tailored files, and .env (the Gemini key),
+      # which load_env() reads from ~/.applypilot. LLM limits ship with ApplyPilot (override: ~/.applypilot/llm_limits.yaml).
       - /home/dev/.applypilot:/home/dev/.applypilot
-      # Gemini key + LLM limits (multi-line JSON values, so not env_file); load_env reads the CWD .env.
-      - ../ApplyPilot-prod/.env:/app/.env:ro
     depends_on:
       analytics-db:
         condition: service_healthy
