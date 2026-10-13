@@ -9,7 +9,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | `streamlit.engineerfamily.net` | Siddharth | Streamlit |
 | `bookstack.engineerfamily.net` | Nivi | BookStack |
 | `umami.engineerfamily.net` | Siddharth | Umami |
-| `applypilot.engineerfamily.net` | Siddharth | Static (nginx): ApplyPilot homepage + privacy policy for its Google OAuth consent screen; `/app/` = ApplyPilot job dashboard (FastAPI + React, basic auth) |
+| `strelitzia.engineerfamily.net` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/app/` = Strelitzia job dashboard (FastAPI + React, basic auth). `applypilot.engineerfamily.net` 301s here. |
 
 ---
 
@@ -20,8 +20,8 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── app (Flask + Gunicorn)
                          ├── streamlit
                          ├── umami
-                         ├── applypilot (job dashboard, built from /srv/ApplyPilot-prod; nginx /app/ + basic auth)
-                         └── analytics (Postgres; also hosts the `applypilot` DB on 127.0.0.1:5432, see `make applypilot-db-init`)
+                         ├── strelitzia (job dashboard, built from /srv/Strelitzia-prod; nginx /app/ + basic auth)
+                         └── analytics (Postgres; also hosts Strelitzia's `applypilot` DB on 127.0.0.1:5432, see `make strelitzia-db-init`)
 ```
 
 Routing for site pages is managed in Flask (`services/app/app.py`).
@@ -168,10 +168,11 @@ Recommended pattern for this repo now:
    - `engineerfamily.net` -> `app:8000`
    - `streamlit.engineerfamily.net` -> `streamlit:8501`
    - `umami.engineerfamily.net` -> `umami:3000`
-   - `applypilot.engineerfamily.net` -> static files in `services/applypilot/` (served by nginx)
-   - `applypilot.engineerfamily.net/app/` -> `applypilot:8000` (basic auth: untracked `services/nginx/.htpasswd-applypilot`;
-     ship ApplyPilot trunk with `make applypilot-deploy`)
-5. Keep app containers (`app`, `streamlit`, `umami`, `applypilot`) off public ports in production; publish only for local development.
+   - `strelitzia.engineerfamily.net` -> static files in `services/strelitzia/` (served by nginx)
+   - `strelitzia.engineerfamily.net/app/` -> `strelitzia:8000` (basic auth: untracked `services/nginx/.htpasswd-applypilot`,
+     which keeps its old name; ship Strelitzia trunk with `make strelitzia-deploy`)
+   - `applypilot.engineerfamily.net` -> 301 to `strelitzia.engineerfamily.net`, keeping the path
+5. Keep app containers (`app`, `streamlit`, `umami`, `strelitzia`) off public ports in production; publish only for local development.
 
 Why this is preferred:
 
@@ -183,11 +184,11 @@ Why this is preferred:
 
 | Path | Role |
 |---|---|
-| `~dev/src/{engineerfamily,ApplyPilot,…}` | Development clones. All editing and commits happen here. |
+| `~dev/src/{engineerfamily,Strelitzia,…}` | Development clones. All editing and commits happen here. |
 | `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
-| `/srv/ApplyPilot-prod` | Prod dashboard build context, detached at a trunk commit (`make applypilot-deploy`). |
-| `/srv/ApplyPilot-preprod` | Preprod dashboard build context, moved to review-PR heads by ApplyPilot's `scripts/agent/preprod.sh`. |
+| `/srv/Strelitzia-prod` | Prod dashboard build context, detached at a trunk commit (`make strelitzia-deploy`). `/srv/ApplyPilot-prod` is a symlink to it. |
+| `/srv/Strelitzia-preprod` | Preprod dashboard build context, moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. `/srv/ApplyPilot-preprod` is a symlink to it. |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
@@ -196,7 +197,7 @@ never changes container or volume names.
 Every prod and preprod `make` target acts on these `/srv` checkouts, so it can be run from the dev clone.
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
 Edits reach prod or preprod only by pushing to `main` and deploying (`make tag-preprod` / `make tag-prod`), or for
-ApplyPilot with `make applypilot-deploy`. Use `make local-up` to run the dev tree.
+Strelitzia with `make strelitzia-deploy`. Use `make local-up` to run the dev tree.
 
 ## Useful Commands
 
