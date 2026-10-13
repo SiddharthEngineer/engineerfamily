@@ -5,7 +5,7 @@
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
 	up down build restart logs ps strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
-	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
+	preprod-deploy preprod-up preprod-down preprod-build preprod-logs preprod-ps \
 	preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
@@ -62,6 +62,7 @@ help:
 	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
+	@echo "    preprod-deploy   Check out origin/main (or ref=<sha|tag|origin/branch>) in $(PREPROD_DIR), rebuild, reload nginx"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
 	@echo "    preprod-build    Rebuild preprod images"
@@ -150,6 +151,16 @@ strelitzia-logs:
 	$(PROD) logs -f --tail=100 strelitzia
 
 # ─── Preprod ─────────────────────────────────────────────
+# The everyday way to put an engineerfamily change on preprod: no tag and no GitHub workflow, run from the VPS.
+# Same steps as scripts/vps/engineerfamily-deploy, but at any commit. The `preprod` branch on GitHub moves only with
+# tag deploys (deploy-preprod), so it can lag behind what this put on preprod.
+preprod-deploy:
+	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
+	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
+	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
+	$(PREPROD) up -d --build --remove-orphans
+	docker exec engineerfamily-preprod-nginx-1 nginx -s reload
+
 preprod-up:
 	$(PREPROD) up -d --build --force-recreate --remove-orphans
 
