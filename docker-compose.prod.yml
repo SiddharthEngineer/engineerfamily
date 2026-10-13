@@ -106,8 +106,6 @@ services:
     volumes:
       # Profile, resume template, content library, Drive token, llm_usage.json, tailored files, and .env (the Gemini key).
       - /home/dev/.strelitzia:/home/dev/.strelitzia
-      # Same dir at the old path: DB rows written before the rename hold /home/dev/.applypilot/... file paths.
-      - /home/dev/.strelitzia:/home/dev/.applypilot
     depends_on:
       analytics-db:
         condition: service_healthy
