@@ -45,7 +45,8 @@ This repo uses four branch/tag concepts:
 
 4. Deployment state branches
    - `prod`: always points to what is deployed in production.
-   - `preprod`: always points to what is deployed in preprod.
+   - `preprod`: points to the last *tag* deploy to preprod. `make preprod-deploy` (below) doesn't move it, so
+     `git -C /srv/engineerfamily-preprod log -1` is the source of truth for what preprod runs.
 
 ### Tagging Rules
 
@@ -69,29 +70,32 @@ Validation/sync logic lives in:
 
 ## Deploying
 
-Deploys are triggered via Make targets, which create/push a tag and then invoke `gh workflow run` to dispatch `.github/workflows/deploy.yml` with explicit `environment` and `ref` inputs.
+### Preprod Deploy (everyday: no tag)
 
-### Preprod Deploy
-
-```bash
-make tag-preprod v=1.2.3
-```
-
-This runs the following steps:
-
-1. `validate-release-tagging` — policy gate (must be on main or release branch).
-2. `sync-release-branch` — merges origin/main into release branch if needed.
-3. `git tag -f v1.2.3-preprod` — creates or overwrites the local tag.
-4. `git push origin v1.2.3-preprod --force` — pushes the tag to remote.
-5. `gh workflow run deploy.yml --ref main -f environment=preprod -f ref=v1.2.3-preprod` — triggers the deploy workflow.
-
-### Prod Deploy
+Run on the VPS, from any directory (e.g. the dev clone):
 
 ```bash
-make tag-prod v=1.2.3
+make preprod-deploy                     # origin/main
+make preprod-deploy ref=origin/my-branch # a pushed branch, before merging
+make preprod-deploy ref=<sha|tag>
 ```
 
-Same flow as preprod but pushes a prod tag (`v1.2.3`) and triggers the workflow with `environment=prod`.
+It checks that commit out in `/srv/engineerfamily-preprod`, rebuilds the stack (`up -d --build --remove-orphans`) and
+reloads nginx. These are the same steps the deploy workflow runs, minus the tag and the GitHub round-trip. Push the commit first, because it
+deploys what is on GitHub. Preprod tags (`make tag-preprod` + `make deploy-preprod`) are optional, for a release candidate you
+want on record.
+
+### Prod Deploy (tag + workflow)
+
+Prod deploys are always a tag, and two separate steps (tagging alone deploys nothing):
+
+```bash
+make tag-prod v=1.2.3          # validate-release-tagging, sync-release-branch, then tag v1.2.3 and push it
+make deploy-prod ref=v1.2.3    # gh workflow run deploy.yml -f environment=prod -f ref=v1.2.3
+```
+
+Roll back with `make deploy-prod ref=<previous tag>`. The preprod equivalents are `make tag-preprod v=1.2.3` and
+`make deploy-preprod ref=v1.2.3-preprod`.
 
 ### How the workflow works
 
@@ -196,7 +200,7 @@ never changes container or volume names.
 
 Every prod and preprod `make` target acts on these `/srv` checkouts, so it can be run from the dev clone.
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
-Edits reach prod or preprod only by pushing to `main` and deploying (`make tag-preprod` / `make tag-prod`), or for
+Edits reach preprod with `make preprod-deploy` and prod with `make tag-prod` + `make deploy-prod`, or for
 Strelitzia with `make strelitzia-deploy`. Use `make local-up` to run the dev tree.
 
 ## Useful Commands
@@ -205,7 +209,8 @@ Strelitzia with `make strelitzia-deploy`. Use `make local-up` to run the dev tre
 make ps              # container status
 make logs            # tail all logs
 make restart         # rebuild + restart changed services
-make preprod-up      # start preprod
+make preprod-deploy  # put origin/main (or ref=…) on preprod
+make preprod-up      # restart preprod as checked out
 make run-app         # run Flask locally without Docker
 make run-streamlit   # run Streamlit locally without Docker
 ```
