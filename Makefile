@@ -4,20 +4,22 @@
 
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
-	up down build restart logs ps applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
+	up down build restart logs ps strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
 	preprod-up preprod-down preprod-build preprod-logs preprod-ps \
+	preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
+	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
 	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
 
 # Prod and preprod targets always act on the deploy checkouts in /srv, wherever make runs from (e.g. the dev clone
-# in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned ApplyPilot
-# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, applypilot-deploy).
+# in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned Strelitzia
+# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, strelitzia-deploy).
 # Compose project names are pinned, not taken from the checkout's directory name: the project name
 # prefixes container and volume names, so a renamed checkout would otherwise start with empty volumes.
 PROD_DIR ?= /srv/engineerfamily-prod
 PREPROD_DIR ?= /srv/engineerfamily-preprod
-APPLYPILOT_PROD_DIR ?= /srv/ApplyPilot-prod
+STRELITZIA_PROD_DIR ?= /srv/Strelitzia-prod
 PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 	-f $(PROD_DIR)/docker-compose.base.yml -f $(PROD_DIR)/docker-compose.prod.yml
 PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
@@ -53,10 +55,11 @@ help:
 	@echo "    restart          Rebuild + restart changed services"
 	@echo "    logs             Tail logs for all containers"
 	@echo "    ps               Show container status"
-	@echo "    applypilot-db-init Create the applypilot role + DBs in analytics-db (idempotent)"
-	@echo "    applypilot-up    Rebuild + restart only the ApplyPilot dashboard (from /srv/ApplyPilot-prod as checked out)"
-	@echo "    applypilot-deploy Check out ApplyPilot origin/trunk (or ref=<sha|tag>) in /srv/ApplyPilot-prod, then applypilot-up"
-	@echo "    applypilot-logs  Tail the ApplyPilot dashboard logs"
+	@echo "    strelitzia-db-init Create the applypilot role + DBs in analytics-db (idempotent; the DB keeps its old name)"
+	@echo "    strelitzia-up    Rebuild + restart only the Strelitzia dashboard (from /srv/Strelitzia-prod as checked out)"
+	@echo "    strelitzia-deploy Check out Strelitzia origin/trunk (or ref=<sha|tag>) in /srv/Strelitzia-prod, then strelitzia-up"
+	@echo "    strelitzia-logs  Tail the Strelitzia dashboard logs"
+	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
 	@echo "    preprod-up       Start preprod containers"
@@ -64,9 +67,9 @@ help:
 	@echo "    preprod-build    Rebuild preprod images"
 	@echo "    preprod-logs     Tail logs for preprod containers"
 	@echo "    preprod-ps       Show preprod container status"
-	@echo "    preprod-applypilot-db-init Create the applypilot role + applypilot_preprod DB (idempotent)"
-	@echo "    preprod-applypilot-up      Rebuild + restart only the preprod dashboard (from /srv/ApplyPilot-preprod)"
-	@echo "    preprod-applypilot-logs    Tail the preprod dashboard logs"
+	@echo "    preprod-strelitzia-db-init Create the applypilot role + applypilot_preprod DB (idempotent)"
+	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
+	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
 	@echo ""
 	@echo "  Releases:"
 	@echo "    tag-preprod      Tag current commit for preprod         (e.g. make tag-preprod v=1.2.3)"
@@ -130,21 +133,21 @@ logs:
 ps:
 	$(PROD) ps
 
-applypilot-db-init:
+strelitzia-db-init:
 	bash $(PROD_DIR)/scripts/init-applypilot-db.sh
 
-applypilot-up:
-	$(PROD) up -d --build applypilot
+strelitzia-up:
+	$(PROD) up -d --build strelitzia
 
-# Prod ApplyPilot builds from a detached, pinned commit; nobody edits /srv/ApplyPilot-prod by hand.
-applypilot-deploy:
-	git -C $(APPLYPILOT_PROD_DIR) fetch -q --prune origin
-	git -C $(APPLYPILOT_PROD_DIR) checkout -q --detach $(or $(ref),origin/trunk)
-	@echo "→ ApplyPilot-prod at $$(git -C $(APPLYPILOT_PROD_DIR) log --oneline -1)"
-	$(PROD) up -d --build applypilot
+# Prod Strelitzia builds from a detached, pinned commit; nobody edits /srv/Strelitzia-prod by hand.
+strelitzia-deploy:
+	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune origin
+	git -C $(STRELITZIA_PROD_DIR) checkout -q --detach $(or $(ref),origin/trunk)
+	@echo "→ Strelitzia-prod at $$(git -C $(STRELITZIA_PROD_DIR) log --oneline -1)"
+	$(PROD) up -d --build strelitzia
 
-applypilot-logs:
-	$(PROD) logs -f --tail=100 applypilot
+strelitzia-logs:
+	$(PROD) logs -f --tail=100 strelitzia
 
 # ─── Preprod ─────────────────────────────────────────────
 preprod-up:
@@ -162,14 +165,23 @@ preprod-logs:
 preprod-ps:
 	$(PREPROD) ps
 
-preprod-applypilot-db-init:
+preprod-strelitzia-db-init:
 	bash $(PREPROD_DIR)/scripts/init-applypilot-db.sh preprod
 
-preprod-applypilot-up:
-	$(PREPROD) up -d --build applypilot
+preprod-strelitzia-up:
+	$(PREPROD) up -d --build strelitzia
 
-preprod-applypilot-logs:
-	$(PREPROD) logs -f --tail=100 applypilot
+preprod-strelitzia-logs:
+	$(PREPROD) logs -f --tail=100 strelitzia
+
+# Deprecated ApplyPilot names (the Strelitzia runner's config and old habits); remove once nothing uses them.
+applypilot-db-init: strelitzia-db-init
+applypilot-up: strelitzia-up
+applypilot-deploy: strelitzia-deploy
+applypilot-logs: strelitzia-logs
+preprod-applypilot-db-init: preprod-strelitzia-db-init
+preprod-applypilot-up: preprod-strelitzia-up
+preprod-applypilot-logs: preprod-strelitzia-logs
 
 # ─── Releases ────────────────────────────────────────────
 # Usage: make tag-preprod v=1.2.3     → creates and pushes tag v1.2.3-preprod

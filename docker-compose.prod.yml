@@ -7,7 +7,7 @@ services:
       - "80:80"
     volumes:
       - ./services/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./services/applypilot:/usr/share/nginx/applypilot:ro
+      - ./services/strelitzia:/usr/share/nginx/strelitzia:ro
       - ./services/nginx/.htpasswd-applypilot:/etc/nginx/.htpasswd-applypilot:ro
     depends_on:
       - app
@@ -77,7 +77,7 @@ services:
       - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD}
     volumes:
       - analytics_db:/var/lib/postgresql/data
-    # Loopback only: the host's ApplyPilot CLI uses the `applypilot` DB (make applypilot-db-init).
+    # Loopback only: the host's Strelitzia CLI uses the `applypilot` DB (make strelitzia-db-init; the DB keeps its old name).
     ports:
       - "127.0.0.1:5432:5432"
     networks:
@@ -88,22 +88,26 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── ApplyPilot dashboard (applypilot.engineerfamily.net/app/, basic auth in nginx) ───
-  # Built from /srv/ApplyPilot-prod, a detached trunk commit; `make applypilot-deploy` moves it and rebuilds just this service.
-  applypilot:
+  # ─── Strelitzia dashboard (strelitzia.engineerfamily.net/app/, basic auth in nginx) ───
+  # Built from /srv/Strelitzia-prod, a detached trunk commit; `make strelitzia-deploy` moves it and rebuilds just this service.
+  strelitzia:
     build:
-      context: ../ApplyPilot-prod
+      context: ../Strelitzia-prod
     restart: unless-stopped
-    # Runs as the host user that owns ~/.applypilot (dev), at the same HOME path, so the files it writes stay
+    # Runs as the host user that owns ~/.strelitzia (dev), at the same HOME path, so the files it writes stay
     # dev's and the absolute paths stored in the DB resolve. Override with APPLYPILOT_UID/GID in .env.
     user: "${APPLYPILOT_UID:-1000}:${APPLYPILOT_GID:-1001}"
     environment:
-      # Overrides the host-only 127.0.0.1 URL in ~/.applypilot/.env (load_dotenv never overrides set variables).
+      # Beats the host-only 127.0.0.1 URL in ~/.strelitzia/.env (a process env var wins over .env, whichever name it uses).
+      # The DB, its role and APPLYPILOT_DB_PASSWORD keep their ApplyPilot names on purpose.
+      - STRELITZIA_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
+      # Legacy name, same value, for a build older than Strelitzia 0.4 (a pinned rollback or an old PR head). Drop it later.
       - APPLYPILOT_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
     volumes:
-      # Profile, resume template, content library, Drive token, llm_usage.json, tailored files, and .env (the Gemini key),
-      # which load_env() reads from ~/.applypilot. LLM limits ship with ApplyPilot (override: ~/.applypilot/llm_limits.yaml).
-      - /home/dev/.applypilot:/home/dev/.applypilot
+      # Profile, resume template, content library, Drive token, llm_usage.json, tailored files, and .env (the Gemini key).
+      - /home/dev/.strelitzia:/home/dev/.strelitzia
+      # Same dir at the old path: DB rows written before the rename hold /home/dev/.applypilot/... file paths.
+      - /home/dev/.strelitzia:/home/dev/.applypilot
     depends_on:
       analytics-db:
         condition: service_healthy
