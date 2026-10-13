@@ -191,8 +191,8 @@ Why this is preferred:
 | `~dev/src/{engineerfamily,Strelitzia,…}` | Development clones. All editing and commits happen here. |
 | `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
-| `/srv/Strelitzia-prod` | Prod dashboard build context, detached at a trunk commit (`make strelitzia-deploy`). `/srv/ApplyPilot-prod` is a symlink to it. |
-| `/srv/Strelitzia-preprod` | Preprod dashboard build context, moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. `/srv/ApplyPilot-preprod` is a symlink to it. |
+| `/srv/Strelitzia-prod` | Prod dashboard build context, detached at a trunk commit (`make strelitzia-deploy`). |
+| `/srv/Strelitzia-preprod` | Preprod dashboard build context, moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
