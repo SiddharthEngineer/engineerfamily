@@ -128,7 +128,9 @@ docker compose down
 
 ## Analytics
 
-Umami is at `umami.engineerfamily.net`.
+Umami is at `umami.engineerfamily.net`. It is off by default to save memory: the `umami` service sits behind a compose
+profile. To run it, set `COMPOSE_PROFILES=umami` in the env's `.env` (or the shell) and redeploy. Locally that also starts
+`analytics-db-local`; on the VPS `analytics-db` always runs, because the Strelitzia dashboard uses it.
 
 This repo uses a hybrid analytics model:
 
