@@ -175,8 +175,8 @@ Recommended pattern for this repo now:
    - `streamlit.engineerfamily.net` -> `streamlit:8501`
    - `umami.engineerfamily.net` -> `umami:3000`
    - `strelitzia.engineerfamily.net` -> static files in `services/strelitzia/` (served by nginx)
-   - `strelitzia.engineerfamily.net/app/` -> `strelitzia:8000` (basic auth: untracked `services/nginx/.htpasswd-applypilot`,
-     which keeps its old name; ship Strelitzia trunk with `make strelitzia-deploy`)
+   - `strelitzia.engineerfamily.net/app/` -> `strelitzia:8000` (no basic auth: the app has its own Google sign-in,
+     while preprod keeps basic auth; ship Strelitzia trunk with `make strelitzia-deploy`)
    - `applypilot.engineerfamily.net` -> 301 to `strelitzia.engineerfamily.net`, keeping the path
 5. Keep app containers (`app`, `streamlit`, `umami`, `strelitzia`) off public ports in production; publish only for local development.
 
