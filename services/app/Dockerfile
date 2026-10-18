@@ -11,7 +11,6 @@ COPY services/app/vite/package*.json ./
 RUN npm ci
 
 COPY services/app/vite/ ./
-COPY services/app/portfolios/ ../portfolios/
 RUN npm run build
 
 FROM python:3.12-slim

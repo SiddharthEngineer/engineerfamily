@@ -76,8 +76,7 @@ body {
   position: relative;
 }
 
-.nav-link,
-.dropdown-trigger {
+.nav-link {
   appearance: none;
   border: 0;
   background: transparent;
@@ -92,44 +91,8 @@ body {
 }
 
 .nav-link:hover,
-.dropdown-trigger:hover,
 .nav-item.is-active > .nav-link,
-.nav-item-dropdown.is-active > .dropdown-trigger,
 .nav-link.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  min-width: 180px;
-  padding: 0.35rem;
-  margin: 0;
-  list-style: none;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-strong);
-  box-shadow: var(--shadow);
-  display: none;
-}
-
-.nav-item-dropdown:hover .dropdown-menu,
-.nav-item-dropdown:focus-within .dropdown-menu {
-  display: block;
-}
-
-.dropdown-link {
-  display: block;
-  text-decoration: none;
-  color: var(--text);
-  padding: 0.5rem 0.65rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-}
-
-.dropdown-link:hover {
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -142,30 +105,6 @@ body {
 
 .barebones-home {
   min-height: calc(100vh - 90px);
-}
-
-.portfolio-card {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.58);
-  padding: 1.5rem;
-  max-width: 760px;
-}
-
-.portfolio-card h1 {
-  margin: 0;
-  font-size: clamp(1.9rem, 5vw, 2.9rem);
-  line-height: 1.1;
-}
-
-.portfolio-headline {
-  margin-top: 0.75rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.portfolio-card p {
-  color: var(--muted);
 }
 
 .games-shell {
