@@ -6,10 +6,9 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | Subdomain | Owner | Tech |
 |---|---|---|
 | `engineerfamily.net` | All | Flask |
-| `streamlit.engineerfamily.net` | Siddharth | Streamlit |
-| `bookstack.engineerfamily.net` | Nivi | BookStack |
+| `streamlit.engineerfamily.net` | Siddharth | Streamlit. Off by default (compose profile `streamlit`); the host 301s to the home page. |
 | `umami.engineerfamily.net` | Siddharth | Umami |
-| `strelitzia.engineerfamily.net` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/app/` = Strelitzia job dashboard (FastAPI + React, basic auth). `applypilot.engineerfamily.net` 301s here. |
+| `engineerfamily.net/strelitzia/` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/strelitzia/dashboard/` = Strelitzia job dashboard (FastAPI + React, Google sign-in). `strelitzia.` and `applypilot.engineerfamily.net` 301 here, `/app/…` to `/strelitzia/dashboard/…`. |
 
 ---
 
@@ -18,9 +17,9 @@ Each family member has their own subdomain under `engineerfamily.net`.
 ```
 Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── app (Flask + Gunicorn)
-                         ├── streamlit
-                         ├── umami
-                         ├── strelitzia (job dashboard, built from /srv/Strelitzia-prod; nginx /app/ + basic auth)
+                         ├── streamlit (opt-in profile)
+                         ├── umami (opt-in profile)
+                         ├── strelitzia (job dashboard, built from /srv/Strelitzia-prod; nginx /strelitzia/dashboard/)
                          └── postgres-db (Postgres for umami and Strelitzia's `strelitzia` DB on 127.0.0.1:5432, see `make strelitzia-db-init`)
 ```
 
@@ -111,14 +110,11 @@ Roll back with `make deploy-prod ref=<previous tag>`. The preprod equivalents ar
 # Copy env
 cp .env.example .env
 
-# Start Flask app + Streamlit (local)
-docker compose --profile local up -d --build app streamlit
+# Start the Flask app (local); add COMPOSE_PROFILES=streamlit for Streamlit
+make local-up
 
 # Open home page
 http://localhost:8000/
-
-# Streamlit (linked from nav)
-http://localhost:8501/
 
 # Stop app
 docker compose down
@@ -172,12 +168,13 @@ Recommended pattern for this repo now:
 3. Run a single edge reverse proxy on the VPS (Nginx).
 4. Route traffic by hostname/path to containers on the internal Docker network:
    - `engineerfamily.net` -> `app:8000`
-   - `streamlit.engineerfamily.net` -> `streamlit:8501`
-   - `umami.engineerfamily.net` -> `umami:3000`
-   - `strelitzia.engineerfamily.net` -> static files in `services/strelitzia/` (served by nginx)
-   - `strelitzia.engineerfamily.net/app/` -> `strelitzia:8000` (no basic auth: the app has its own Google sign-in,
+   - `engineerfamily.net/strelitzia/` -> static files in `services/strelitzia/` (served by nginx)
+   - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000` (no basic auth: the app has its own Google sign-in,
      while preprod keeps basic auth; ship Strelitzia trunk with `make strelitzia-deploy`)
-   - `applypilot.engineerfamily.net` -> 301 to `strelitzia.engineerfamily.net`, keeping the path
+   - `streamlit.engineerfamily.net` -> 301 to `engineerfamily.net` while the `streamlit` profile is off
+   - `umami.engineerfamily.net` -> `umami:3000`
+   - `strelitzia.engineerfamily.net`, `applypilot.engineerfamily.net` -> 301 to `engineerfamily.net/strelitzia/`,
+     keeping the path (`/app/…` -> `/strelitzia/dashboard/…`)
 5. Keep app containers (`app`, `streamlit`, `umami`, `strelitzia`) off public ports in production; publish only for local development.
 
 Why this is preferred:

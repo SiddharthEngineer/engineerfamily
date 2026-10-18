@@ -10,7 +10,6 @@ services:
       - ./services/strelitzia:/usr/share/nginx/strelitzia:ro
     depends_on:
       - app
-      - streamlit
     networks:
       - web
     healthcheck:
@@ -37,7 +36,9 @@ services:
       - web
 
   # ─── Streamlit ────────────────────────────────────────
+  # Off by default (unused). Enable with COMPOSE_PROFILES=streamlit, and restore its nginx proxy vhost.
   streamlit:
+    profiles: [streamlit]
     build:
       context: ./services/streamlit
       dockerfile: Dockerfile

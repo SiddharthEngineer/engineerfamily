@@ -14,7 +14,6 @@ services:
       - ./services/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     depends_on:
       - app
-      - streamlit
       - strelitzia
     networks:
       - web
@@ -40,7 +39,9 @@ services:
       - web
 
   # ─── Streamlit ────────────────────────────────────────
+  # Off by default (unused). Enable with COMPOSE_PROFILES=streamlit, and restore its nginx proxy vhost.
   streamlit:
+    profiles: [streamlit]
     build:
       context: ./services/streamlit
       dockerfile: Dockerfile

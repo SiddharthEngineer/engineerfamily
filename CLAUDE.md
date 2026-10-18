@@ -1,7 +1,7 @@
 # CLAUDE.md (auto-loaded every session; keep it short)
 
-engineerfamily: the Docker stack on the Hetzner VPS behind Cloudflare. nginx routes by hostname to Flask (`app`), Streamlit,
-Umami, BookStack and the Strelitzia dashboard. Layout and routing are in `README.md`.
+engineerfamily: the Docker stack on the Hetzner VPS behind Cloudflare. nginx routes by hostname and path to Flask (`app`), the
+Strelitzia dashboard (`engineerfamily.net/strelitzia/dashboard/`) and, behind opt-in compose profiles, Streamlit and Umami. Layout and routing are in `README.md`.
 
 ## Deploys
 - **Preprod:** `make preprod-deploy [ref=<sha|tag|origin/branch>]` on the VPS. No tag needed. Push first, because it deploys what is on GitHub.

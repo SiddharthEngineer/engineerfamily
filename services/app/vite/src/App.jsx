@@ -11,27 +11,6 @@ const PEOPLE = [
   { slug: 'nivi', profile: nivi },
 ];
 
-function getSubdomainUrl(subdomain) {
-  const { hostname } = window.location;
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    if (subdomain === 'streamlit') return `http://${hostname}:8501`;
-    return `http://${subdomain}.${hostname}`;
-  }
-
-  if (hostname.endsWith('.test') || hostname === 'engineerfamily.test') {
-    return `http://${subdomain}.engineerfamily.test`;
-  }
-
-  if (hostname.includes('preprod')) {
-    if (subdomain === 'analytics') return 'https://umami-preprod.engineerfamily.net';
-    return `https://${subdomain}-preprod.engineerfamily.net`;
-  }
-
-  if (subdomain === 'analytics') return 'https://umami.engineerfamily.net';
-  return `https://${subdomain}.engineerfamily.net`;
-}
-
 function Navbar() {
   const location = useLocation();
   const isPortfolioPage = PEOPLE.some((p) => location.pathname.startsWith(`/${p.slug}`));
@@ -60,18 +39,14 @@ function Navbar() {
             </ul>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href={getSubdomainUrl('bookstack')} target="_blank" rel="noreferrer noopener">
-              Writing
-            </a>
-          </li>
-          <li className="nav-item">
             <a className={`nav-link ${isGamesPage ? 'is-active' : ''}`} href="/games/">
               Games
             </a>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href={getSubdomainUrl('streamlit')} target="_blank" rel="noreferrer noopener">
-              Streamlit
+            {/* nginx serves /strelitzia/ (static page + dashboard), not this app, so a full page load. */}
+            <a className="nav-link" href="/strelitzia/">
+              Strelitzia
             </a>
           </li>
         </ul>
