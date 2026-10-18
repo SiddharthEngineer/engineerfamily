@@ -42,7 +42,7 @@ help:
 	@echo "    run-streamlit    Run Streamlit app locally on :8501"
 	@echo ""
 	@echo "  Local (Docker):"
-	@echo "    local-up         Start app + Streamlit in Docker for localhost"
+	@echo "    local-up         Start app in Docker for localhost (COMPOSE_PROFILES=streamlit adds Streamlit)"
 	@echo "    local-down       Stop local Docker stack"
 	@echo "    local-build      Rebuild local images"
 	@echo "    local-logs       Tail logs for local containers"
