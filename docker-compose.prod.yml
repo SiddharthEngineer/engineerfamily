@@ -60,15 +60,16 @@ services:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD}@analytics-db:5432/umami
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD}@postgres-db:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET}
     depends_on:
-      analytics-db:
+      postgres-db:
         condition: service_healthy
     networks:
       - web
 
-  analytics-db:
+  # Postgres for umami (its superuser) and Strelitzia (role and DBs `strelitzia`, `strelitzia_test`; make strelitzia-db-init).
+  postgres-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -76,8 +77,8 @@ services:
       - POSTGRES_USER=umami
       - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD}
     volumes:
-      - analytics_db:/var/lib/postgresql/data
-    # Loopback only: the host's Strelitzia CLI uses the `applypilot` DB (make strelitzia-db-init; the DB keeps its old name).
+      - postgres_db:/var/lib/postgresql/data
+    # Loopback only, for the host's Strelitzia CLI.
     ports:
       - "127.0.0.1:5432:5432"
     networks:
@@ -99,19 +100,18 @@ services:
     user: "${APPLYPILOT_UID:-1000}:${APPLYPILOT_GID:-1001}"
     environment:
       # Beats the host-only 127.0.0.1 URL in ~/.strelitzia/.env (a process env var wins over .env, whichever name it uses).
-      # The DB, its role and APPLYPILOT_DB_PASSWORD keep their ApplyPilot names on purpose.
-      - STRELITZIA_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
-      # Legacy name, same value, for a build older than Strelitzia 0.4 (a pinned rollback or an old PR head). Drop it later.
-      - APPLYPILOT_DATABASE_URL=postgresql://applypilot:${APPLYPILOT_DB_PASSWORD}@analytics-db:5432/applypilot
+      - STRELITZIA_DATABASE_URL=postgresql://strelitzia:${STRELITZIA_DB_PASSWORD}@postgres-db:5432/strelitzia
     volumes:
       # Profile, resume template, content library, Drive token, llm_usage.json, tailored files, and .env (the Gemini key).
       - /home/dev/.strelitzia:/home/dev/.strelitzia
     depends_on:
-      analytics-db:
+      postgres-db:
         condition: service_healthy
     networks:
       - web
 
 volumes:
   nivi_content:
-  analytics_db:
+  # Pinned to the volume's name from when the service was analytics-db (2026-10), so the data stays put.
+  postgres_db:
+    name: engineerfamily_analytics_db

@@ -60,15 +60,15 @@ services:
     image: ghcr.io/umami-software/umami:postgresql-latest
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_LOCAL:-localpass}@analytics-db-local:5432/umami
+      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD_LOCAL:-localpass}@postgres-db-local:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET_LOCAL:-local-dev-secret}
     depends_on:
-      analytics-db-local:
+      postgres-db-local:
         condition: service_healthy
     networks:
       - web
 
-  analytics-db-local:
+  postgres-db-local:
     profiles: [umami]
     image: postgres:16-alpine
     restart: unless-stopped
@@ -77,7 +77,7 @@ services:
       - POSTGRES_USER=umami
       - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD_LOCAL:-localpass}
     volumes:
-      - analytics_db_local:/var/lib/postgresql/data
+      - postgres_db_local:/var/lib/postgresql/data
     networks:
       - web
     healthcheck:
@@ -92,4 +92,6 @@ networks:
     name: engineerfamily_web
 
 volumes:
-  analytics_db_local:
+  # Pinned to the volume's name from when the service was analytics-db-local (2026-10), so the data stays put.
+  postgres_db_local:
+    name: engineerfamily_analytics_db_local
