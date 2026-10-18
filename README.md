@@ -21,7 +21,7 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── streamlit
                          ├── umami
                          ├── strelitzia (job dashboard, built from /srv/Strelitzia-prod; nginx /app/ + basic auth)
-                         └── analytics (Postgres; also hosts Strelitzia's `applypilot` DB on 127.0.0.1:5432, see `make strelitzia-db-init`)
+                         └── postgres-db (Postgres for umami and Strelitzia's `strelitzia` DB on 127.0.0.1:5432, see `make strelitzia-db-init`)
 ```
 
 Routing for site pages is managed in Flask (`services/app/app.py`).
@@ -130,7 +130,7 @@ docker compose down
 
 Umami is at `umami.engineerfamily.net`. It is off by default to save memory: the `umami` service sits behind a compose
 profile. To run it, set `COMPOSE_PROFILES=umami` in the env's `.env` (or the shell) and redeploy. Locally that also starts
-`analytics-db-local`; on the VPS `analytics-db` always runs, because the Strelitzia dashboard uses it.
+`postgres-db-local`; on the VPS `postgres-db` always runs, because the Strelitzia dashboard uses it.
 
 This repo uses a hybrid analytics model:
 

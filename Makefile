@@ -4,9 +4,9 @@
 
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
-	up down build restart logs ps strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
+	up down build restart logs ps strelitzia-db-init strelitzia-db-rename strelitzia-up strelitzia-deploy strelitzia-logs \
 	preprod-deploy preprod-up preprod-down preprod-build preprod-logs preprod-ps \
-	preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
+	preprod-strelitzia-db-init preprod-strelitzia-db-rename preprod-strelitzia-up preprod-strelitzia-logs \
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
@@ -55,7 +55,8 @@ help:
 	@echo "    restart          Rebuild + restart changed services"
 	@echo "    logs             Tail logs for all containers"
 	@echo "    ps               Show container status"
-	@echo "    strelitzia-db-init Create the applypilot role + DBs in analytics-db (idempotent; the DB keeps its old name)"
+	@echo "    strelitzia-db-init Create the strelitzia role + DBs in postgres-db (idempotent)"
+	@echo "    strelitzia-db-rename One-shot: rename the applypilot DBs + role to strelitzia, remove analytics-db (then deploy)"
 	@echo "    strelitzia-up    Rebuild + restart only the Strelitzia dashboard (from /srv/Strelitzia-prod as checked out)"
 	@echo "    strelitzia-deploy Check out Strelitzia origin/trunk (or ref=<sha|tag>) in /srv/Strelitzia-prod, then strelitzia-up"
 	@echo "    strelitzia-logs  Tail the Strelitzia dashboard logs"
@@ -68,7 +69,8 @@ help:
 	@echo "    preprod-build    Rebuild preprod images"
 	@echo "    preprod-logs     Tail logs for preprod containers"
 	@echo "    preprod-ps       Show preprod container status"
-	@echo "    preprod-strelitzia-db-init Create the applypilot role + applypilot_preprod DB (idempotent)"
+	@echo "    preprod-strelitzia-db-init Create the strelitzia role + strelitzia_preprod DB (idempotent)"
+	@echo "    preprod-strelitzia-db-rename One-shot: rename applypilot_preprod + role to strelitzia, remove analytics-db"
 	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
 	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
 	@echo ""
@@ -135,7 +137,11 @@ ps:
 	$(PROD) ps
 
 strelitzia-db-init:
-	bash $(PROD_DIR)/scripts/init-applypilot-db.sh
+	bash $(PROD_DIR)/scripts/init-strelitzia-db.sh
+
+# One-shot (2026-10), run from this clone before deploying the service rename: the /srv checkout doesn't have the script yet.
+strelitzia-db-rename:
+	bash $(CURDIR)/scripts/rename-applypilot-db.sh prod
 
 strelitzia-up:
 	$(PROD) up -d --build strelitzia
@@ -177,7 +183,10 @@ preprod-ps:
 	$(PREPROD) ps
 
 preprod-strelitzia-db-init:
-	bash $(PREPROD_DIR)/scripts/init-applypilot-db.sh preprod
+	bash $(PREPROD_DIR)/scripts/init-strelitzia-db.sh preprod
+
+preprod-strelitzia-db-rename:
+	bash $(CURDIR)/scripts/rename-applypilot-db.sh preprod
 
 preprod-strelitzia-up:
 	$(PREPROD) up -d --build strelitzia
