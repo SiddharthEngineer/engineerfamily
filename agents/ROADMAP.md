@@ -13,6 +13,7 @@ New engineerfamily plans go here.
 
 | ID | Initiative | Plan | Risk | Status | Depends on |
 |---|---|---|---|---|---|
+| E1 | Signed-in header fits on one row on the Strelitzia static pages (Strelitzia R43 follow-up) | [header-fit](plans/header-fit.md) | review | ⏳ queued | - |
 
 ## Manual steps (you)
 
@@ -20,5 +21,6 @@ New engineerfamily plans go here.
 |---|---|---|
 
 ## Decisions (current)
+- 2026-10-19 (user): queued plans build, merge and go to preprod with no manual approval (implementer + validator). Prod stays manual.
 - 2026-10-19 (user): runner programme PRs auto-merge on green CI.
 - 2026-10-19 (user): prod deploys stay the user's, every time; `make prod-changes` shows what the next one ships.
