@@ -1,5 +1,5 @@
 # Plan: nginx comments use Cloudflare's setting name (smoke test, review)
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-19
 **Risk:** review (touches services/nginx/*)
 **Depends on:** engineerfamily#47 and the matching agent-runner/Strelitzia validator-settings fixes (merged, v0.1.3 installed)
 
@@ -16,7 +16,7 @@ validator approves → the manager merges → the preprod lock releases and prep
 **Files:** services/nginx/nginx.preprod.conf (modify), services/nginx/nginx.prod.conf (modify)
 **What:** In each file's `/shared/` comment, replace `"Respect existing headers"` with `"Respect Existing Headers"`. Nothing else.
 **Validate:** `scripts/validate.sh` → all PASS (includes `nginx -t` for both envs). `git diff -U0 | grep '^[-+] ' | grep -v '^[-+] *#'` → no output.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes.
