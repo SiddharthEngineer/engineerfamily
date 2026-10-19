@@ -143,15 +143,17 @@ strelitzia-db-init:
 strelitzia-db-rename:
 	bash $(CURDIR)/scripts/rename-applypilot-db.sh prod
 
+# --force-recreate: the dashboard reads ~/.strelitzia/.env at startup, and compose sees no change when only that file
+# changes (e.g. STRELITZIA_AUTH_MODE), so a plain up would leave the old container running.
 strelitzia-up:
-	$(PROD) up -d --build strelitzia
+	$(PROD) up -d --build --force-recreate --no-deps strelitzia
 
 # Prod Strelitzia builds from a detached, pinned commit; nobody edits /srv/Strelitzia-prod by hand.
 strelitzia-deploy:
 	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune origin
 	git -C $(STRELITZIA_PROD_DIR) checkout -q --detach $(or $(ref),origin/trunk)
 	@echo "→ Strelitzia-prod at $$(git -C $(STRELITZIA_PROD_DIR) log --oneline -1)"
-	$(PROD) up -d --build strelitzia
+	$(PROD) up -d --build --force-recreate --no-deps strelitzia
 
 strelitzia-logs:
 	$(PROD) logs -f --tail=100 strelitzia
@@ -191,7 +193,7 @@ preprod-strelitzia-db-rename:
 	bash $(CURDIR)/scripts/rename-applypilot-db.sh preprod
 
 preprod-strelitzia-up:
-	$(PREPROD) up -d --build strelitzia
+	$(PREPROD) up -d --build --force-recreate --no-deps strelitzia
 
 preprod-strelitzia-logs:
 	$(PREPROD) logs -f --tail=100 strelitzia
