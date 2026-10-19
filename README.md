@@ -73,6 +73,7 @@ stays in Strelitzia's own `users` table (owner + invites).
   the consent screen is named `engineerfamily` with privacy policy `https://engineerfamily.net/privacy`.
 - **Header**: every page loads `/shared/site-header.js` (`services/shared/`, served by nginx) for the `<ef-home>` link
   top left and the `<ef-profile>` sign-in / profile / Sign out control top right. See `services/shared/README.md`.
+  `node scripts/check-header-layout.mjs <base-url> [--netrc FILE]` checks the signed-in header fits on one row at 1280 and 390 px.
 - Tests (dev only, no CI): `cd services/app && python -m pytest test_auth.py -q`.
 
 ---

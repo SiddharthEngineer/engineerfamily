@@ -31,7 +31,7 @@ the viewport, and the page's nav is at least 100 px wide. Prints one line per pa
 It uses whatever Playwright `npx` resolves; if no browser is installed it says so and exits 2.
 **Validate:** against `https://preprod.engineerfamily.net` (netrc from `$PREPROD_NETRC`) it fails on the two Strelitzia pages at both
 widths and passes on `/` and `/games/`, matching the Goal.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 1 commit)
 
 ### Task 2: fit the row
 **Runs:** unattended
