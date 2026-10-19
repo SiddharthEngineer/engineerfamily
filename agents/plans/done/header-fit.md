@@ -1,5 +1,5 @@
 # Plan: the signed-in header fits on one row on the Strelitzia static pages (R43 follow-up)
-**Status:** ✅ Done (PR #54)
+**Status:** ✅ Done (PR #54); on prod since v1.3.3 (2026-10-19)
 **Risk:** review (changes the shared header and public pages; the validator checks it on preprod)
 **Depends on:** -
 
