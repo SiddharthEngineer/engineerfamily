@@ -1,5 +1,5 @@
 # Plan: the signed-in header fits on one row on the Strelitzia static pages (R43 follow-up)
-**Status:** ❌ Not started
+**Status:** ✅ Done (PR #54)
 **Risk:** review (changes the shared header and public pages; the validator checks it on preprod)
 **Depends on:** -
 
@@ -31,7 +31,7 @@ the viewport, and the page's nav is at least 100 px wide. Prints one line per pa
 It uses whatever Playwright `npx` resolves; if no browser is installed it says so and exits 2.
 **Validate:** against `https://preprod.engineerfamily.net` (netrc from `$PREPROD_NETRC`) it fails on the two Strelitzia pages at both
 widths and passes on `/` and `/games/`, matching the Goal.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 1 commit)
 
 ### Task 2: fit the row
 **Runs:** unattended
@@ -42,14 +42,14 @@ numbers) and keep home, brand and profile on one row at 390 px (e.g. a compact `
 `?v=` in both pages. Don't change how `/` and `/games/` look.
 **Validate:** `scripts/validate.sh` passes. Task 1's check passes locally (`make up`, then `http://localhost:8080`) on all four pages
 at both widths.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 2 commit; checked with a static server, not `make up`, which targets the prod project)
 
 ### Task 3: tracking
 **Runs:** unattended
 **Files:** agents/ROADMAP.md (modify)
 **What:** Set row E1's status to ✅ with the PR number.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 3 commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.
