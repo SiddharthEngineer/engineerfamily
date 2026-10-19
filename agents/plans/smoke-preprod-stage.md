@@ -1,5 +1,5 @@
 # Plan: preprod nginx config says who deploys it (smoke test, review)
-**Status:** ❌ Not started
+**Status:** ✅ Done
 **Risk:** review (touches services/nginx/*)
 **Depends on:** agent-runner v0.1.4 installed (preprod-stage fixes, agent-runner #61)
 
@@ -17,7 +17,7 @@ the manager merges → the preprod lock releases and preprod is back on `main`.
 `# Preprod: main by default; the agent-runner's preprod lock deploys one PR head at a time here (make preprod-deploy ref=<sha>).`
 Nothing else.
 **Validate:** `scripts/validate.sh` → all PASS (includes `nginx -t`). `git diff -U0 | grep '^[-+] ' | grep -v '^[-+] *#'` → no output.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes.
