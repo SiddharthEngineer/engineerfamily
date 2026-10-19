@@ -96,11 +96,18 @@ make deploy-prod ref=v1.2.3    # gh workflow run deploy.yml -f environment=prod 
 Roll back with `make deploy-prod ref=<previous tag>`. The preprod equivalents are `make tag-preprod v=1.2.3` and
 `make deploy-preprod ref=v1.2.3-preprod`.
 
+Merging to `main` never ships prod: until the next tag + `deploy-prod`, prod keeps running the last tag. Check with
+`git -C /srv/engineerfamily-prod describe --tags`, and compare with `git describe --tags origin/main`.
+The `prod` branch in `/srv/engineerfamily-prod` (tracking `origin/prod`) belongs to the deploy script, which recreates it on
+every deploy. Don't `git pull` there: it can only bring in what the last deploy pushed to `origin/prod`.
+`tag-prod` pushes `release-v<major>.<minor>` without `-u`, so your `main` keeps tracking `origin/main`.
+
 ### How the workflow works
 
 1. Resolves `ref` as a tag or branch commit on origin.
 2. Force-resets the deployment state branch (`preprod` or `prod`) to that commit.
-3. SSHs into the VPS, pulls the updated branch, rebuilds containers, and reloads nginx.
+3. SSHs into the VPS as `deploy`, which runs `scripts/vps/engineerfamily-deploy`: fetch, `checkout -B <env> origin/<env>`,
+   `reset --hard`, `up -d --build --remove-orphans`, then recreate nginx (its conf is a single-file bind mount).
 
 ---
 
