@@ -54,22 +54,22 @@ body {
   box-shadow: var(--shadow);
 }
 
-.brand-link {
-  text-decoration: none;
-  color: var(--text);
-  font-size: 0.9rem;
-  letter-spacing: 0.03em;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
+/* <ef-home> first, the nav, <ef-profile> last. The nav shrinks and scrolls at phone width so both stay on the row. */
 .nav-menu {
-  margin: 0 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
   padding: 0;
   display: flex;
   align-items: center;
   gap: 0.15rem;
   list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.site-nav > ef-profile {
+  margin-left: auto;
 }
 
 .nav-item {
@@ -85,6 +85,7 @@ body {
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
   padding: 0.45rem 0.65rem;
   border-radius: 999px;
   cursor: pointer;

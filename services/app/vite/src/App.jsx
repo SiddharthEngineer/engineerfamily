@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 function Navbar() {
   const location = useLocation();
@@ -7,9 +7,8 @@ function Navbar() {
   return (
     <header className="site-header">
       <nav className="site-nav" aria-label="Main navigation">
-        <Link to="/" className="brand-link">
-          Engineer Family
-        </Link>
+        {/* Shared with every engineerfamily.net page (services/shared/site-header.js); don't restyle. */}
+        <ef-home></ef-home>
 
         <ul className="nav-menu">
           <li className="nav-item">
@@ -24,6 +23,8 @@ function Navbar() {
             </a>
           </li>
         </ul>
+
+        <ef-profile></ef-profile>
       </nav>
     </header>
   );

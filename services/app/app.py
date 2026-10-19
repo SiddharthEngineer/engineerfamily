@@ -2,9 +2,12 @@ from pathlib import Path
 
 from flask import Flask, abort, send_from_directory
 
+import auth
+
 
 current_dir = Path(__file__).resolve().parent
 app = Flask(__name__)
+auth.init_app(app)
 
 dist_dir = Path("/app/vite/dist")
 
@@ -47,8 +50,14 @@ def games():
     return serve_vite_app()
 
 
-
-
+# The Google consent screen links here, so it must answer 200. Vite copies public/ into dist/; the source copy
+# covers a checkout without a build.
+@app.route("/privacy")
+def privacy():
+    for folder in (dist_dir, current_dir / "vite" / "public"):
+        if (folder / "privacy.html").exists():
+            return send_from_directory(folder, "privacy.html")
+    abort(404)
 
 
 def serve_vite_app():
