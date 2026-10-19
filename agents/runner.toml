@@ -1,0 +1,39 @@
+# engineerfamily as a repo the shared runner builds (agent-runner design D5). Read by the runner from origin/main only.
+# Prod stays manual: config.py refuses any preprod command that mentions a prod target, project or checkout.
+[repo]
+name = "engineerfamily"
+github = "SiddharthEngineer/engineerfamily"
+base = "main"
+merge = "merge"
+
+[validate]
+fast = "scripts/validate.sh"
+full = "scripts/validate.sh"
+
+[gate]
+high_risk = [
+    "services/nginx/*",
+    "docker-compose*.yml",
+    "Makefile",
+    "scripts/*",
+    "services/*/Dockerfile",
+    ".github/*",
+    "*htpasswd*",
+    ".env*",
+    "agents/runner.toml",
+    "agents/settings/*",
+    ".claude/settings.json",
+]
+doc_or_test = ["*.md", "agents/*", ".claude/commands/*", "tests/*"]
+
+[preprod]
+# {sha} is the PR head; preprod-deploy fetches every branch into /srv/engineerfamily-preprod, so agent/<slug> is there.
+deploy = "make -C /srv/engineerfamily-preprod preprod-deploy ref={sha}"
+release = "make -C /srv/engineerfamily-preprod preprod-deploy"
+netrc_env = "PREPROD_NETRC"
+# Through Cloudflare, so the checks prove the public host routes to the right nginx.
+health = [
+    { url = "https://preprod.engineerfamily.net/", status = 200 },
+    { url = "https://preprod.engineerfamily.net/strelitzia/", status = 200 },
+    { url = "https://preprod.engineerfamily.net/strelitzia/dashboard/api/health", json_ok = true },
+]
