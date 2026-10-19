@@ -122,6 +122,34 @@ docker compose down
 
 ---
 
+## Auth
+
+Site-wide Google sign-in lives in the Flask app (`services/app/auth.py`), at `/auth/*`. It only knows who you are; every
+page stays open to signed-out visitors, and signing in grants nothing by itself. Who may use the Strelitzia dashboard
+stays in Strelitzia's own `users` table (owner + invites).
+
+| Route | What |
+|---|---|
+| `GET /auth/login?next=<path>` | 303 to Google (`openid email profile`, `prompt=select_account`). `next` must be a same-site path. |
+| `GET /auth/callback` | Checks `state`, exchanges the code, verifies the ID token (verified email only), 303 to `next`; failures go to `next?signin=error` and store nothing. |
+| `GET /auth/me` | `{"enabled", "signed_in", "email", "name"}`, `Cache-Control: no-store`. |
+| `POST /auth/logout` | Clears the session, 204. |
+| `GET /auth/verify` | For nginx `auth_request`: 204, with `X-Auth-Request-Email`, `X-Auth-Request-User` (Google `sub`) and `X-Auth-Request-Preferred-Username` (percent-encoded name) only when signed in. oauth2-proxy's header names. |
+
+- **Cookie** `ef_session`: Flask's signed session, `Path=/`, no `Domain` (host-only, so prod, preprod, `www` and
+  `umami.` never share it), `HttpOnly`, `Secure`, `SameSite=Lax`, 30 days from sign-in. Signed with `SITE_SESSION_SECRET`.
+- **Env** (each env's `.env`, passed to `app` by compose): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (the
+  "Strelitzia web" OAuth client, same Google project as the dashboard), `SITE_SESSION_SECRET` (its own value per env;
+  rotating it signs everyone out). `PUBLIC_URL` is set in the compose file. Sign-in is off while `GOOGLE_CLIENT_ID` is
+  empty; with it set, the app refuses to start unless the other three are set too.
+- **Google**: redirect URIs `https://engineerfamily.net/auth/callback` and `https://preprod.engineerfamily.net/auth/callback`;
+  the consent screen is named `engineerfamily` with privacy policy `https://engineerfamily.net/privacy`.
+- **Header**: every page loads `/shared/site-header.js` (`services/shared/`, served by nginx) for the `<ef-home>` link
+  top left and the `<ef-profile>` sign-in / profile / Sign out control top right. See `services/shared/README.md`.
+- Tests (dev only, no CI): `cd services/app && python -m pytest test_auth.py -q`.
+
+---
+
 ## Analytics
 
 Umami is at `umami.engineerfamily.net`. It is off by default to save memory: the `umami` service sits behind a compose
@@ -167,7 +195,8 @@ Recommended pattern for this repo now:
 2. Expose only ports 80/443 publicly on the VPS.
 3. Run a single edge reverse proxy on the VPS (Nginx).
 4. Route traffic by hostname/path to containers on the internal Docker network:
-   - `engineerfamily.net` -> `app:8000`
+   - `engineerfamily.net` -> `app:8000` (including `/auth/*` and `/privacy`)
+   - `engineerfamily.net/shared/` -> static files in `services/shared/` (the shared header script)
    - `engineerfamily.net/strelitzia/` -> static files in `services/strelitzia/` (served by nginx)
    - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000` (no basic auth: the app has its own Google sign-in,
      while preprod keeps basic auth; ship Strelitzia trunk with `make strelitzia-deploy`)

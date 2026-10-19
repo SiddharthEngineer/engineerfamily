@@ -8,6 +8,7 @@ services:
     volumes:
       - ./services/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./services/strelitzia:/usr/share/nginx/strelitzia:ro
+      - ./services/shared:/usr/share/nginx/shared:ro
     depends_on:
       - app
     networks:
@@ -30,6 +31,11 @@ services:
     restart: unless-stopped
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
+      # Site sign-in (/auth/*, services/app/auth.py). Off while GOOGLE_CLIENT_ID is empty.
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - SITE_SESSION_SECRET=${SITE_SESSION_SECRET:-}
+      - PUBLIC_URL=https://engineerfamily.net
     ports:
       - "127.0.0.1:8000:8000"  # loopback only; nginx reaches app over the web network
     networks:
