@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/validate.sh:*)",
+      "Bash(scripts/prod-changes.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git switch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git push -u origin HEAD)",
+      "Bash(git push origin HEAD)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue view:*)",
+      "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.local.yml config -q)",
+      "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.preprod.yml config -q)",
+      "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.prod.yml config -q)",
+      "Bash(make prod-changes)",
+      "Bash(make preprod-deploy:*)",
+      "Bash(agent-runner queue:*)",
+      "Bash(agent-runner gate:*)",
+      "Bash(agent-runner inbox:*)"
+    ],
+    "deny": [
+      "Bash(make deploy-prod:*)",
+      "Bash(make tag-prod:*)",
+      "Bash(make strelitzia-deploy:*)",
+      "Bash(make deploy-preprod:*)",
+      "Bash(make tag-preprod:*)",
+      "Bash(make down)",
+      "Bash(make preprod-down)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker volume:*)",
+      "Bash(docker system prune:*)",
+      "Bash(docker compose down:*)",
+      "Bash(sudo:*)",
+      "Read(**/.env)",
+      "Read(services/nginx/.htpasswd*)"
+    ]
+  }
+}
