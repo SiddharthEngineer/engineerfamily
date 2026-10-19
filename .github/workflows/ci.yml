@@ -1,0 +1,18 @@
+# PR check: the same scripts/validate.sh that people and agents run (compose config, nginx -t, bash -n).
+# Needs no secrets: it validates against .env.template.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/validate.sh
