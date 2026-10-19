@@ -42,7 +42,7 @@ numbers) and keep home, brand and profile on one row at 390 px (e.g. a compact `
 `?v=` in both pages. Don't change how `/` and `/games/` look.
 **Validate:** `scripts/validate.sh` passes. Task 1's check passes locally (`make up`, then `http://localhost:8080`) on all four pages
 at both widths.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 2 commit; checked with a static server, not `make up`, which targets the prod project)
 
 ### Task 3: tracking
 **Runs:** unattended

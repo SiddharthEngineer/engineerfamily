@@ -14,7 +14,8 @@ static pages and the Strelitzia dashboard.
 </header>
 ```
 
-- `<ef-home>`: the engineerfamily wordmark, linking to `/`. The first thing in every header.
+- `<ef-home>`: the engineerfamily wordmark, linking to `/`. The first thing in every header. With `compact`, it shows
+  only the dot at phone width (≤560 px), for headers that need the room (Strelitzia's static pages).
 - `<ef-profile next="/path">`: asks `/auth/me` once per page (see `services/app/auth.py`). Signed out: a **Sign in**
   button to `/auth/login?next=<next>` (`next` defaults to the current path and query). Signed in: a round initials
   button (no Google picture, so no third-party image loads) that opens a menu with the name, email and a Strelitzia

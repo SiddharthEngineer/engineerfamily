@@ -1,5 +1,5 @@
 // engineerfamily site header pieces, the same on every page (see README.md here):
-//   <ef-home>                 the engineerfamily home link, first thing in the header
+//   <ef-home [compact]>       the engineerfamily home link, first thing in the header (compact: only the dot at ≤560px)
 //   <ef-profile next="/path"> sign in, or initials + menu + Sign out, last thing in the header
 // Shadow DOM with their own fixed styles, so no page theme leaks in. No build step; safe to load twice.
 (() => {
@@ -65,7 +65,13 @@
       root.innerHTML = `<style>${BASE_CSS}
         .home { font-weight: 700; font-size: 15px; letter-spacing: 0.01em; }
         .dot { width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--ef-accent); }
-      </style><a class="pill home" href="/" aria-label="engineerfamily home"><span class="dot" aria-hidden="true"></span>engineerfamily</a>`;
+        @media (max-width: 560px) {
+          :host([compact]) .home { width: 36px; padding: 0; }
+          :host([compact]) .dot { margin-right: 0; }
+          :host([compact]) .label { display: none; }
+        }
+      </style><a class="pill home" href="/" aria-label="engineerfamily home"><span class="dot" aria-hidden="true"></span><span
+        class="label">engineerfamily</span></a>`;
     }
   }
 
