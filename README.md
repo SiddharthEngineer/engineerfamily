@@ -86,7 +86,9 @@ want on record.
 
 ### Prod Deploy (tag + workflow)
 
-Prod deploys are always a tag, and two separate steps (tagging alone deploys nothing):
+Prod deploys are always a tag, and two separate steps (tagging alone deploys nothing). Before a prod deploy, run
+`make prod-changes`: it lists the engineerfamily commits since the last prod tag and the Strelitzia commits since what
+`/srv/Strelitzia-prod` runs, each with its PR link, so you see exactly what will ship.
 
 ```bash
 make tag-prod v=1.2.3          # validate-release-tagging, sync-release-branch, then tag v1.2.3 and push it
