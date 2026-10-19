@@ -12,8 +12,7 @@ Strelitzia dashboard (`engineerfamily.net/strelitzia/dashboard/`) and, behind op
   against `127.0.0.1:8080` doesn't prove the public hostname routes to the right nginx.
 
 ## Rules
-- Work on a branch, open a PR to `main`. Validate before claiming a config works:
-  `docker compose --env-file /srv/engineerfamily-<env>/.env -f docker-compose.base.yml -f docker-compose.<env>.yml config -q`
-  and `nginx -t` in an `nginx:alpine` container with the conf mounted.
+- Work on a branch, open a PR to `main`. Validate before claiming a config works: `scripts/validate.sh` (`bash -n` on the
+  scripts, compose `config -q` for local/preprod/prod with `.env.template`, `nginx -t` for each conf; CI runs the same).
 - Never commit server-only files (`.env`, `services/nginx/ssl/`, `.htpasswd*`). Never print secrets.
 - Never `chown`, force-push `main`, drop volumes or databases, or run as root.

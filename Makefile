@@ -10,7 +10,8 @@
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
-	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli
+	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli \
+	prod-changes
 
 # Prod and preprod targets always act on the deploy checkouts in /srv, wherever make runs from (e.g. the dev clone
 # in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned Strelitzia
@@ -81,6 +82,7 @@ help:
 	@echo "    deploy-prod      Trigger deploy of tagged version       (e.g. make deploy-prod ref=v1.2.3)"
 	@echo "    validate-release-tagging Validate tag branch policy for v=<major.minor.patch>"
 	@echo "    sync-release-branch Ensure release branch points to latest tag for v=<major.minor.patch>"
+	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last prod tag, Strelitzia since prod)"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    shell-app        Open shell in app container"
@@ -212,6 +214,10 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 #        make deploy-preprod ref=v1.2.3-preprod → triggers deploy to preprod
 #        make tag-prod v=1.2.3        → creates and pushes tag v1.2.3
 #        make deploy-prod ref=v1.2.3  → triggers deploy to prod
+
+# Read-only: what deploy-prod / strelitzia-deploy would ship next, with PR links. Run it before a prod deploy.
+prod-changes:
+	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR)
 
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
