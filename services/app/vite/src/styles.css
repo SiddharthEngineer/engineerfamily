@@ -118,8 +118,32 @@ body {
   padding: 1.2rem 1rem 2.5rem;
 }
 
-.barebones-home {
+.home-shell {
   min-height: calc(100vh - 90px);
+}
+
+.home-card {
+  max-width: 760px;
+}
+
+.home-card h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 5vw, 2.9rem);
+  line-height: 1.1;
+}
+
+.home-card h2 {
+  margin: 1.75rem 0 0.25rem;
+  font-size: 1.2rem;
+}
+
+.home-card .home-lede {
+  color: var(--muted);
+  font-size: 1.15rem;
+}
+
+.home-card a {
+  color: var(--accent);
 }
 
 .games-shell {

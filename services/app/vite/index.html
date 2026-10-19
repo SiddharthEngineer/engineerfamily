@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.ico" />
     <title>Engineer Family</title>
+    <meta
+      name="description"
+      content="engineerfamily.net: a personal website with small games and Strelitzia, a self-hosted job search assistant."
+    />
     <!-- Shared header pieces (<ef-home>, <ef-profile>), served by nginx from services/shared. -->
     <script src="/shared/site-header.js" defer></script>
     <script
@@ -14,7 +18,30 @@
     ></script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Replaced by React on load. For crawlers that don't run JS (Google OAuth verification); keep in sync with HomePage in src/App.jsx. -->
+    <div id="root">
+      <main>
+        <h1>engineerfamily</h1>
+        <p>
+          engineerfamily.net is a personal website run by Siddharth Engineer. It hosts small games and Strelitzia, a
+          self-hosted job search assistant.
+        </p>
+        <h2>Signing in with Google</h2>
+        <p>
+          Every page can be read without signing in. If you sign in with Google, the site uses your name and email
+          address only to show who is signed in and to let invited users open the Strelitzia dashboard.
+        </p>
+        <p>
+          Strelitzia can save the resumes and cover letters it writes to your own Google Drive, using the drive.file
+          permission, so it only sees files it created. It works with text documents only. It does not create, edit or
+          analyze images, and it does not use Google data to train AI models.
+        </p>
+        <p>
+          <a href="/privacy">Privacy policy</a> · <a href="/strelitzia/">About Strelitzia</a> ·
+          <a href="/strelitzia/privacy">Strelitzia privacy policy</a>
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

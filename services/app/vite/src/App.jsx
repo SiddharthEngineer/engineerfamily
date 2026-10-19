@@ -30,8 +30,34 @@ function Navbar() {
   );
 }
 
+// Google's OAuth verification reads this page for the app's purpose. index.html has the same text inside #root for
+// crawlers that don't run JS, so keep the two in sync.
 function HomePage() {
-  return <section className="page-shell barebones-home" />;
+  return (
+    <section className="page-shell home-shell">
+      <article className="home-card">
+        <h1>engineerfamily</h1>
+        <p className="home-lede">
+          engineerfamily.net is a personal website run by Siddharth Engineer. It hosts small games and Strelitzia, a
+          self-hosted job search assistant.
+        </p>
+        <h2>Signing in with Google</h2>
+        <p>
+          Every page can be read without signing in. If you sign in with Google, the site uses your name and email
+          address only to show who is signed in and to let invited users open the Strelitzia dashboard.
+        </p>
+        <p>
+          Strelitzia can save the resumes and cover letters it writes to your own Google Drive, using the{' '}
+          <code>drive.file</code> permission, so it only sees files it created. It works with text documents only. It
+          does not create, edit or analyze images, and it does not use Google data to train AI models.
+        </p>
+        <p>
+          <a href="/privacy">Privacy policy</a> · <a href="/strelitzia/">About Strelitzia</a> ·{' '}
+          <a href="/strelitzia/privacy">Strelitzia privacy policy</a>
+        </p>
+      </article>
+    </section>
+  );
 }
 
 function GamesPage() {
