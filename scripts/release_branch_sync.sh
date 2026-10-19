@@ -88,7 +88,7 @@ sync_release_branch() {
   if [[ -z "$LATEST_TAG" ]]; then
     echo "No existing tags found for minor line v${MINOR_LINE}.x; initializing it from the current commit."
     if [[ "$RELEASE_EXISTS" -eq 0 ]]; then
-      git push -u origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+      git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
     elif [[ "$CURRENT_BRANCH" == "main" ]]; then
       echo "Resetting ${RELEASE_BRANCH} to main's tip (HEAD)."
       git push --force-with-lease origin "HEAD:refs/heads/${RELEASE_BRANCH}"
@@ -108,7 +108,7 @@ sync_release_branch() {
     fi
   else
     echo "Creating ${RELEASE_BRANCH} at HEAD."
-    git push -u origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+    git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
   fi
 }
 
