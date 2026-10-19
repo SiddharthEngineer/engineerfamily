@@ -1,5 +1,5 @@
 # Plan: README records the Cloudflare cache setting (smoke test, low)
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-19
 **Risk:** low (docs only; auto-merges on green CI, user 2026-10-19)
 **Depends on:** the agent-runner cutover (agent-runner ROADMAP AM5)
 
@@ -16,7 +16,7 @@ merged after green CI, no validator run.
 **Respect Existing Headers**." with "Cloudflare: Caching → Configuration → Browser Cache TTL = **Respect Existing Headers** (set
 2026-10-19 by the zone owner; keep it)." Keep the rest of the step, including the outside check. Change nothing else.
 **Validate:** `scripts/validate.sh` → all PASS. `grep -n "Manual Cloudflare step" README.md` → no match.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes.
