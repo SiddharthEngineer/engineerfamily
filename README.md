@@ -138,7 +138,7 @@ Recommended pattern for this repo now:
      `preprod.engineerfamily.net/strelitzia/` the same way, and `127.0.0.1:8080` answers only the dashboard health check
 5. Keep app containers (`app`, `streamlit`, `umami`, `strelitzia`) off public ports in production; publish only for local development.
 6. Caching: nginx sends `Cache-Control: no-cache` on `/shared/` and `/strelitzia/` (404s too), so a deploy shows at once.
-   **Manual Cloudflare step (zone owner):** Caching → Configuration → Browser Cache TTL = **Respect Existing Headers**.
+   Cloudflare: Caching → Configuration → Browser Cache TTL = **Respect Existing Headers** (set 2026-10-19 by the zone owner; keep it).
    Any other value rewrites the header on files Cloudflare caches (`.js`, `.css`, `.svg`), for example to
    `max-age=14400`, and browsers keep a stale header script, or a cached 404, for 4 hours. Check from outside:
    `curl -sI https://engineerfamily.net/shared/site-header.js | grep -i cache-control` should print `no-cache`.
