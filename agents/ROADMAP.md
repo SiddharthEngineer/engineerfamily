@@ -13,7 +13,7 @@ New engineerfamily plans go here.
 
 | ID | Initiative | Plan | Risk | Status | Depends on |
 |---|---|---|---|---|---|
-| E1 | Signed-in header fits on one row on the Strelitzia static pages (Strelitzia R43 follow-up) | [header-fit](plans/header-fit.md) | review | ⏳ queued | - |
+| E1 | Signed-in header fits on one row on the Strelitzia static pages (Strelitzia R43 follow-up) | [header-fit](plans/header-fit.md) | review | ✅ done | #54 |
 
 ## Manual steps (you)
 

@@ -1,5 +1,5 @@
 # Plan: the signed-in header fits on one row on the Strelitzia static pages (R43 follow-up)
-**Status:** ❌ Not started
+**Status:** ✅ Done (PR #54)
 **Risk:** review (changes the shared header and public pages; the validator checks it on preprod)
 **Depends on:** -
 
@@ -49,7 +49,7 @@ at both widths.
 **Files:** agents/ROADMAP.md (modify)
 **What:** Set row E1's status to ✅ with the PR number.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (Task 3 commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.
