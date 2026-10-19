@@ -8,7 +8,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | `engineerfamily.net` | All | Flask |
 | `streamlit.engineerfamily.net` | Siddharth | Streamlit. Off by default (compose profile `streamlit`); the host 301s to the home page. |
 | `umami.engineerfamily.net` | Siddharth | Umami |
-| `engineerfamily.net/strelitzia/` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/strelitzia/dashboard/` = Strelitzia job dashboard (FastAPI + React, Google sign-in). `strelitzia.` and `applypilot.engineerfamily.net` 301 here, `/app/…` to `/strelitzia/dashboard/…`. |
+| `engineerfamily.net/strelitzia/` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/strelitzia/dashboard/` = Strelitzia job dashboard (FastAPI + React, site sign-in via nginx `auth_request`). `strelitzia.` and `applypilot.engineerfamily.net` 301 here, `/app/…` to `/strelitzia/dashboard/…`. |
 
 ---
 
@@ -198,12 +198,17 @@ Recommended pattern for this repo now:
    - `engineerfamily.net` -> `app:8000` (including `/auth/*` and `/privacy`)
    - `engineerfamily.net/shared/` -> static files in `services/shared/` (the shared header script)
    - `engineerfamily.net/strelitzia/` -> static files in `services/strelitzia/` (served by nginx)
-   - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000` (no basic auth: the app has its own Google sign-in,
-     while preprod keeps basic auth; ship Strelitzia trunk with `make strelitzia-deploy`)
+   - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000`, behind `auth_request` to Flask's `/auth/verify`:
+     nginx sets `X-Auth-Request-{Email,User,Preferred-Username}` from the site sign-in, replacing any client copy, and the
+     dashboard (`STRELITZIA_AUTH_MODE=proxy`) checks its invites. `/auth/verify` is a 404 from outside, and
+     `strelitzia` sits only on the `dashboard` network (with `nginx` and `postgres-db`), so nothing else can reach it.
+     Preprod adds basic auth; ship Strelitzia trunk with `make strelitzia-deploy`
+   - `www.engineerfamily.net` -> 301 to `engineerfamily.net` (one host-only `ef_session` cookie)
    - `streamlit.engineerfamily.net` -> 301 to `engineerfamily.net` while the `streamlit` profile is off
    - `umami.engineerfamily.net` -> `umami:3000`
    - `strelitzia.engineerfamily.net`, `applypilot.engineerfamily.net` -> 301 to `engineerfamily.net/strelitzia/`,
-     keeping the path (`/app/…` -> `/strelitzia/dashboard/…`)
+     keeping the path (`/app/…` -> `/strelitzia/dashboard/…`); on preprod `strelitzia-preprod.` 301s to
+     `preprod.engineerfamily.net/strelitzia/` the same way, and `127.0.0.1:8080` answers only the dashboard health check
 5. Keep app containers (`app`, `streamlit`, `umami`, `strelitzia`) off public ports in production; publish only for local development.
 
 Why this is preferred:

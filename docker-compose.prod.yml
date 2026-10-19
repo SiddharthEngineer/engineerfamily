@@ -13,6 +13,7 @@ services:
       - app
     networks:
       - web
+      - dashboard
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost/healthz || exit 1"]
       interval: 30s
@@ -90,13 +91,14 @@ services:
       - "127.0.0.1:5432:5432"
     networks:
       - web
+      - dashboard
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U umami"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ─── Strelitzia dashboard (strelitzia.engineerfamily.net/app/, basic auth in nginx) ───
+  # ─── Strelitzia dashboard (engineerfamily.net/strelitzia/dashboard/, identity from nginx auth_request) ───
   # Built from /srv/Strelitzia-prod, a detached trunk commit; `make strelitzia-deploy` moves it and rebuilds just this service.
   strelitzia:
     build:
@@ -114,8 +116,14 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+    # Only on `dashboard` (nginx, postgres-db), so nothing else can send it X-Auth-Request-* headers. Egress still works.
     networks:
-      - web
+      - dashboard
+
+networks:
+  # nginx, strelitzia and postgres-db only: strelitzia trusts X-Auth-Request-* headers, which only nginx may set.
+  dashboard:
+    driver: bridge
 
 volumes:
   nivi_content:
