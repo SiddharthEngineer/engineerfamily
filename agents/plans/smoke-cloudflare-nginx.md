@@ -1,5 +1,5 @@
 # Plan: nginx comments record the Cloudflare cache setting (smoke test, review)
-**Status:** ❌ Not started
+**Status:** ✅ Done (2026-10-19)
 **Risk:** review (touches services/nginx/*)
 **Depends on:** smoke-cloudflare-readme
 
@@ -17,7 +17,7 @@ the manager merges → the preprod lock releases and preprod is back on `main`.
 rewrites" with "Cloudflare's Browser Cache TTL is "Respect existing headers" (set 2026-10-19); any other value rewrites", rewrapping
 the comment lines to stay under 130 characters. Comments only: `git diff` must show no change to a line that isn't a `#` comment.
 **Validate:** `scripts/validate.sh` → all PASS (includes `nginx -t` for both envs). `git diff -U0 | grep '^[-+] ' | grep -v '^[-+] *#'` → no output.
-**Status:** ❌
+**Status:** ✅ 2026-10-19 (63a2572)
 
 ## Validation
 - `scripts/validate.sh` passes.
