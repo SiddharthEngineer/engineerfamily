@@ -1,5 +1,5 @@
 # Plan: preprod without basic auth (Google sign-in is its only gate, like prod)
-**Status:** ❌ Not started
+**Status:** ✅ 2026-10-20 (#58; preprod checks pending deploy)
 **Risk:** review (nginx, compose and `scripts/validate.sh` are high-risk paths; preprod's front door changes)
 
 ## Goal
@@ -49,7 +49,7 @@ instructions from `.env.template` and `setup-vps.sh`.
 **Files:** agents/ROADMAP.md (modify), agents/plans/preprod-open.md (modify)
 **What:** Task statuses here; E2's ROADMAP status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.
