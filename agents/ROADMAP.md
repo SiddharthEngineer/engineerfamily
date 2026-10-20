@@ -16,13 +16,18 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ✅ (#58) | - |
 | E3 | engineerfamily.net header in the Strelitzia page style (part 1; Strelitzia R46 is the dashboard) | [header-style](plans/header-style.md) | review | ⏳ planned 2026-10-19 | - |
 | E4 | Strelitzia homepage as a scrollable demo with made-up data | [strelitzia-demo](plans/strelitzia-demo.md) | review | ⏳ planned 2026-10-19 | - |
+| E5 | Wordle solver 1/3: vectorized solver core, tests, CI (Wordle repo, cross-repo PR) | [wordle-solver-1-core](plans/wordle-solver-1-core.md) | low | ⏳ planned 2026-10-20 | - |
+| E6 | Wordle solver 2/3: tile-grid page, FastAPI, Docker image (Wordle repo, cross-repo PR) | [wordle-solver-2-web](plans/wordle-solver-2-web.md) | low | ⏳ planned 2026-10-20 | E5 |
+| E7 | Wordle solver 3/3: `wordle` service, nginx `/wordle/`, make targets, home link | [wordle-solver-3-deploy](plans/wordle-solver-3-deploy.md) | review | ⏳ planned 2026-10-20 | E6, M1 |
 
 ## Manual steps (you)
 
 | ID | Step | Done |
 |---|---|---|
+| M1 | Give the VPS runner's token push access to SiddharthEngineer/Wordle and enable "Allow auto-merge" there (before E5). Create `/srv/Wordle-prod`, `/srv/Wordle-preprod` (deploy:srv) and `~/src/Wordle` before E7's first preprod or prod deploy | ☐ |
 
 ## Decisions (current)
+- 2026-10-20 (user): the Wordle solver lives at `engineerfamily.net/wordle/`, public, as a FastAPI container built from the Wordle repo like Strelitzia; app code in Wordle, infra in engineerfamily; Wordle PRs auto-merge on green CI.
 - 2026-10-19 (user): the Strelitzia page's header is the house style; the site header (E3) and the dashboard (Strelitzia R46) follow it.
 - 2026-10-19 (user): preprod drops basic auth (E2) before AM3; Google sign-in and the invite list gate the dashboard, as on prod.
 - 2026-10-19 (user): the Strelitzia homepage demo (E4) is a static mock with made-up data, not screenshots or a public dashboard.
