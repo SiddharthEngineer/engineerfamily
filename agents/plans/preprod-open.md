@@ -34,7 +34,7 @@ preprod validator needs to run the signed-in test steps (no basic-auth prompt in
 in the `preprod.engineerfamily.net` server. Drop the `.htpasswd` volume line, and the htpasswd temp file and its `-v` mount in
 `validate.sh`.
 **Validate:** `scripts/validate.sh` → passes. `grep -c auth_basic services/nginx/nginx.preprod.conf` → `0`.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ### Task 2: docs
 **Runs:** unattended
