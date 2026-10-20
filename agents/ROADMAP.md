@@ -13,7 +13,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 
 | ID | Initiative | Plan | Risk | Status | Depends on |
 |---|---|---|---|---|---|
-| E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ⏳ planned 2026-10-19 | - |
+| E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ✅ (#58) | - |
 | E3 | engineerfamily.net header in the Strelitzia page style (part 1; Strelitzia R46 is the dashboard) | [header-style](plans/header-style.md) | review | ⏳ planned 2026-10-19 | - |
 | E4 | Strelitzia homepage as a scrollable demo with made-up data | [strelitzia-demo](plans/strelitzia-demo.md) | review | ⏳ planned 2026-10-19 | - |
 

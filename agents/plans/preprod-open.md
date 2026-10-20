@@ -1,5 +1,5 @@
 # Plan: preprod without basic auth (Google sign-in is its only gate, like prod)
-**Status:** ❌ Not started
+**Status:** ✅ 2026-10-20 (#58; preprod checks pending deploy)
 **Risk:** review (nginx, compose and `scripts/validate.sh` are high-risk paths; preprod's front door changes)
 
 ## Goal
@@ -34,7 +34,7 @@ preprod validator needs to run the signed-in test steps (no basic-auth prompt in
 in the `preprod.engineerfamily.net` server. Drop the `.htpasswd` volume line, and the htpasswd temp file and its `-v` mount in
 `validate.sh`.
 **Validate:** `scripts/validate.sh` → passes. `grep -c auth_basic services/nginx/nginx.preprod.conf` → `0`.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ### Task 2: docs
 **Runs:** unattended
@@ -42,14 +42,14 @@ in the `preprod.engineerfamily.net` server. Drop the `.htpasswd` volume line, an
 **What:** Say preprod has no basic auth (Google sign-in gates the dashboard, robots are told noindex). Remove the htpasswd
 instructions from `.env.template` and `setup-vps.sh`.
 **Validate:** `scripts/validate.sh` passes; `grep -rn -i 'htpasswd\|basic auth' README.md .env.template scripts/` → no lines about preprod.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ### Task 3: tracking
 **Runs:** unattended
 **Files:** agents/ROADMAP.md (modify), agents/plans/preprod-open.md (modify)
 **What:** Task statuses here; E2's ROADMAP status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.

@@ -130,7 +130,8 @@ Recommended pattern for this repo now:
      nginx sets `X-Auth-Request-{Email,User,Preferred-Username}` from the site sign-in, replacing any client copy, and the
      dashboard (`STRELITZIA_AUTH_MODE=proxy`) checks its invites. `/auth/verify` is a 404 from outside, and
      `strelitzia` sits only on the `dashboard` network (with `nginx` and `postgres-db`), so nothing else can reach it.
-     Preprod adds basic auth; ship Strelitzia trunk with `make strelitzia-deploy`
+     Preprod has no basic auth either: Google sign-in gates the dashboard as on prod, and `preprod.engineerfamily.net`
+     sends `X-Robots-Tag: noindex, nofollow` and a `Disallow: /` robots.txt. Ship Strelitzia trunk with `make strelitzia-deploy`
    - `www.engineerfamily.net` -> 301 to `engineerfamily.net` (one host-only `ef_session` cookie)
    - `streamlit.engineerfamily.net` -> 301 to `engineerfamily.net` while the `streamlit` profile is off
    - `umami.engineerfamily.net` -> `umami:3000`

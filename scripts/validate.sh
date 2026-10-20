@@ -39,11 +39,8 @@ for env in local preprod prod; do
     step "compose $env" docker compose --env-file .env.template -f docker-compose.base.yml -f "docker-compose.$env.yml" config -q
 done
 
-htpasswd=$(mktemp)  # preprod's auth_basic_user_file: nginx -t only needs it to exist
-trap 'rm -f "$htpasswd"' EXIT
 for env in local preprod prod; do
     step "nginx $env" docker run --rm \
         -v "$PWD/services/nginx/nginx.$env.conf:/etc/nginx/conf.d/default.conf:ro" \
-        -v "$htpasswd:/etc/nginx/.htpasswd:ro" \
         nginx:alpine nginx -t
 done
