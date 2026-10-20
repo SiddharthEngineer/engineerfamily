@@ -42,7 +42,7 @@ in the `preprod.engineerfamily.net` server. Drop the `.htpasswd` volume line, an
 **What:** Say preprod has no basic auth (Google sign-in gates the dashboard, robots are told noindex). Remove the htpasswd
 instructions from `.env.template` and `setup-vps.sh`.
 **Validate:** `scripts/validate.sh` passes; `grep -rn -i 'htpasswd\|basic auth' README.md .env.template scripts/` → no lines about preprod.
-**Status:** ❌
+**Status:** ✅ 2026-10-20 (this commit)
 
 ### Task 3: tracking
 **Runs:** unattended
