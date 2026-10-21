@@ -59,7 +59,8 @@ if preprod still has basic auth).
 ## Human test steps (preprod)
 1. Open `https://preprod.engineerfamily.net/` and `/strelitzia/` in two tabs at desktop width and flip between them: same
    header height, rule, link font and colours; only the Strelitzia brand differs.
-2. Same in dark mode (OS setting).
+2. Dark mode (OS setting): the home header keeps its light colours and stays readable on the light page (Decision 4);
+   only Strelitzia's goes dark.
 3. At phone width (390 px): `<ef-home>` and Sign in / profile on the top row, Games and Strelitzia on a row below.
 4. Signed in as the dev test account: the profile menu still opens and Sign out works.
 

@@ -37,8 +37,9 @@ body {
   --hdr-link: #3a3fa8;
   --hdr-rule: #e4d8c6;
   width: min(1088px, 100% - 2rem);
-  margin: 0 auto;
-  padding: 1rem 0 12px;
+  /* Strelitzia's main has 48px of top padding and the header only a bottom padding, so the same height and offset. */
+  margin: 48px auto 0;
+  padding: 0 0 12px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
