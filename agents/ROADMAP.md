@@ -24,7 +24,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 
 | ID | Step | Done |
 |---|---|---|
-| M1 | Give the VPS runner's token push access to SiddharthEngineer/Wordle and enable "Allow auto-merge" there (before E5). Create `/srv/Wordle-prod`, `/srv/Wordle-preprod` (deploy:srv) and `~/src/Wordle` before E7's first preprod or prod deploy | ☐ |
+| M1 | Give the VPS runner's token push access to SiddharthEngineer/Wordle and enable "Allow auto-merge" there (before E5). Create `/srv/Wordle-prod`, `/srv/Wordle-preprod` (deploy:srv) and `~/src/Wordle` before E7's first preprod or prod deploy. Done 2026-10-21: token push checked (test branch made and deleted), auto-merge on (user); `/srv/Wordle-{prod,preprod}` (deploy:srv, 2775, `core.sharedRepository=group`, in `safe.directory`) and `~/src/Wordle` cloned over HTTPS at `main` | ☑ |
 
 ## Decisions (current)
 - 2026-10-20 (user): the Wordle solver lives at `engineerfamily.net/wordle/`, public, as a FastAPI container built from the Wordle repo like Strelitzia; app code in Wordle, infra in engineerfamily; Wordle PRs auto-merge on green CI.
