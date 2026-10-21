@@ -35,7 +35,7 @@ and no pill. Add header-only tokens (`--hdr-link`, `--hdr-rule`, …) copied fro
 as on the Strelitzia page. In `App.jsx` only class names may change (and the `ul` may become a plain `nav` of links); keep
 `<ef-home>` first and `<ef-profile>` last.
 **Validate:** `cd services/app/vite && npm ci && npm run build` → succeeds. `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-21 (this commit)
 
 ### Task 2: layout check on preprod
 **Runs:** unattended (after the runner deploys the PR head to preprod) — skip and flag it if preprod isn't on this PR yet

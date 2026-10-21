@@ -6,26 +6,18 @@ function Navbar() {
 
   return (
     <header className="site-header">
+      {/* Shared with every engineerfamily.net page (services/shared/site-header.js); don't restyle. */}
+      <ef-home></ef-home>
+
       <nav className="site-nav" aria-label="Main navigation">
-        {/* Shared with every engineerfamily.net page (services/shared/site-header.js); don't restyle. */}
-        <ef-home></ef-home>
-
-        <ul className="nav-menu">
-          <li className="nav-item">
-            <a className={`nav-link ${isGamesPage ? 'is-active' : ''}`} href="/games/">
-              Games
-            </a>
-          </li>
-          <li className="nav-item">
-            {/* nginx serves /strelitzia/ (static page + dashboard), not this app, so a full page load. */}
-            <a className="nav-link" href="/strelitzia/">
-              Strelitzia
-            </a>
-          </li>
-        </ul>
-
-        <ef-profile></ef-profile>
+        <a className={isGamesPage ? 'is-active' : undefined} href="/games/">
+          Games
+        </a>
+        {/* nginx serves /strelitzia/ (static page + dashboard), not this app, so a full page load. */}
+        <a href="/strelitzia/">Strelitzia</a>
       </nav>
+
+      <ef-profile></ef-profile>
     </header>
   );
 }
