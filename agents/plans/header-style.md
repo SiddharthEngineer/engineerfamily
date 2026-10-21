@@ -1,5 +1,5 @@
 # Plan: engineerfamily.net header in the Strelitzia page style
-**Status:** ❌ Not started
+**Status:** 🟡 Built, PR #63 (Task 2, the preprod layout check, waits for preprod to deploy the PR)
 **Risk:** review (visible on every engineerfamily.net page; needs a look on preprod)
 
 ## Goal
@@ -43,14 +43,14 @@ as on the Strelitzia page. In `App.jsx` only class names may change (and the `ul
 **What:** `node scripts/check-header-layout.mjs https://preprod.engineerfamily.net` (add `--netrc "$PREPROD_NETRC"` only
 if preprod still has basic auth).
 **Validate:** every line `ok`, exit 0.
-**Status:** ❌
+**Status:** ⏭️ skipped 2026-10-21: preprod was not on this PR during the build; flagged in PR #63
 
 ### Task 3: tracking
 **Runs:** unattended
 **Files:** agents/ROADMAP.md (modify), agents/plans/header-style.md (modify)
 **What:** Task statuses; E3's ROADMAP status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-21 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green; the Vite build succeeds.
@@ -67,3 +67,5 @@ if preprod still has basic auth).
 1. The Strelitzia page's header is the house style (user, 2026-10-19); the engineerfamily page body keeps its own look.
 2. Header-only tokens, so the page palette doesn't shift as a side effect.
 3. Not sticky, like the Strelitzia page.
+4. No dark header colours (build, 2026-10-21): the page body has no dark mode, so Strelitzia's dark link colours would be
+   unreadable on it. The header keeps its light values until the page gets a dark palette.

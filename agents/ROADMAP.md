@@ -14,7 +14,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | ID | Initiative | Plan | Risk | Status | Depends on |
 |---|---|---|---|---|---|
 | E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ✅ (#58) | - |
-| E3 | engineerfamily.net header in the Strelitzia page style (part 1; Strelitzia R46 is the dashboard) | [header-style](plans/header-style.md) | review | ⏳ queued 2026-10-21 (1st, then Strelitzia R46) | - |
+| E3 | engineerfamily.net header in the Strelitzia page style (part 1; Strelitzia R46 is the dashboard) | [header-style](plans/header-style.md) | review | ✅ (#63) | - |
 | E4 | Strelitzia homepage as a scrollable demo with made-up data | [strelitzia-demo](plans/strelitzia-demo.md) | review | ⏳ queued 2026-10-21 (after Strelitzia R46) | Strelitzia R46 (queue order) |
 | E5 | Wordle solver 1/3: vectorized solver core, tests, CI (Wordle repo, cross-repo PR) | [wordle-solver-1-core](plans/wordle-solver-1-core.md) | low | ⏳ planned 2026-10-20; held until M1 | M1 |
 | E6 | Wordle solver 2/3: tile-grid page, FastAPI, Docker image (Wordle repo, cross-repo PR) | [wordle-solver-2-web](plans/wordle-solver-2-web.md) | low | ⏳ planned 2026-10-20 | E5 |
