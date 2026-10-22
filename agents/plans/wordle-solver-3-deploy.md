@@ -1,5 +1,5 @@
 # Plan: Wordle solver, part 3: serve it at engineerfamily.net/wordle/
-**Status:** ❌ Not started
+**Status:** 🟡 Tasks 1–3 done 2026-10-22; Task 4 (interactive: /srv checkouts, preprod deploy) left for the user
 **Risk:** review (compose, nginx, Makefile and scripts are high-risk paths)
 **Depends on:** wordle-solver-2-web
 
