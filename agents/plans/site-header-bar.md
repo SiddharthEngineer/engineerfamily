@@ -54,7 +54,7 @@ home icon and dropdown, because those are the shared `<ef-home>` / `<ef-profile>
 - README: document the three elements and that pages other than the dashboard use `<ef-site-header>` as the first child
   of `<body>` and add no header CSS of their own.
 **Validate:** `node --check services/shared/site-header.js` → no output; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ### Task 2: every page uses `<ef-site-header>`
 **Runs:** unattended

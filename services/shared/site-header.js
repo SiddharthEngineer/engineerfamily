@@ -1,7 +1,9 @@
 // engineerfamily site header pieces, the same on every page (see README.md here):
-//   <ef-home [compact]>       the engineerfamily home link, first thing in the header (compact: only the dot at ≤560px)
-//   <ef-profile next="/path"> sign in, or initials + menu + Sign out, last thing in the header
-// Shadow DOM with their own fixed styles, so no page theme leaks in. No build step; safe to load twice.
+//   <ef-home [light]>                 the round home icon to /, first thing in the header
+//   <ef-profile [light] next="/path"> sign in, or initials + a menu that ends with Sign out, last thing in the header
+//   <ef-site-header active="games|strelitzia">  the whole bar (home, site links, profile) for every page but the dashboard
+// ef-home and ef-profile use Shadow DOM with their own fixed styles, so no page theme leaks in; `light` keeps them light
+// in OS dark mode. No build step; safe to load twice.
 (() => {
   if (customElements.get('ef-home')) return;
 
@@ -24,7 +26,7 @@
       --ef-focus: #3a3fa8;
     }
     @media (prefers-color-scheme: dark) {
-      :host {
+      :host(:not([light])) {
         --ef-surface: #241f1b;
         --ef-fg: #f3eee6;
         --ef-muted: #c2b5a8;
@@ -62,16 +64,13 @@
     connectedCallback() {
       if (this.shadowRoot) return;
       const root = this.attachShadow({ mode: 'open' });
+      // `compact` is still accepted (older pages set it) but the icon is always compact now.
       root.innerHTML = `<style>${BASE_CSS}
-        .home { font-weight: 700; font-size: 15px; letter-spacing: 0.01em; }
-        .dot { width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--ef-accent); }
-        @media (max-width: 560px) {
-          :host([compact]) .home { width: 36px; padding: 0; }
-          :host([compact]) .dot { margin-right: 0; }
-          :host([compact]) .label { display: none; }
-        }
-      </style><a class="pill home" href="/" aria-label="engineerfamily home"><span class="dot" aria-hidden="true"></span><span
-        class="label">engineerfamily</span></a>`;
+        .home { width: 36px; padding: 0; border-radius: 50%; }
+        svg { display: block; width: 18px; height: 18px; }
+      </style><a class="pill home" href="/" aria-label="engineerfamily home" title="engineerfamily home"><svg viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+        focusable="false"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/><path d="M10 20v-6h4v6"/></svg></a>`;
     }
   }
 
@@ -82,6 +81,20 @@
       .then((resp) => (resp.ok ? resp.json() : null))
       .catch(() => null);
     return mePromise;
+  }
+
+  // Whether to show "Users": Strelitzia's owner for now (site-perms swaps this for the site admin flag). Asked once
+  // per page, only when signed in; any error means no link.
+  let ownerPromise = null;
+  function fetchIsOwner() {
+    ownerPromise ??= fetch('/strelitzia/dashboard/api/auth/me', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => Boolean(data && data.enabled && data.user && data.user.role === 'owner'))
+      .catch(() => false);
+    return ownerPromise;
   }
 
   function initials(name, email) {
@@ -138,8 +151,11 @@
         .name { font-weight: 700; }
         .email { color: var(--ef-muted); font-size: 13px; overflow-wrap: anywhere; }
         .rule { height: 1px; margin: 10px 0; background: var(--ef-border); }
-        .menu a { display: block; padding: 8px; margin: 0 -8px; border-radius: 8px; color: var(--ef-fg); text-decoration: none; }
-        .menu a:hover { background: var(--ef-hover); }
+        .item {
+          display: block; width: calc(100% + 16px); padding: 8px; margin: 0 -8px; border: 0; border-radius: 8px;
+          background: none; color: var(--ef-fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+        }
+        .item:hover { background: var(--ef-hover); }
       </style>`;
       if (!me.signed_in) {
         root.innerHTML = `${css}<a class="pill" href="/auth/login">Sign in</a>`;
@@ -157,9 +173,10 @@
           ${me.name ? `<div class="name">${escapeHtml(me.name)}</div>` : ''}
           <div class="email">${escapeHtml(me.email)}</div>
           <div class="rule"></div>
-          <a href="/strelitzia/dashboard/">Strelitzia dashboard</a>
-        </div>
-        <button class="pill signout" type="button">Sign out</button>`;
+          <a class="item" href="/strelitzia/dashboard/">Strelitzia dashboard</a>
+          <div class="rule"></div>
+          <button class="item signout" type="button">Sign out</button>
+        </div>`;
       this.button = root.querySelector('.avatar');
       this.menu = root.querySelector('.menu');
       this.button.addEventListener('click', () => (this.menu.hidden ? this.openMenu() : this.closeMenu(true)));
@@ -173,13 +190,22 @@
         if (event.relatedTarget && !root.contains(event.relatedTarget)) this.closeMenu(false);
       });
       root.querySelector('.signout').addEventListener('click', (event) => this.signOut(event.currentTarget));
+      // Add Users when the answer comes; the menu works without waiting for it.
+      fetchIsOwner().then((isOwner) => {
+        if (!isOwner || this.menu.querySelector('.users')) return;
+        const users = document.createElement('a');
+        users.className = 'item users';
+        users.href = '/strelitzia/dashboard/users';
+        users.textContent = 'Users';
+        this.menu.querySelector('a[href="/strelitzia/dashboard/"]').after(users);
+      });
     }
 
     openMenu() {
       this.menu.hidden = false;
       this.button.setAttribute('aria-expanded', 'true');
       document.addEventListener('click', this.onDocClick);
-      this.menu.querySelector('a').focus();
+      this.menu.querySelector('.item').focus();
     }
 
     closeMenu(refocus) {
@@ -200,6 +226,91 @@
     }
   }
 
+  // The page header for every engineerfamily.net page but the Strelitzia dashboard: a solid bar like the dashboard's
+  // top bar, always light, scrolling away with the page. Light DOM, so `header nav` is queryable; one <style> in <head>.
+  const SITE_HEADER_CSS = `
+    ef-site-header {
+      display: block;
+      width: 100%;
+      margin: 0;
+      color-scheme: light;
+    }
+    ef-site-header .ef-site-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 8px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid #e4d8c6;
+      color: #2a1f17;
+      font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    ef-site-header nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+    }
+    ef-site-header nav a {
+      margin: 0;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #6b5e52;
+      font-weight: 400;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    ef-site-header nav a:hover { color: #2a1f17; }
+    ef-site-header nav a[aria-current="page"] { background: #f5ede0; color: #2a1f17; font-weight: 600; }
+    ef-site-header nav a:focus-visible { outline: 2px solid #3a3fa8; outline-offset: 2px; }
+    ef-site-header ef-profile { margin-left: auto; }
+    @media (max-width: 420px) {
+      ef-site-header .ef-site-header { gap: 8px; padding: 8px 12px; }
+      ef-site-header nav { gap: 0; }
+      ef-site-header nav a { padding: 4px 8px; }
+    }
+  `;
+
+  class EfSiteHeader extends HTMLElement {
+    static get observedAttributes() {
+      return ['active'];
+    }
+
+    connectedCallback() {
+      if (!document.getElementById('ef-site-header-style')) {
+        const style = document.createElement('style');
+        style.id = 'ef-site-header-style';
+        style.textContent = SITE_HEADER_CSS;
+        document.head.appendChild(style);
+      }
+      if (!this.querySelector('header.ef-site-header')) {
+        this.innerHTML = `<header class="ef-site-header"><ef-home light></ef-home><nav aria-label="Site"><a
+          href="/games/" data-section="games">Games</a><a href="/strelitzia/" data-section="strelitzia">Strelitzia</a></nav><ef-profile
+          light></ef-profile></header>`;
+      }
+      this.markActive();
+    }
+
+    attributeChangedCallback() {
+      this.markActive();
+    }
+
+    markActive() {
+      const active = this.getAttribute('active');
+      this.querySelectorAll('nav a').forEach((link) => {
+        if (link.dataset.section === active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+    }
+  }
+
   customElements.define('ef-home', EfHome);
   customElements.define('ef-profile', EfProfile);
+  customElements.define('ef-site-header', EfSiteHeader);
 })();
