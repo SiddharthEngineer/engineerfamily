@@ -1,5 +1,5 @@
 # Plan: Wordle solver, part 1: fast solver core, tests and CI (Wordle repo)
-**Status:** ⏸ Tasks 1–2 done; Task 3 done except the CI workflow (the token has no `workflow` scope). Wordle PR #1 open, not merged
+**Status:** ✅ 2026-10-22, all tasks done; Wordle PR #1 has CI `test` green and is waiting to be merged (the agent's `gh pr merge` was denied by permissions)
 **Risk:** low (Wordle repo only; a merge there deploys nothing, prod moves only with `make wordle-deploy`)
 
 ## Goal
@@ -76,8 +76,7 @@ CI: on `pull_request` and push to `main`, `ubuntu-latest`, Python 3.12, `pip ins
 `python -m pytest -q`; job name `test` (part 2 adds a Docker build job). `.gitignore` adds `.DS_Store`,
 `__pycache__/`, `.pytest_cache/`. `AGENTS.md` (short, like engineerfamily's): what the repo is, file map, how to run
 the CLI and tests, that it's deployed by the engineerfamily repo (`/wordle/`), never commit secrets. `CLAUDE.md` = `@AGENTS.md`.
-**Validate:** `python -m pytest -q` passes in a fresh venv from `requirements.txt` + pytest; the PR's CI check `test` is green.
-**Status:** ⏸ 2026-10-22, Wordle a3eca86: requirements, AGENTS.md, CLAUDE.md, .gitignore and .DS_Store done. `.github/workflows/ci.yml` was not pushed: GitHub rejects workflow files from a PAT without the `workflow` scope. The file is in the PR body
+**Validate:** `python -m pytest -q` passes in a fresh venv from `requirements.txt` + pytest; the PR's C**Status:** ✅ 2026-10-22, Wordle a3eca86 + 5202ede (ci.yml pushed after the token got the `workflow` scope, user answer A); CI `test` green on Wordle#1he file is in the PR body
 
 ## Validation
 - `python -m pytest -q` passes locally and in the PR's CI.
