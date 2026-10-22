@@ -1,5 +1,5 @@
 # Plan: one site header bar, like the Strelitzia dashboard's top bar
-**Status:** 🟡 2026-10-22: built in #66; Task 3's `agents/settings/validate.json` edit is left for the user
+**Status:** ✅ 2026-10-22 (#66)
 **Risk:** review (visible on every engineerfamily.net page; changes `scripts/` and `agents/settings/`)
 **Depends on:** - (replaces header-style, PR #63, closed 2026-10-22)
 
@@ -81,7 +81,7 @@ exit codes). validate.json: allow `Bash(npm ci --prefix services/app/vite:*)`, `
 `Bash(node --check:*)`, `Bash(node scripts/check-header-layout.mjs:*)` and `Bash(npx playwright install chromium)`.
 **Validate:** `node --check scripts/check-header-layout.mjs`; `python3 -m json.tool agents/settings/validate.json >/dev/null`;
 `scripts/validate.sh` passes. (The script runs against preprod in the Human test steps, after the runner deploys the PR.)
-**Status:** 🟡 2026-10-22: script done (all ok against a local copy of the pages); the validate.json edit is left for the user (agent edits to `agents/settings/` are blocked)
+**Status:** ✅ 2026-10-22: script 531b622; validate.json permissions added by the user (808cea0)
 
 ### Task 4: tracking
 **Runs:** unattended
