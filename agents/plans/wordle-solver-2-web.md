@@ -1,5 +1,5 @@
 # Plan: Wordle solver, part 2: tile-grid page, API and Docker image (Wordle repo)
-**Status:** ❌ Not started
+**Status:** ✅ 2026-10-22, all tasks done; Wordle PR #2 open, stacked on #1 (merge #1 first, then #2 retargets to `main`)
 **Risk:** low (Wordle repo only; a merge there deploys nothing. The user tests the page on preprod in part 3)
 **Depends on:** wordle-solver-1-core
 
@@ -44,7 +44,7 @@ The engineerfamily side only updates Status lines and the ROADMAP row.
 - `requirements.txt` adds pinned `fastapi`, `uvicorn[standard]`; pytest's `httpx` goes in CI only.
 **Validate:** `python scripts/precompute.py && head -2 data/opening.csv` → header + one row;
 `uvicorn web.app:app --port 8000 &` then `curl -s localhost:8000/wordle/api/health` → `{"ok":true,"words":12971}`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22, Wordle 516b47d (+ 378c064 review fixes: probabilities to 6 significant digits, not 6 decimals, which rounded most to 0; NaN weighted E(|v|) for unknown-frequency words → null). The list has 12,972 words (see part 1), so health reports 12972; local checks used port 8765 (8000 is taken on the VPS)
 
 ### Task 2: The page
 **Runs:** unattended
@@ -66,7 +66,7 @@ The engineerfamily side only updates Status lines and the ROADMAP row.
   another guess". 0 left: "No words match. Check your tile colors." Fetch errors show a retry message.
 - Works at 390 px wide with no horizontal scroll (table scrolls inside its own box), light and dark mode.
 **Validate:** `node --check web/static/app.js` → no output; `curl -s localhost:8000/wordle/ | grep -c 'id="grid"'` → `1`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22, Wordle 9084e18 (+ 378c064); checked in a browser at 390 px, light and dark
 
 ### Task 3: Docker image, tests, CI, docs
 **Runs:** unattended
@@ -83,7 +83,7 @@ The engineerfamily side only updates Status lines and the ROADMAP row.
 - README: what the site does, run locally (`uvicorn web.app:app`, then `http://localhost:8000/wordle/`), Docker run, CLI.
 **Validate:** `python -m pytest -q` → pass; `docker build -t wordle . && docker run -d -p 8000:8000 wordle` then
 `curl -s localhost:8000/wordle/api/health` → `{"ok":true,"words":12971}`; PR checks `test` and `docker` green.
-**Status:** ❌
+**Status:** ✅ 2026-10-22, Wordle 9029022; 29 tests pass, image healthy as non-root; PR is Wordle#2, stacked on #1 (base `agent/wordle-solver-1-core`, because #1 isn't merged yet), so no auto-merge; CI `test` and `docker` green
 
 ## Validation
 - `python -m pytest -q` passes; the Docker health check returns `{"ok":true,"words":12971}`.
