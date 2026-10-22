@@ -53,7 +53,7 @@ nested `location /wordle/api/` with `limit_req zone=wordle_api burst=10 nodelay;
 `proxy_read_timeout 30s;`, `client_max_body_size 16k;`, `gzip on; gzip_types application/json;` and the same proxy lines.
 No `auth_request` (public). Preprod: same plus `X-Robots-Tag`, and the host-only `location = /wordle/api/health`.
 **Validate:** `scripts/validate.sh` → `PASS  nginx preprod`, `PASS  nginx prod`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit)
 
 ### Task 3: Make targets, prod-changes, home link, docs, runner health
 **Runs:** unattended
