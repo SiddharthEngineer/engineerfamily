@@ -14,7 +14,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | ID | Initiative | Plan | Risk | Status | Depends on |
 |---|---|---|---|---|---|
 | E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ✅ (#58) | - |
-| E3 | engineerfamily.net header in the Strelitzia page style (part 1; Strelitzia R46 is the dashboard) | [header-style](plans/header-style.md) | review | ⏳ queued 2026-10-21 (1st, then Strelitzia R46) | - |
+| E3 | One site header bar like the Strelitzia dashboard's top bar: home icon, Games/Strelitzia links, Users + Sign out in the profile menu (replaces header-style, #63 closed) | [site-header-bar](plans/site-header-bar.md) | review | ⏳ queued 2026-10-22 (after agent-runner A19, then Strelitzia R46) | - |
 | E4 | Strelitzia homepage as a scrollable demo with made-up data | [strelitzia-demo](plans/strelitzia-demo.md) | review | ⏳ queued 2026-10-21 (after Strelitzia R46) | Strelitzia R46 (queue order) |
 | E5 | Wordle solver 1/3: vectorized solver core, tests, CI (Wordle repo, cross-repo PR) | [wordle-solver-1-core](plans/wordle-solver-1-core.md) | low | ⏳ planned 2026-10-20; held until M1 | M1 |
 | E6 | Wordle solver 2/3: tile-grid page, FastAPI, Docker image (Wordle repo, cross-repo PR) | [wordle-solver-2-web](plans/wordle-solver-2-web.md) | low | ⏳ planned 2026-10-20 | E5 |
@@ -22,6 +22,9 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E8 | Site permissions 1/4: `engineerfamily` DB, per-page grants, admin API, `/auth/verify?page=` | [site-perms-1-store](plans/site-perms-1-store.md) | review | ⏳ planned 2026-10-21 | E4 (queue order) |
 | E9 | Site permissions 2/4: admin-only Users page at `/users/`, profile-menu link | [site-perms-2-users-page](plans/site-perms-2-users-page.md) | review | ⏳ planned 2026-10-21 | E8, E3 |
 | E10 | Site permissions 3/4: nginx enforces Site + per-page access, no-access pages | [site-perms-3-gate](plans/site-perms-3-gate.md) | review | ⏳ planned 2026-10-21 | E9, M2 (preprod half) |
+
+## Backlog
+- Dark mode for the engineerfamily pages and the site header (user, 2026-10-22: "future change"). Today the header is always light.
 
 ## Manual steps (you)
 
@@ -33,7 +36,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 ## Decisions (current)
 - 2026-10-21 (user): engineerfamily owns site access: a Users page with per-page grants (Site, Strelitzia + cap, Bracket Analyzer, …), admins, and an Everyone row (prod: Site; preprod: nothing). Postgres DB; seed emails only in `/srv` `.env`; existing Strelitzia users re-invited by hand (E8-E10, Strelitzia R47).
 - 2026-10-20 (user): the Wordle solver lives at `engineerfamily.net/wordle/`, public, as a FastAPI container built from the Wordle repo like Strelitzia; app code in Wordle, infra in engineerfamily; Wordle PRs auto-merge on green CI.
-- 2026-10-19 (user): the Strelitzia page's header is the house style; the site header (E3) and the dashboard (Strelitzia R46) follow it.
+- 2026-10-22 (user): the Strelitzia **dashboard's** top bar is the house style (replaces the 2026-10-19 choice of the static page's header). Every other page gets the same solid, non-sticky bar (E3); the dashboard keeps its own links (R46). Home icon instead of the wordmark; Users and Sign out live in the profile menu. Header always light for now.
 - 2026-10-19 (user): preprod drops basic auth (E2) before AM3; Google sign-in and the invite list gate the dashboard, as on prod.
 - 2026-10-19 (user): the Strelitzia homepage demo (E4) is a static mock with made-up data, not screenshots or a public dashboard.
 - 2026-10-19 (user): queued plans build, merge and go to preprod with no manual approval (implementer + validator). Prod stays manual.
