@@ -1,5 +1,5 @@
 # Plan: Wordle solver, part 1: fast solver core, tests and CI (Wordle repo)
-**Status:** ❌ Not started
+**Status:** ⏸ Tasks 1–2 done; Task 3 done except the CI workflow (the token has no `workflow` scope). Wordle PR #1 open, not merged
 **Risk:** low (Wordle repo only; a merge there deploys nothing, prod moves only with `make wordle-deploy`)
 
 ## Goal
@@ -50,7 +50,7 @@ frequency-weighted E(|v|). The CLI (`python run.py`) keeps working. CI runs the 
 DataFrame output and column names. `run.py`: drop `Runtime` and the time estimate line; delete `runtime.py`.
 **Validate:** `python -c "import solver; print(len(solver.WORDS), solver.pattern_string(solver.pattern('speed','abide')))"`
 → `12971 bbyby`; `echo q | python run.py` exits 0.
-**Status:** ❌
+**Status:** ✅ 2026-10-22, Wordle 77354b4 (12,972 words: the plan's 12,971 came from `wc -l`, and the file has no trailing newline)
 
 ### Task 2: Tests
 **Runs:** unattended
@@ -65,7 +65,7 @@ DataFrame output and column names. `run.py`: drop `Runtime` and the time estimat
 6. `probabilities` sums to 1 and has no zeros; `solve([])` returns 12,971 rows.
 7. `parse_pattern` rejects `"bygb"`, `"bygbx"`.
 **Validate:** `python -m pytest -q` → all pass, under 60 s.
-**Status:** ❌
+**Status:** ✅ 2026-10-22, Wordle 0d63570 (13 tests; 17 after the review fixes in a3eca86, about 16 s)
 
 ### Task 3: Dependencies, CI, agent docs, cleanup
 **Runs:** unattended
@@ -77,7 +77,7 @@ CI: on `pull_request` and push to `main`, `ubuntu-latest`, Python 3.12, `pip ins
 `__pycache__/`, `.pytest_cache/`. `AGENTS.md` (short, like engineerfamily's): what the repo is, file map, how to run
 the CLI and tests, that it's deployed by the engineerfamily repo (`/wordle/`), never commit secrets. `CLAUDE.md` = `@AGENTS.md`.
 **Validate:** `python -m pytest -q` passes in a fresh venv from `requirements.txt` + pytest; the PR's CI check `test` is green.
-**Status:** ❌
+**Status:** ⏸ 2026-10-22, Wordle a3eca86: requirements, AGENTS.md, CLAUDE.md, .gitignore and .DS_Store done. `.github/workflows/ci.yml` was not pushed: GitHub rejects workflow files from a PAT without the `workflow` scope. The file is in the PR body
 
 ## Validation
 - `python -m pytest -q` passes locally and in the PR's CI.
