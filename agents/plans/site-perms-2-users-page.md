@@ -1,7 +1,7 @@
 # Plan: Site permissions 2/4: Users page and profile menu link
 **Status:** ❌ Not started
 **Risk:** review (new admin UI and a change to the shared site header)
-**Depends on:** site-perms-1-store; header-style (E3, edits the same `site-header.js`)
+**Depends on:** site-perms-1-store; site-header-bar (E3, edits the same `site-header.js`)
 
 ## Goal
 Admins get a **Users** page at `https://engineerfamily.net/users/`, linked from the profile dropdown (only admins see the
@@ -47,7 +47,7 @@ checkbox shows checked and disabled. Nobody else can see the page or its data.
 ### Task 2: Profile menu link
 **Runs:** unattended
 **Files:** services/shared/site-header.js (modify)
-**What:** In the signed-in menu, show "Users" (`/users/`) only when `me.admin`, and "Strelitzia dashboard" only when
+**What:** In the signed-in menu, show "Users" (`/users/`) only when `me.admin`, replacing E3's interim rule (Users → `/strelitzia/dashboard/users` for the Strelitzia owner), and "Strelitzia dashboard" only when
 `me.pages` includes `strelitzia` (when `pages` is missing, as on an older app, keep today's always-shown link). Keep the
 menu's focus handling working when the first link changes. Don't restyle (E3 owns the look).
 **Validate:** `scripts/validate.sh` → passes; `node --check services/shared/site-header.js` → no output.

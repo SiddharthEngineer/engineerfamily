@@ -10,9 +10,9 @@ each section a "screen" in the dashboard's Sunrise look, revealed as you scroll 
 Invited users get an "Open the dashboard" link; everyone else "Run it yourself" (GitHub).
 
 ## Context
-- `services/strelitzia/index.html` (47 lines): today's page; header at 15-20, sections at 22-44. Keep the header markup and the
-  footer exactly as they are.
-- `services/strelitzia/style.css` (45 lines): Sunrise tokens and header CSS. `index.html:10` loads it as `style.css?v=3`:
+- `services/strelitzia/index.html` (47 lines): today's page. Keep the `<ef-site-header>` (E3), the brand row above the
+  `h1` and the footer exactly as they are; line numbers moved in E3, so find the sections by reading the file.
+- `services/strelitzia/style.css` (45 lines): Sunrise tokens and page CSS (the header has none since E3). `index.html:10` loads it as `style.css?v=3`:
   bump `?v=` on every change (Cloudflare may cache for 4 h, see the comment there).
 - nginx serves the folder at `/strelitzia/` with `try_files $uri $uri.html $uri/` and `Cache-Control: no-cache`
   (`services/nginx/nginx.{preprod,prod}.conf`), so new files (`demo.js`, `demo.css`) need no nginx change. No build step.

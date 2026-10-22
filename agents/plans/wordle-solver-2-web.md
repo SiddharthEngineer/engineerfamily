@@ -15,11 +15,11 @@ The engineerfamily side only updates Status lines and the ROADMAP row.
 
 ## Context
 - Wordle `solver.py` (part 1): `WORDS`, `parse_pattern`, `filter_candidates`, `probabilities`, `expected_sizes`, `solve`.
-- engineerfamily `services/shared/README.md:1-30`: header contract. The page loads `/shared/site-header.js` and puts
-  `<ef-home compact>` first and `<ef-profile>` last in a flex `<header>`. nginx serves `/shared/` on the same host, so it
+- engineerfamily `services/shared/README.md`: header contract. Since E3 (site-header-bar) every page except the Strelitzia
+  dashboard loads `/shared/site-header.js` and puts `<ef-site-header>` first in `<body>`, with no header CSS of its own. nginx serves `/shared/` on the same host, so it
   works on preprod/prod; locally the elements just don't render. Don't restyle them.
-- engineerfamily `services/strelitzia/style.css:1-30`: the "Sunrise" color tokens (light + dark) and header layout to copy.
-- engineerfamily `services/strelitzia/index.html:1-20`: head and header markup to mirror.
+- engineerfamily `services/strelitzia/style.css:1-10`: the "Sunrise" color tokens (light + dark) to copy.
+- engineerfamily `services/strelitzia/index.html`: head markup and the brand row above the `h1` to mirror.
 - nginx (part 3) proxies `/wordle/` to this container **without stripping the prefix**, so every route lives under
   `/wordle`. The upstream sees Cloudflare → nginx; the app needs no client IP.
 - Opening position (no rows): E(|v|) over the full list is ~170M pairs, too slow per request. Precompute it once.
@@ -50,7 +50,7 @@ The engineerfamily side only updates Status lines and the ROADMAP row.
 **Runs:** unattended
 **Files:** web/static/index.html (new, markup + CSS), web/static/app.js (new, vanilla JS, no build step)
 **What:**
-- Header per the shared contract: `<ef-home compact>`, brand "Wordle solver", nav (GitHub link), `<ef-profile>`.
+- Header per the shared contract: `<ef-site-header>` first in `<body>`; then a page row with the brand "Wordle solver" and a GitHub link.
   Sunrise tokens for the page; tiles use Wordle colors: black `#3a3a3c`, yellow `#c9b458`, green `#6aaa64`, white letters.
 - Grid: 6 rows × 5 tiles. The active row takes letters from the physical keyboard and an on-screen QWERTY keyboard
   (Enter, ⌫). A tile with a letter is a `<button>`; each click cycles black → yellow → green → black (state = clicks mod 3,
