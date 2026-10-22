@@ -1,5 +1,5 @@
 # Plan: one site header bar, like the Strelitzia dashboard's top bar
-**Status:** ❌ Not started
+**Status:** 🟡 2026-10-22: built in #66; Task 3's `agents/settings/validate.json` edit is left for the user
 **Risk:** review (visible on every engineerfamily.net page; changes `scripts/` and `agents/settings/`)
 **Depends on:** - (replaces header-style, PR #63, closed 2026-10-22)
 
@@ -88,7 +88,7 @@ exit codes). validate.json: allow `Bash(npm ci --prefix services/app/vite:*)`, `
 **Files:** agents/ROADMAP.md (modify), agents/plans/site-header-bar.md (modify)
 **What:** Task statuses; E3's status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green; the Vite build succeeds.
