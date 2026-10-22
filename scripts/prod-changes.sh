@@ -44,7 +44,7 @@ log_with_links() {  # log_with_links <git dir> <github repo> <range>
 
 is_checkout() { [ -d "$1/.git" ] || [ -f "$1/.git" ]; }
 
-[ -d "$prod_dir/.git" ] || [ -f "$prod_dir/.git" ] || die "$prod_dir is not a git checkout (set STRELITZIA_PROD_DIR)"
+is_checkout "$prod_dir" || die "$prod_dir is not a git checkout (set STRELITZIA_PROD_DIR)"
 [ -d "$dev_dir/.git" ] || die "$dev_dir is not a git checkout (set STRELITZIA_DEV_DIR)"
 
 git fetch -q --tags origin
