@@ -81,7 +81,7 @@ exit codes). validate.json: allow `Bash(npm ci --prefix services/app/vite:*)`, `
 `Bash(node --check:*)`, `Bash(node scripts/check-header-layout.mjs:*)` and `Bash(npx playwright install chromium)`.
 **Validate:** `node --check scripts/check-header-layout.mjs`; `python3 -m json.tool agents/settings/validate.json >/dev/null`;
 `scripts/validate.sh` passes. (The script runs against preprod in the Human test steps, after the runner deploys the PR.)
-**Status:** ❌
+**Status:** 🟡 2026-10-22: script done (all ok against a local copy of the pages); the validate.json edit is left for the user (agent edits to `agents/settings/` are blocked)
 
 ### Task 4: tracking
 **Runs:** unattended
