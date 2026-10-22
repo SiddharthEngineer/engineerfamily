@@ -22,6 +22,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E8 | Site permissions 1/4: `engineerfamily` DB, per-page grants, admin API, `/auth/verify?page=` | [site-perms-1-store](plans/site-perms-1-store.md) | review | ⏳ planned 2026-10-21 | E4 (queue order) |
 | E9 | Site permissions 2/4: admin-only Users page at `/users/`, profile-menu link | [site-perms-2-users-page](plans/site-perms-2-users-page.md) | review | ⏳ planned 2026-10-21 | E8, E3 |
 | E10 | Site permissions 3/4: nginx enforces Site + per-page access, no-access pages | [site-perms-3-gate](plans/site-perms-3-gate.md) | review | ⏳ planned 2026-10-21 | E9, M2 (preprod half) |
+| E11 | Version in the header (prod `vX.Y`, preprod `vX.Y.Z` or the PR branch, dashboard too); `make prod-release` deploys the newest tag and promotes its release; old tag flow retired | [site-version](plans/site-version.md) | review | ⏳ queued 2026-10-22 (after E3) | E3, agent-runner A21 |
 
 ## Backlog
 - Dark mode for the engineerfamily pages and the site header (user, 2026-10-22: "future change"). Today the header is always light.
@@ -32,8 +33,10 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 |---|---|---|
 | M1 | Give the VPS runner's token push access to SiddharthEngineer/Wordle and enable "Allow auto-merge" there (before E5). Create `/srv/Wordle-prod`, `/srv/Wordle-preprod` (deploy:srv) and `~/src/Wordle` before E7's first preprod or prod deploy. Done 2026-10-21: token push checked (test branch made and deleted), auto-merge on (user); `/srv/Wordle-{prod,preprod}` (deploy:srv, 2775, `core.sharedRepository=group`, in `safe.directory`) and `~/src/Wordle` cloned over HTTPS at `main` | ☑ |
 | M2 | Site permissions DB and seed list (after E8 merges, before E10 runs). Preprod: in `/srv/engineerfamily-preprod/.env` add `SITE_DB_PASSWORD_PREPROD=` (`openssl rand -hex 24`) and `SITE_ADMIN_EMAILS=` your Gmail and the dev test account's (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy`. Prod, before the first prod deploy with E8-E10: `SITE_DB_PASSWORD=`, `SITE_ADMIN_EMAILS=` your Gmail, `SITE_MEMBER_EMAILS=` the dev test account, then `make site-db-init`. After prod is live, re-invite the existing Strelitzia users on `/users/`. | ☐ |
+| M3 | After E11 merges: reinstall `scripts/vps/engineerfamily-deploy` as root (`scripts/vps/README.md`), so prod deploys write `version.json`. Then agent-runner AM9 starts v1.4. From then on prod deploys are `make prod-release`. | ☐ |
 
 ## Decisions (current)
+- 2026-10-22 (user): every PR merge gets a patch tag and updates the `vX.Y` pre-release; a prod deploy promotes it and the next merge starts `vX.(Y+1)`. Header shows prod `vX.Y`, preprod `vX.Y.Z` or the PR branch, linking to GitHub. Release branches and `-preprod` tags retired; start at v1.4 (E11, agent-runner A20/A21).
 - 2026-10-21 (user): engineerfamily owns site access: a Users page with per-page grants (Site, Strelitzia + cap, Bracket Analyzer, …), admins, and an Everyone row (prod: Site; preprod: nothing). Postgres DB; seed emails only in `/srv` `.env`; existing Strelitzia users re-invited by hand (E8-E10, Strelitzia R47).
 - 2026-10-20 (user): the Wordle solver lives at `engineerfamily.net/wordle/`, public, as a FastAPI container built from the Wordle repo like Strelitzia; app code in Wordle, infra in engineerfamily; Wordle PRs auto-merge on green CI.
 - 2026-10-22 (user): the Strelitzia **dashboard's** top bar is the house style (replaces the 2026-10-19 choice of the static page's header). Every other page gets the same solid, non-sticky bar (E3); the dashboard keeps its own links (R46). Home icon instead of the wordmark; Users and Sign out live in the profile menu. Header always light for now.
