@@ -40,7 +40,7 @@ Wordle repo, public with no sign-in, rate-limited, linked from the home page. Th
 `restart: unless-stopped`, `networks: [web]`, `cpus: 1.0`, `mem_limit: 1g`, comment block in the Strelitzia style
 (where it's built from, which make target moves it). No published ports.
 **Validate:** `scripts/validate.sh` → `PASS  compose preprod` and `PASS  compose prod`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit)
 
 ### Task 2: nginx routing and rate limit
 **Runs:** unattended
