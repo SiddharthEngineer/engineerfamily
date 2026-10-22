@@ -67,7 +67,7 @@ On the Strelitzia pages, the brand and the Dashboard · Privacy · GitHub links 
 above the `h1` (page style, not header style); remove the page's `header` rules and `nav a` margin rule; bump `style.css?v=`.
 Page bodies are otherwise unchanged.
 **Validate:** `cd services/app/vite && npm ci && npm run build` → builds; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ### Task 3: layout check and validator permissions
 **Runs:** unattended
