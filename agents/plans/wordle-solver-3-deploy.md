@@ -70,7 +70,7 @@ agents/DEPLOY.md (modify), agents/runner.toml (modify)
   rows and the deploy commands. runner.toml: health `{ url = "https://preprod.engineerfamily.net/wordle/api/health", json_ok = true }`.
 **Validate:** `scripts/validate.sh` → all PASS; `make -n wordle-deploy` and `make -n preprod-wordle-deploy` print the
 git and compose commands (dry run, nothing executes); `bash -n scripts/prod-changes.sh` → ok.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit). `make -n` dry runs not run: make is denied to the unattended agent; Makefile recipes checked by reading the diff
 
 ### Task 4: Create the /srv checkouts and try it on preprod
 **Runs:** interactive (the user: `/srv` checkouts, `make`, preprod deploy)
