@@ -16,7 +16,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E2 | Preprod without basic auth (Google sign-in only, `noindex`); unblocks agent-runner AM3 | [preprod-open](plans/preprod-open.md) | review | ✅ (#58) | - |
 | E3 | One site header bar like the Strelitzia dashboard's top bar: home icon, Games/Strelitzia links, Users + Sign out in the profile menu (replaces header-style, #63 closed) | [site-header-bar](plans/site-header-bar.md) | review | ⏳ queued 2026-10-22 (after agent-runner A19, then Strelitzia R46) | - |
 | E4 | Strelitzia homepage as a scrollable demo with made-up data | [strelitzia-demo](plans/strelitzia-demo.md) | review | ⏳ queued 2026-10-21 (after Strelitzia R46) | Strelitzia R46 (queue order) |
-| E5 | Wordle solver 1/3: vectorized solver core, tests, CI (Wordle repo, cross-repo PR) | [wordle-solver-1-core](plans/wordle-solver-1-core.md) | low | ⏳ planned 2026-10-20; held until M1 | M1 |
+| E5 | Wordle solver 1/3: vectorized solver core, tests, CI (Wordle repo, cross-repo PR) | [wordle-solver-1-core](plans/wordle-solver-1-core.md) | low | ✅ 2026-10-22: Wordle PR #1 (solver, tests, CI `test` green); waiting to be merged | M1 |
 | E6 | Wordle solver 2/3: tile-grid page, FastAPI, Docker image (Wordle repo, cross-repo PR) | [wordle-solver-2-web](plans/wordle-solver-2-web.md) | low | ⏳ planned 2026-10-20 | E5 |
 | E7 | Wordle solver 3/3: `wordle` service, nginx `/wordle/`, make targets, home link | [wordle-solver-3-deploy](plans/wordle-solver-3-deploy.md) | review | ⏳ planned 2026-10-20 | E6, M1 |
 | E8 | Site permissions 1/4: `engineerfamily` DB, per-page grants, admin API, `/auth/verify?page=` | [site-perms-1-store](plans/site-perms-1-store.md) | review | ⏳ planned 2026-10-21 | E4 (queue order) |
