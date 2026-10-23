@@ -71,7 +71,7 @@ fallback, `needs_account` stripped for strangers, the last-admin guard, seed onl
   (comma lists) and `SITE_EVERYONE` (comma list of page keys, may be empty). Log counts, never emails.
 **Validate:** `cd services/app && python -m pytest -q` → all pass, including: non-admin gets 403 on `/api/admin/users`;
 verify returns the Access/Admin/Cap headers; `?page=strelitzia` 403 for a signed-in stranger; no-`page` verify unchanged.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 2`)
 
 ### Task 3: Database wiring (compose, init script, make targets)
 **Runs:** unattended (writing the files); creating the DBs and the `.env` values is the user's ROADMAP step M2

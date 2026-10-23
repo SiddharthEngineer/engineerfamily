@@ -6,7 +6,10 @@ The store runs on sqlite3 here (the same SQL as Postgres), so nothing needs a da
 import sqlite3
 
 import pytest
+from flask import Flask
 
+import admin
+import auth
 import perms
 
 
@@ -170,3 +173,194 @@ def test_anti_lockout_without_any_admin(monkeypatch):
     perms.create_tables(conn)  # an empty DB, before the .env step
     assert perms.access_for(conn, STRANGER).pages == {"site"}
     assert perms.access_for(conn, STRANGER).admin is False
+
+
+# --- /auth/verify?page=, /auth/me and /api/admin ---
+
+AUTH_ENV = {
+    "GOOGLE_CLIENT_ID": "client-id.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "client-secret",
+    "SITE_SESSION_SECRET": "test-session-secret",
+    "PUBLIC_URL": "https://preprod.engineerfamily.net",
+}
+
+
+def make_site(monkeypatch, tmp_path, env=None, db=True):
+    """auth + perms + admin on a sqlite file DB (or env-only with db=False), seeded from SITE_* like the real app."""
+    for name, value in {**AUTH_ENV, "SITE_ADMIN_EMAILS": ADMIN, "SITE_MEMBER_EMAILS": MEMBER, "SITE_EVERYONE": "site",
+                        **(env or {})}.items():
+        monkeypatch.setenv(name, value)
+    app = Flask(__name__)
+    if db:
+        path = tmp_path / "site.db"
+        app.config["PERMS_CONNECT"] = lambda: sqlite3.connect(path)
+    else:
+        app.config["PERMS_CONNECT"] = lambda: None
+    auth.init_app(app)
+    perms.init_app(app)
+    admin.init_app(app)
+    return app
+
+
+def sign_in(client, email):
+    with client.session_transaction() as sess:
+        sess["sub"] = "sub-" + email
+        sess["email"] = email
+        sess["name"] = "Test"
+
+
+@pytest.fixture
+def site(monkeypatch, tmp_path):
+    return make_site(monkeypatch, tmp_path)
+
+
+def as_(site, email=None):
+    client = site.test_client()
+    if email:
+        sign_in(client, email)
+    return client
+
+
+def test_startup_seeds_and_me_reports_access(site):
+    assert as_(site).get("/auth/me").get_json()["pages"] == ["site"]
+    me = as_(site, ADMIN).get("/auth/me").get_json()
+    assert me["admin"] is True and me["pages"] == ["site", "strelitzia", "bracket"]
+    me = as_(site, STRANGER).get("/auth/me").get_json()
+    assert me["admin"] is False and me["pages"] == ["site"]
+
+
+def test_verify_without_page_is_unchanged(site):
+    resp = as_(site).get("/auth/verify")
+    assert resp.status_code == 204
+    assert not [h for h in resp.headers.keys() if h.lower().startswith("x-auth-request-")]
+    assert as_(site, STRANGER).get("/auth/verify").status_code == 204
+
+
+def test_verify_page_headers(site):
+    resp = as_(site, ADMIN).get("/auth/verify?page=strelitzia")
+    assert resp.status_code == 204
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert resp.headers["X-Auth-Request-Email"] == ADMIN
+    assert resp.headers["X-Auth-Request-Access"] == "strelitzia"
+    assert resp.headers["X-Auth-Request-Admin"] == "1"
+    assert resp.headers["X-Auth-Request-Cap-Usd"] == "none"
+
+    resp = as_(site, MEMBER).get("/auth/verify?page=strelitzia")
+    assert resp.status_code == 204
+    assert resp.headers["X-Auth-Request-Admin"] == "0"
+    assert resp.headers["X-Auth-Request-Cap-Usd"] == "5.00"
+
+    resp = as_(site).get("/auth/verify?page=site")
+    assert resp.status_code == 204
+    assert resp.headers["X-Auth-Request-Access"] == "site"
+    assert resp.headers["X-Auth-Request-Admin"] == "0"
+    assert "X-Auth-Request-Cap-Usd" not in resp.headers
+    assert "X-Auth-Request-Email" not in resp.headers
+
+
+def test_verify_page_refusals(site):
+    assert as_(site, STRANGER).get("/auth/verify?page=strelitzia").status_code == 403
+    resp = as_(site).get("/auth/verify?page=strelitzia")
+    assert resp.status_code == 401
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert as_(site).get("/auth/verify?page=bracket").status_code == 401
+    assert as_(site, ADMIN).get("/auth/verify?page=nope").status_code == 404
+
+
+def test_verify_falls_back_to_env_on_db_error(monkeypatch, tmp_path):
+    site = make_site(monkeypatch, tmp_path, env={"SITE_EVERYONE": ""})
+
+    def broken():
+        raise sqlite3.OperationalError("down")
+    site.config["PERMS_CONNECT"] = broken
+    assert as_(site, MEMBER).get("/auth/verify?page=strelitzia").status_code == 403  # members live in the DB only
+    assert as_(site, MEMBER).get("/auth/verify?page=site").status_code == 403
+    assert as_(site, ADMIN).get("/auth/verify?page=strelitzia").status_code == 204
+    assert as_(site).get("/auth/verify").status_code == 204
+
+
+def test_admin_api_needs_an_admin(site):
+    assert as_(site).get("/api/admin/users").status_code == 401
+    resp = as_(site, STRANGER).get("/api/admin/users")
+    assert resp.status_code == 403
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert as_(site, MEMBER).get("/api/admin/users").status_code == 403
+    assert as_(site, MEMBER).post("/api/admin/users", json={"email": STRANGER}).status_code == 403
+
+
+def test_admin_lists_users(site):
+    resp = as_(site, ADMIN).get("/api/admin/users")
+    assert resp.status_code == 200
+    assert resp.headers["Cache-Control"] == "no-store"
+    body = resp.get_json()
+    assert body["db"] is True
+    assert [p["key"] for p in body["pages"]] == ["site", "strelitzia", "bracket"]
+    assert body["pages"][1] == {"key": "strelitzia", "label": "Strelitzia", "cap": True, "needs_account": True}
+    assert body["everyone"]["pages"] == ["site"]
+    assert body["users"] == [
+        {"email": ADMIN, "admin": True, "pages": ["site", "strelitzia", "bracket"], "cap_usd": None},
+        {"email": MEMBER, "admin": False, "pages": ["site", "strelitzia", "bracket"], "cap_usd": 5.0},
+    ]
+
+
+def test_admin_invites_changes_and_removes(site):
+    client = as_(site, ADMIN)
+    resp = client.post("/api/admin/users", json={"email": "New@Example.com"})
+    assert resp.status_code == 201
+    assert resp.get_json() == {"email": "new@example.com", "admin": False, "pages": ["site"], "cap_usd": 5.0}
+    assert client.post("/api/admin/users", json={"email": "new@example.com"}).status_code == 409
+    assert client.post("/api/admin/users", json={"email": "nope"}).status_code == 400
+
+    resp = client.patch("/api/admin/users/new@example.com",
+                        json={"pages": {"strelitzia": True, "site": False}, "cap_usd": 12.5})
+    assert resp.status_code == 200
+    assert resp.get_json()["pages"] == ["strelitzia"] and resp.get_json()["cap_usd"] == 12.5
+    assert as_(site, "new@example.com").get("/auth/verify?page=strelitzia").headers["X-Auth-Request-Cap-Usd"] == "12.50"
+    assert client.patch("/api/admin/users/new@example.com", json={"cap_usd": None}).get_json()["cap_usd"] is None
+    assert client.patch("/api/admin/users/new@example.com", json={"admin": True}).get_json()["admin"] is True
+
+    assert client.delete("/api/admin/users/new@example.com", json={}).status_code == 204
+    assert client.patch("/api/admin/users/new@example.com", json={"admin": True}).status_code == 404
+
+
+def test_admin_refusals(site):
+    client = as_(site, ADMIN)
+    resp = client.patch(f"/api/admin/users/{MEMBER}", json={"pages": {"nope": True}})
+    assert resp.status_code == 400 and "unknown page" in resp.get_json()["error"]
+    assert client.patch(f"/api/admin/users/{MEMBER}", json={"cap_usd": "lots"}).status_code == 400
+    assert client.patch(f"/api/admin/users/{ADMIN}", json={"admin": False}).status_code == 400
+    assert client.delete(f"/api/admin/users/{ADMIN}", json={}).status_code == 400
+    assert client.patch("/api/admin/users/*", json={"admin": True}).status_code == 400
+    # A failed change writes nothing: the valid grant before the bad one is rolled back.
+    resp = client.patch(f"/api/admin/users/{MEMBER}", json={"pages": {"site": False}, "cap_usd": -1})
+    assert resp.status_code == 400
+    assert "site" in client.get("/api/admin/users").get_json()["users"][1]["pages"]
+
+
+def test_admin_writes_need_json(site):
+    client = as_(site, ADMIN)
+    assert client.post("/api/admin/users", data={"email": STRANGER}).status_code == 415
+    assert client.delete(f"/api/admin/users/{MEMBER}").status_code == 415
+    assert client.get("/api/admin/users").status_code == 200
+
+
+def test_admin_changes_everyone(site):
+    client = as_(site, ADMIN)
+    resp = client.patch("/api/admin/everyone", json={"pages": {"bracket": True, "site": False}})
+    assert resp.status_code == 200
+    assert resp.get_json()["pages"] == ["bracket"]
+    assert as_(site).get("/auth/verify?page=site").status_code == 401
+    assert as_(site).get("/auth/verify?page=bracket").status_code == 204
+    resp = client.patch("/api/admin/everyone", json={"pages": {"strelitzia": True}})
+    assert resp.status_code == 400 and "needs an account" in resp.get_json()["error"]
+
+
+def test_admin_api_in_env_only_mode(monkeypatch, tmp_path):
+    site = make_site(monkeypatch, tmp_path, db=False)
+    client = as_(site, ADMIN)
+    body = client.get("/api/admin/users").get_json()
+    assert body["db"] is False
+    assert [u["email"] for u in body["users"]] == [ADMIN]
+    resp = client.post("/api/admin/users", json={"email": STRANGER})
+    assert resp.status_code == 400 and resp.get_json()["error"] == "no database"
+    assert client.patch("/api/admin/everyone", json={"pages": {"site": True}}).status_code == 400

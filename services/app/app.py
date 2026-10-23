@@ -2,12 +2,16 @@ from pathlib import Path
 
 from flask import Flask, abort, send_from_directory
 
+import admin
 import auth
+import perms
 
 
 current_dir = Path(__file__).resolve().parent
 app = Flask(__name__)
 auth.init_app(app)
+perms.init_app(app)
+admin.init_app(app)
 
 dist_dir = Path("/app/vite/dist")
 

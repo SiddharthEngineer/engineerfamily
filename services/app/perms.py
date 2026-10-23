@@ -86,13 +86,13 @@ def check_cap(cap):
     return float(cap)
 
 
-def _norm(email):
+def norm_email(email):
     return (email or "").strip().lower()
 
 
 def looks_like_email(email) -> bool:
     """A local part, a dotted domain and no whitespace: enough to catch typos before an invite nobody can use."""
-    email = _norm(email)
+    email = norm_email(email)
     local, _, domain = email.partition("@")
     return bool(local) and "." in domain and not any(c.isspace() for c in email)
 
@@ -102,7 +102,7 @@ def _ordered(keys):
 
 
 def _emails(value):
-    return [e for e in (_norm(part) for part in (value or "").split(",")) if e]
+    return [e for e in (norm_email(part) for part in (value or "").split(",")) if e]
 
 
 def _page_keys(value):
@@ -131,7 +131,7 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _need_db(conn):
+def need_db(conn):
     if conn is None:
         raise PermsError("no database")
 
@@ -184,7 +184,7 @@ def _env_access(email) -> Access:
 
 def access_for(conn, email: str | None) -> Access:
     """What this visitor may open. `conn` None (no database) means env-only mode."""
-    email = _norm(email) or None
+    email = norm_email(email) or None
     if email == EVERYONE:
         email = None
     if conn is None or not _admin_count(conn):
@@ -215,16 +215,16 @@ def everyone(conn) -> Row:
 
 
 def get_row(conn, email) -> Row | None:
-    _need_db(conn)
-    return _get(conn, _norm(email))
+    need_db(conn)
+    return _get(conn, norm_email(email))
 
 
 # --- writes (the caller commits) ---
 
 def invite(conn, email) -> Row:
     """Add a user (idempotent). They start with the everyone row's grants and a DEFAULT_CAP_USD cap."""
-    _need_db(conn)
-    email = _norm(email)
+    need_db(conn)
+    email = norm_email(email)
     if email == EVERYONE or not looks_like_email(email):
         raise PermsError("that doesn't look like an email address")
     existing = _get(conn, email)
@@ -236,8 +236,8 @@ def invite(conn, email) -> Row:
 
 
 def set_admin(conn, email, admin: bool) -> Row:
-    _need_db(conn)
-    email = _norm(email)
+    need_db(conn)
+    email = norm_email(email)
     if email == EVERYONE:
         raise PermsError("everyone can't be an admin")
     row = _must_get(conn, email)
@@ -249,8 +249,8 @@ def set_admin(conn, email, admin: bool) -> Row:
 
 def set_grant(conn, email, key, allowed: bool) -> Row:
     """Grant or revoke one page. A new grant of a cap page starts at DEFAULT_CAP_USD."""
-    _need_db(conn)
-    email = _norm(email)
+    need_db(conn)
+    email = norm_email(email)
     p = page(key)
     row = _must_get(conn, email)
     if email == EVERYONE and p.needs_account and allowed:
@@ -266,8 +266,8 @@ def set_grant(conn, email, key, allowed: bool) -> Row:
 
 def set_cap(conn, email, cap) -> Row:
     """Monthly Strelitzia spend cap in dollars; None means no cap."""
-    _need_db(conn)
-    email = _norm(email)
+    need_db(conn)
+    email = norm_email(email)
     if email == EVERYONE:
         raise PermsError("everyone has no cap")
     cap = check_cap(cap)
@@ -277,8 +277,8 @@ def set_cap(conn, email, cap) -> Row:
 
 
 def remove(conn, email):
-    _need_db(conn)
-    email = _norm(email)
+    need_db(conn)
+    email = norm_email(email)
     if email == EVERYONE:
         raise PermsError("the everyone row can't be removed")
     row = _must_get(conn, email)
@@ -296,10 +296,10 @@ def seed(conn, admins, members, everyone_pages) -> dict | None:
     """
     if _run(conn, "SELECT COUNT(*) FROM site_users").fetchone()[0]:
         return None
-    admins = [_norm(e) for e in admins if _norm(e) and _norm(e) != EVERYONE]
+    admins = [norm_email(e) for e in admins if norm_email(e) and norm_email(e) != EVERYONE]
     if not admins:
         return None
-    members = [m for m in (_norm(e) for e in members) if m and m != EVERYONE and m not in admins]
+    members = [m for m in (norm_email(e) for e in members) if m and m != EVERYONE and m not in admins]
     for email in dict.fromkeys(admins):
         _insert_user(conn, email, True, None, PAGE_KEYS)
     for email in dict.fromkeys(members):
