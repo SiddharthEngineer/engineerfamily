@@ -1,52 +1,48 @@
 # engineerfamily deploys
 
-How engineerfamily releases and deploys work: the release model and tags, preprod and prod deploys, the deploy workflow, and
+How engineerfamily releases and deploys work: versions and releases, the header's version text, preprod and prod deploys, the deploy workflow, and
 the VPS layout. Moved here from `README.md` on 2026-10-19 (ef-agents-layout). Prod deploys are always the user's call.
 Before a prod deploy, `make prod-changes` shows what will ship.
 
-### Release And Deployment Model
+### Versions and releases
 
-This repo uses four branch/tag concepts:
+Since E11 (2026-10-23) versions come from the runner (agent-runner `versions`, on through `[release]` in
+`agents/runner.toml`), not from hand-made tags:
 
-1. `main`
-   - Ongoing development and PR merges.
+1. **Every PR merged to `main` gets the next patch tag**, `v1.4.2` → `v1.4.3`, and the GitHub pre-release `v1.4` moves
+   to it, its notes listing every patch and PR in the minor.
+2. **`make prod-release` deploys a tag and promotes its release** (below): `v1.4` becomes a full, Latest release.
+3. **The next merge starts the next minor**: `v1.5.0` and a new `v1.5` pre-release. Major bumps stay by hand
+   (`agent-runner versions promote … --next-major`).
 
-2. `release-v<major>.<minor>`
-   - Minor-line release branches (examples: `release-v1.0`, `release-v2.7`).
-   - Created automatically when first tag for a minor line appears.
+Plan or doc commits pushed straight to `main` get no tag. The old `v*-preprod` tags and `release-v*` branches stay as
+history; nothing creates them any more.
 
-3. Release tags
-   - Production tags: `v<major>.<minor>.<patch>` (example: `v1.2.3`).
-   - Preprod tags: `v<major>.<minor>.<patch>-preprod` (example: `v1.2.3-preprod`).
+`prod` is the deployment state branch: it points to what prod runs, and the deploy workflow moves it. The `preprod`
+branch is just the local branch name in `/srv/engineerfamily-preprod`; `git -C /srv/engineerfamily-preprod log -1` is
+the source of truth for what preprod runs.
 
-4. Deployment state branches
-   - `prod`: always points to what is deployed in production.
-   - `preprod`: points to the last *tag* deploy to preprod. `make preprod-deploy` (below) doesn't move it, so
-     `git -C /srv/engineerfamily-preprod log -1` is the source of truth for what preprod runs.
+#### What the header shows
 
-#### Tagging Rules
+Every deploy writes `services/shared/version.json` (`{"label", "url"}`, gitignored) with `scripts/site-version.sh`, and
+`<ef-profile>` in `services/shared/site-header.js` shows it in small muted text just left of the avatar (or Sign in), on
+every page including the Strelitzia dashboard. It links to GitHub:
 
-Use Make targets to create tags and keep release branches in sync:
+| Where | Shows | Links to |
+|---|---|---|
+| prod, at a tag | `v1.4` (the minor) | that tag's release |
+| preprod, at a tag | `v1.4.2` | that tag's release |
+| preprod, on a PR branch | `agent/site-version` | the branch's PRs |
+| preprod, on `main` past a tag | `v1.4.2+3` (3 untagged commits) | the compare view from the tag |
+| anything else | the short sha | the commit |
 
-```bash
-make tag-preprod v=1.2.3
-make tag-prod v=1.2.3
-```
-
-Enforced policy:
-
-1. Tags for a minor line must be created from `main` or the matching `release-v<major>.<minor>` branch.
-2. If `release-v<major>.<minor>` is ahead of `main`, tagging from `main` fails.
-3. If tag is created from `main`, `main` is merged into the release branch.
-4. If tag is created from release branch, release branch is aligned to latest tag in that minor line.
-
-Validation/sync logic lives in:
-
-- `scripts/release_branch_sync.sh`
+It shows as its own section of the avatar menu (signed in only), between the name/email and the links. No
+`version.json` (local dev, or prod before the deploy script is reinstalled) means no version section. The header fetches
+it once per page with `cache: 'no-store'`, so a deploy shows up on the next page load.
 
 ### Deploying
 
-#### Preprod Deploy (everyday: no tag)
+#### Preprod Deploy
 
 Run on the VPS, from any directory (e.g. the dev clone):
 
@@ -56,37 +52,37 @@ make preprod-deploy ref=origin/my-branch # a pushed branch, before merging
 make preprod-deploy ref=<sha|tag>
 ```
 
-It checks that commit out in `/srv/engineerfamily-preprod`, rebuilds the stack (`up -d --build --remove-orphans`) and
-reloads nginx. These are the same steps the deploy workflow runs, minus the tag and the GitHub round-trip. Push the commit first, because it
-deploys what is on GitHub. Preprod tags (`make tag-preprod` + `make deploy-preprod`) are optional, for a release candidate you
-want on record.
+It checks that commit out in `/srv/engineerfamily-preprod`, writes `version.json`, rebuilds the stack
+(`up -d --build --remove-orphans`) and recreates nginx. Push the commit first, because it deploys what is on GitHub.
+The runner deploys each PR's head this way, and `main` again after a merge (once the tag exists, so the header shows it).
 
-#### Prod Deploy (tag + workflow)
+#### Prod Deploy
 
-Prod deploys are always a tag, and two separate steps (tagging alone deploys nothing). Before a prod deploy, run
-`make prod-changes`: it lists the engineerfamily commits since the last prod tag and the Strelitzia commits since what
-`/srv/Strelitzia-prod` runs, each with its PR link, so you see exactly what will ship.
+Prod deploys are always a tag, and always the user's call:
 
 ```bash
-make tag-prod v=1.2.3          # validate-release-tagging, sync-release-branch, then tag v1.2.3 and push it
-make deploy-prod ref=v1.2.3    # gh workflow run deploy.yml -f environment=prod -f ref=v1.2.3
+make prod-release            # the newest tag; or: make prod-release v=1.4.3
 ```
 
-Roll back with `make deploy-prod ref=<previous tag>`. The preprod equivalents are `make tag-preprod v=1.2.3` and
-`make deploy-preprod ref=v1.2.3-preprod`.
+It runs `agent-runner versions sync engineerfamily` (tags any merge not tagged yet), picks the tag, shows
+`make prod-changes` (the commits since the newest full release, plus Strelitzia and Wordle since what prod runs, with PR
+links), asks `Deploy <tag> to prod? [y/N]`, triggers `deploy.yml`, waits for the run (`gh run watch`), and only if it
+succeeds runs `agent-runner versions promote engineerfamily <tag>`. A failed deploy promotes nothing.
 
-Merging to `main` never ships prod: until the next tag + `deploy-prod`, prod keeps running the last tag. Check with
+**Rollback:** `make deploy-prod ref=<older tag>`. It triggers the same workflow and promotes nothing, so the Latest
+release keeps naming the version you rolled back from until the next `prod-release`.
+
+Merging to `main` never ships prod: until the next `prod-release`, prod keeps running its tag. Check with
 `git -C /srv/engineerfamily-prod describe --tags`, and compare with `git describe --tags origin/main`.
 The `prod` branch in `/srv/engineerfamily-prod` (tracking `origin/prod`) belongs to the deploy script, which recreates it on
 every deploy. Don't `git pull` there: it can only bring in what the last deploy pushed to `origin/prod`.
-`tag-prod` pushes `release-v<major>.<minor>` without `-u`, so your `main` keeps tracking `origin/main`.
 
 #### How the workflow works
 
 1. Resolves `ref` as a tag or branch commit on origin.
 2. Force-resets the deployment state branch (`preprod` or `prod`) to that commit.
 3. SSHs into the VPS as `deploy`, which runs `scripts/vps/engineerfamily-deploy`: fetch, `checkout -B <env> origin/<env>`,
-   `reset --hard`, `up -d --build --remove-orphans`, then recreate nginx (its conf is a single-file bind mount).
+   `reset --hard`, `site-version.sh` (as `deploy`), `up -d --build --remove-orphans`, then recreate nginx (its conf is a single-file bind mount).
 
 ---
 
@@ -108,7 +104,7 @@ never changes container or volume names.
 
 Every prod and preprod `make` target acts on these `/srv` checkouts, so it can be run from the dev clone.
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
-Edits reach preprod with `make preprod-deploy` and prod with `make tag-prod` + `make deploy-prod`, or for
+Edits reach preprod with `make preprod-deploy` and prod with `make prod-release`, or for
 Strelitzia with `make strelitzia-deploy`, and for the Wordle solver with `make wordle-deploy [ref=<sha>]`
-(preprod: `make preprod-wordle-deploy [ref=<sha>]`). `deploy-prod` and `preprod-deploy` build `wordle` too, so
+(preprod: `make preprod-wordle-deploy [ref=<sha>]`). `prod-release`, `deploy-prod` and `preprod-deploy` build `wordle` too, so
 `/srv/Wordle-prod` and `/srv/Wordle-preprod` must exist first. Use `make local-up` to run the dev tree.

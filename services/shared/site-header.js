@@ -83,6 +83,18 @@
     return mePromise;
   }
 
+  // What's deployed here, from the version.json each deploy writes (scripts/site-version.sh); once per page. Anything
+  // missing or odd means no version text.
+  let versionPromise = null;
+  function fetchVersion() {
+    versionPromise ??= fetch('/shared/version.json', { cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => (data && typeof data.label === 'string' && data.label && typeof data.url === 'string'
+        && data.url.startsWith('https://github.com/') ? data : null))
+      .catch(() => null);
+    return versionPromise;
+  }
+
   // Whether to show "Users": Strelitzia's owner for now (site-perms swaps this for the site admin flag). Asked once
   // per page, only when signed in; any error means no link.
   let ownerPromise = null;
@@ -114,7 +126,12 @@
       this.onDocClick = (event) => {
         if (!event.composedPath().includes(this)) this.closeMenu(false);
       };
-      fetchMe().then((me) => this.render(me));
+      const version = fetchVersion();
+      // The menu doesn't wait for the version; its section slots in when it comes.
+      fetchMe().then((me) => {
+        this.render(me);
+        return version;
+      }).then((v) => this.showVersion(v));
     }
 
     disconnectedCallback() {
@@ -128,11 +145,6 @@
 
     render(me) {
       const root = this.shadowRoot;
-      // Sign-in off (or /auth/me unreachable): render nothing.
-      if (!me || !me.enabled) {
-        root.innerHTML = '';
-        return;
-      }
       const css = `<style>${BASE_CSS}
         :host { position: relative; gap: 8px; }
         .avatar {
@@ -156,7 +168,14 @@
           background: none; color: var(--ef-fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
         }
         .item:hover { background: var(--ef-hover); }
+        .version { color: var(--ef-muted); font-size: 13px; overflow-wrap: anywhere; }
+        .version:hover { color: var(--ef-fg); }
       </style>`;
+      // Sign-in off (or /auth/me unreachable): render nothing.
+      if (!me || !me.enabled) {
+        root.innerHTML = '';
+        return;
+      }
       if (!me.signed_in) {
         root.innerHTML = `${css}<a class="pill" href="/auth/login">Sign in</a>`;
         const link = root.querySelector('a');
@@ -199,6 +218,20 @@
         users.textContent = 'Users';
         this.menu.querySelector('a[href="/strelitzia/dashboard/"]').after(users);
       });
+    }
+
+    // The version gets its own section in the account menu, between the name/email and the links. Signed out there
+    // is no menu, so no version.
+    showVersion(version) {
+      if (!version || !this.menu || this.menu.querySelector('.version')) return;
+      const link = document.createElement('a');
+      link.className = 'item version';
+      link.href = version.url;
+      link.title = 'Deployed version';
+      link.textContent = `Version ${version.label}`;
+      const rule = document.createElement('div');
+      rule.className = 'rule';
+      this.menu.querySelector('.rule').after(link, rule);
     }
 
     openMenu() {

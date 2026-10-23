@@ -1,5 +1,5 @@
 # Plan: the site header shows what's deployed, and prod deploys promote the GitHub release
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-23, except `agents/runner.toml` `[release]` and the settings deny entries (Left for you)
 **Risk:** review (every page's header; `Makefile`, `scripts/`, `agents/runner.toml`)
 **Depends on:** E3 [site-header-bar](site-header-bar.md) (same header file; queue order), agent-runner A21
 [runner-15-versions](https://github.com/SiddharthEngineer/agent-runner/blob/main/agents/plans/runner-15-versions.md)
@@ -39,18 +39,19 @@ it; else a remote branch at HEAD other than main/preprod/prod → its name; else
 short sha. `preprod-deploy` and the root deploy script call it after checkout (the root script as `deploy`, via `g`).
 **Validate:** `scripts/validate.sh` passes; `bash scripts/site-version.sh preprod .` in a temp clone at a tag, past a tag
 and on a branch prints the three expected labels (note them in the PR).
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (b3537c5)
 
 ### Task 2: the header shows it
 **Runs:** unattended
 **Files:** services/shared/site-header.js (modify)
 **What:** `<ef-profile>` fetches `/shared/version.json` once per page (`cache: 'no-store'`) and renders
-`<a class="version" href=url>label</a>` before the avatar: 12px, muted colour, no underline, `title="Deployed version"`.
-Missing or bad file → nothing shown, no console error. At 390 px it may truncate with an ellipsis (max 14ch) but never
-wraps the header row or changes its height (`scripts/check-header-layout.mjs` must still pass unchanged). Document the
+`Version <label>` as its own section of the avatar menu, between the name/email and the Strelitzia dashboard link (with
+the menu's rules around it): muted 13px, links to `url`, `title="Deployed version"`. Signed out there is no menu, so no
+version. Missing or bad file → nothing shown, no console error. The header row itself doesn't change
+(`scripts/check-header-layout.mjs` must still pass unchanged). Document the
 element in Task 4's DEPLOY.md section (the shared README stays as is, to keep this plan in budget).
 **Validate:** `scripts/validate.sh` passes; `node --check services/shared/site-header.js`.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (f373142)
 
 ### Task 3: one prod command; retire the old tag flow; turn on `[release]`
 **Runs:** unattended
@@ -61,7 +62,8 @@ for the run (`gh run watch` on the newest deploy.yml run), then `agent-runner ve
 A failed deploy promotes nothing. Remove the old release targets and the script; keep `deploy-prod` for rollbacks
 (`make deploy-prod ref=<older tag>`, no promote). `prod-changes.sh` as in Context. `runner.toml`: `[release]` with `tags = true`.
 **Validate:** `scripts/validate.sh` passes; `make -n prod-release` prints the steps.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 except `runner.toml` (the agent's permission check refused that edit and the deny-list
+addition, so both are in Left for you); `make -n prod-release` is blocked for agents, so the recipe was read, not run.
 
 ### Task 4: docs and tracking
 **Runs:** unattended
@@ -70,7 +72,7 @@ A failed deploy promotes nothing. Remove the old release targets and the script;
 `make prod-release` → deploy + full release; the next merge starts `vX.(Y+1).0`; what the header shows where; rollback.
 Old `-preprod` tags and `release-v*` branches stay as history. AGENTS.md: the Deploys bullet becomes `make prod-release` (rollback `make deploy-prod ref=<tag>`), the Map drops release-branch sync, and the prod rule names `prod-release`. ROADMAP: E11 row, M3 and AM9 steps.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-23
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.
@@ -78,13 +80,16 @@ Old `-preprod` tags and `release-v*` branches stay as history. AGENTS.md: the De
 ## Human test steps (preprod)
 1. `curl -sS https://preprod.engineerfamily.net/shared/version.json` → `label` is this PR's branch name and `url`
    is `https://github.com/SiddharthEngineer/engineerfamily/pulls?q=is:pr+head:<branch>`.
-2. At 1280 px on `/`, `/games/`, `/strelitzia/` and `/strelitzia/dashboard/` (signed in as the dev test account): the
-   branch name shows at the top right, left of the avatar, in small muted text; it opens the PR search above.
-3. At 390 px on `/` and `/strelitzia/dashboard/`: one header row, nothing overlaps, no sideways scroll.
+2. At 1280 px on `/`, `/games/`, `/strelitzia/` and `/strelitzia/dashboard/` (signed in as the dev test account): click
+   the avatar; `Version <branch>` is its own section between the name/email and Strelitzia dashboard; it opens the PR
+   search above.
+3. At 390 px on `/` and `/strelitzia/dashboard/`: the menu fits on screen, a long branch name wraps, no sideways scroll.
 4. `node scripts/check-header-layout.mjs https://preprod.engineerfamily.net` → every line `ok`, exit 0.
-5. Signed out, `/` still shows the version text next to Sign in.
+5. Signed out, `/` shows only Sign in (no version text).
 
 ## Left for you
+- Add `[release]` / `tags = true` to `agents/runner.toml` (before the `[preprod]` table) and deny `make prod-release`
+  and `agent-runner versions promote` in `.claude/settings.json`: the agent's permission check refused both edits.
 - M3: reinstall `scripts/vps/engineerfamily-deploy` as root (`scripts/vps/README.md`); until then prod's header shows nothing.
 - AM9 (once, after A21 is installed and this merges): `agent-runner versions promote engineerfamily v1.3.3` (prod runs it).
   The next runner tick then tags main `v1.4.0` and opens the `v1.4` pre-release.

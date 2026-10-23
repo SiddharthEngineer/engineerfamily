@@ -16,3 +16,6 @@ services/nginx/.htpasswd*
 *.sqlite3
 .DS_Store
 __pycache__/
+
+### Deploy-time files ###
+services/shared/version.json
