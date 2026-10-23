@@ -1,5 +1,5 @@
 # Plan: the site header shows what's deployed, and prod deploys promote the GitHub release
-**Status:** 🔄 In progress
+**Status:** ✅ Done 2026-10-23, except `agents/runner.toml` `[release]` and the settings deny entries (Left for you)
 **Risk:** review (every page's header; `Makefile`, `scripts/`, `agents/runner.toml`)
 **Depends on:** E3 [site-header-bar](site-header-bar.md) (same header file; queue order), agent-runner A21
 [runner-15-versions](https://github.com/SiddharthEngineer/agent-runner/blob/main/agents/plans/runner-15-versions.md)
@@ -71,7 +71,7 @@ addition, so both are in Left for you); `make -n prod-release` is blocked for ag
 `make prod-release` → deploy + full release; the next merge starts `vX.(Y+1).0`; what the header shows where; rollback.
 Old `-preprod` tags and `release-v*` branches stay as history. AGENTS.md: the Deploys bullet becomes `make prod-release` (rollback `make deploy-prod ref=<tag>`), the Map drops release-branch sync, and the prod rule names `prod-release`. ROADMAP: E11 row, M3 and AM9 steps.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-23
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.
@@ -86,6 +86,8 @@ Old `-preprod` tags and `release-v*` branches stay as history. AGENTS.md: the De
 5. Signed out, `/` still shows the version text next to Sign in.
 
 ## Left for you
+- Add `[release]` / `tags = true` to `agents/runner.toml` (before the `[preprod]` table) and deny `make prod-release`
+  and `agent-runner versions promote` in `.claude/settings.json`: the agent's permission check refused both edits.
 - M3: reinstall `scripts/vps/engineerfamily-deploy` as root (`scripts/vps/README.md`); until then prod's header shows nothing.
 - AM9 (once, after A21 is installed and this merges): `agent-runner versions promote engineerfamily v1.3.3` (prod runs it).
   The next runner tick then tags main `v1.4.0` and opens the `v1.4` pre-release.
