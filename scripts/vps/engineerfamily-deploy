@@ -18,7 +18,8 @@ case "$action" in
     g fetch --prune --force --tags origin
     g checkout -q -B "$env" "origin/$env"
     g reset -q --hard "origin/$env"
-    runuser -u deploy -- bash scripts/site-version.sh "$env" "$dir"
+    # The header's version text; best effort, and gone when the ref predates site-version.sh (a rollback).
+    runuser -u deploy -- bash scripts/site-version.sh "$env" "$dir" 2>/dev/null || rm -f services/shared/version.json
     "${compose[@]}" pull --ignore-pull-failures --quiet
     "${compose[@]}" up -d --build --remove-orphans
     docker image prune -f >/dev/null

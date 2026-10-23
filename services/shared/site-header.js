@@ -126,7 +126,12 @@
       this.onDocClick = (event) => {
         if (!event.composedPath().includes(this)) this.closeMenu(false);
       };
-      Promise.all([fetchMe(), fetchVersion()]).then(([me, version]) => this.render(me, version));
+      const version = fetchVersion();
+      // The account UI doesn't wait for the version; it slots in before it when it comes.
+      fetchMe().then((me) => {
+        this.render(me);
+        return version;
+      }).then((v) => this.showVersion(v));
     }
 
     disconnectedCallback() {
@@ -138,7 +143,7 @@
       return `/auth/login?next=${encodeURIComponent(next)}`;
     }
 
-    render(me, version) {
+    render(me) {
       const root = this.shadowRoot;
       const css = `<style>${BASE_CSS}
         :host { position: relative; gap: 8px; }
@@ -169,16 +174,13 @@
         }
         .version:hover { color: var(--ef-fg); }
       </style>`;
-      const versionLink = version
-        ? `<a class="version" href="${escapeHtml(version.url)}" title="Deployed version">${escapeHtml(version.label)}</a>`
-        : '';
-      // Sign-in off (or /auth/me unreachable): just the version, if any.
+      // Sign-in off (or /auth/me unreachable): only the version, if any.
       if (!me || !me.enabled) {
-        root.innerHTML = versionLink ? `${css}${versionLink}` : '';
+        root.innerHTML = css;
         return;
       }
       if (!me.signed_in) {
-        root.innerHTML = `${css}${versionLink}<a class="pill" href="/auth/login">Sign in</a>`;
+        root.innerHTML = `${css}<a class="pill" href="/auth/login">Sign in</a>`;
         const link = root.querySelector('a.pill');
         link.href = this.loginHref();
         // The path may have changed since render (client-side routing), so build `next` again on click.
@@ -186,7 +188,7 @@
         return;
       }
       const label = me.name || me.email;
-      root.innerHTML = `${css}${versionLink}
+      root.innerHTML = `${css}
         <button class="pill avatar" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ef-menu"
           aria-label="Account: ${escapeHtml(label)}" title="${escapeHtml(label)}">${escapeHtml(initials(me.name, me.email))}</button>
         <div class="menu" id="ef-menu" hidden>
@@ -219,6 +221,17 @@
         users.textContent = 'Users';
         this.menu.querySelector('a[href="/strelitzia/dashboard/"]').after(users);
       });
+    }
+
+    showVersion(version) {
+      const root = this.shadowRoot;
+      if (!version || root.querySelector('.version')) return;
+      const link = document.createElement('a');
+      link.className = 'version';
+      link.href = version.url;
+      link.title = 'Deployed version';
+      link.textContent = version.label;
+      root.querySelector('style').after(link);
     }
 
     openMenu() {

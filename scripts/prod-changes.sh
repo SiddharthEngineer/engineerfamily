@@ -6,7 +6,8 @@
 #   (defaults /srv/Strelitzia-prod, /srv/Wordle-prod; make prod-changes passes STRELITZIA_PROD_DIR and WORDLE_PROD_DIR)
 #
 # engineerfamily: the newest full (promoted) GitHub release's tag .. origin/main, which is what `make prod-release` put
-# on prod. Without gh, the newest vX.Y.Z tag by version sort (older prod tags may not be ancestors of origin/main).
+# on prod (a `make deploy-prod` rollback doesn't move it). Without one, the tag origin/prod sits on, else the newest
+# vX.Y.Z tag by version sort.
 # Strelitzia: the commit /srv/Strelitzia-prod is on .. origin/trunk, from the dev clone $STRELITZIA_DEV_DIR (~/src/Strelitzia).
 # Wordle: the commit /srv/Wordle-prod is on .. origin/main, from $WORDLE_DEV_DIR (~/src/Wordle); skipped with a note
 # when either checkout is missing.
@@ -54,7 +55,10 @@ if command -v gh >/dev/null; then
         --json tagName --jq '.[0].tagName // empty' 2>/dev/null) || true
 fi
 if [ -z "$tag" ]; then
-    tag=$(git tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1) || true
+    # No full release found (gh missing or signed out, or none promoted yet): prod's own tag, else the newest tag.
+    tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' origin/prod 2>/dev/null \
+        || git tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1) || true
+    [ -z "$tag" ] || echo "prod-changes: no full GitHub release found; using $tag (from origin/prod or newest tag)" >&2
 fi
 [ -n "$tag" ] || die "no prod tag (vX.Y.Z) found"
 echo "engineerfamily: $tag..origin/main"

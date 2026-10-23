@@ -181,7 +181,8 @@ preprod-deploy:
 	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
 	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
 	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
-	bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR)
+	@bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR) 2>/dev/null \
+		|| { rm -f $(PREPROD_DIR)/services/shared/version.json; echo "→ no version.json (no site-version.sh at this ref)"; }
 	$(PREPROD) up -d --build --remove-orphans
 # nginx.conf is a single-file bind mount: git checkout swaps its inode, so a reload would
 # keep the old config. Recreate the container instead.
@@ -243,7 +244,7 @@ prod-changes:
 	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR)
 
 # Same trigger as deploy-prod (inlined, so `make -n prod-release` runs nothing). A failed or cancelled deploy run stops
-# here, before promote. The run is found by its creation time, after the trigger.
+# here, before promote. The run is the first deploy.yml run newer than the trigger titled "Deploy <tag> to prod".
 prod-release:
 	@$(MAKE) check-github-cli
 	agent-runner versions sync engineerfamily
@@ -252,16 +253,19 @@ prod-release:
 	tag='$(if $(v),v$(patsubst v%,%,$(v)))'; \
 	tag=$${tag:-$$(git -C $(CURDIR) tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n 1)}; \
 	test -n "$$tag" || { echo "prod-release: no vX.Y.Z tag found"; exit 1; }; \
+	echo "$$tag" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "prod-release: $$tag is not a vX.Y.Z tag"; exit 1; }; \
 	git -C $(CURDIR) rev-parse -q --verify "refs/tags/$$tag" >/dev/null || { echo "prod-release: no tag $$tag"; exit 1; }; \
 	bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR); \
+	echo; echo "Deploying $$tag. Not in it (on origin/main after the tag):"; \
+	git -C $(CURDIR) log --oneline --first-parent "$$tag..origin/main" | sed 's/^/  /'; \
 	printf 'Deploy %s to prod? [y/N] ' "$$tag"; read -r answer; \
 	case "$$answer" in y|Y|yes) ;; *) echo "Not deployed."; exit 1 ;; esac; \
-	since=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	last=$$("$(GH)" run list --workflow deploy.yml --limit 1 --json databaseId --jq '.[0].databaseId // 0'); \
 	echo "→ Triggering deploy of $$tag to production..."; \
 	"$(GH)" workflow run deploy.yml --ref main -f environment=prod -f ref="$$tag"; \
 	run=; for i in $$(seq 30); do \
-		run=$$("$(GH)" run list --workflow deploy.yml --limit 5 --json databaseId,createdAt \
-			--jq "[.[] | select(.createdAt >= \"$$since\")] | last | .databaseId // empty"); \
+		run=$$("$(GH)" run list --workflow deploy.yml --event workflow_dispatch --limit 5 --json databaseId,displayTitle \
+			--jq "[.[] | select(.databaseId > $$last and .displayTitle == \"Deploy $$tag to prod\")] | last | .databaseId // empty"); \
 		[ -n "$$run" ] && break; sleep 2; \
 	done; \
 	test -n "$$run" || { echo "prod-release: no deploy.yml run started; nothing promoted"; exit 1; }; \
