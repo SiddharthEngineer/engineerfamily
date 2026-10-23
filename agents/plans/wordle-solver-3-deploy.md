@@ -78,7 +78,7 @@ git and compose commands (dry run, nothing executes); `bash -n scripts/prod-chan
 **What:** as the deploy user, `git clone https://github.com/SiddharthEngineer/Wordle /srv/Wordle-prod` and
 `/srv/Wordle-preprod` (owner `deploy:srv`, setgid, group-writable, like the Strelitzia ones), and a dev clone in
 `~/src/Wordle`. Then `make preprod-deploy ref=<PR head>` and follow the Human test steps.
-**Validate:** `curl -s https://preprod.engineerfamily.net/wordle/api/health` → `{"ok":true,"words":12971}`.
+**Validate:** `curl -s https://preprod.engineerfamily.net/wordle/api/health` → `{"ok":true,"words":12972}` (the list has 12,972 words, see wordle-solver-2-web).
 **Status:** ❌
 
 ## Validation
@@ -86,11 +86,14 @@ git and compose commands (dry run, nothing executes); `bash -n scripts/prod-chan
 - After the preprod deploy, through Cloudflare:
   `curl -s -o /dev/null -w "%{http_code}" https://preprod.engineerfamily.net/wordle/` → `200`;
   `curl -s -o /dev/null -w "%{http_code}" https://preprod.engineerfamily.net/wordle` → `301`;
-  `for i in $(seq 30); do curl -s -o /dev/null -w "%{http_code}\n" -X POST -H 'content-type: application/json' -d '{"rows":[]}' https://preprod.engineerfamily.net/wordle/api/solve; done | sort | uniq -c`
-  → some `429`s alongside `200`s.
+  `seq 30 | xargs -P 30 -I{} curl -s -o /dev/null -w "%{http_code}\n" -X POST -H 'content-type: application/json' -d '{"rows":[]}' https://preprod.engineerfamily.net/wordle/api/solve | sort | uniq -c`
+  → some `429`s alongside `200`s. In parallel: one solve takes ~0.35 s, so a sequential loop stays under 5 r/s and never
+  gets a 429. 2026-10-23 on preprod: 13 × 200, 17 × 429; `/wordle` → 301.
+- 2026-10-23 preprod checks: steps 2–8 pass. Step 1 failed on the header: the Wordle page used `<ef-site-header>`, which
+  `services/shared/site-header.js` doesn't define. The fix is in the Wordle repo (`<ef-home>` … `<ef-profile>`), not here.
 
 ## Human test steps (preprod)
-1. Open `https://preprod.engineerfamily.net/wordle/` signed out: grid, on-screen keyboard and a 12,971-word table load;
+1. Open `https://preprod.engineerfamily.net/wordle/` signed out: grid, on-screen keyboard and a 12,972-word table load;
    the header shows the engineerfamily link and Sign in.
 2. Type `CRANE`. Click the C tile once (yellow), twice (green), three times (black). Set any colors, press Submit:
    "N words left" drops, the next row unlocks, the table refreshes.
