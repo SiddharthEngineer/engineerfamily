@@ -89,3 +89,144 @@ body {
   color: var(--muted);
   margin-top: 0.75rem;
 }
+
+.users-shell {
+  min-height: calc(100vh - 54px);
+}
+
+.users-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  border-top: 3px solid var(--accent);
+}
+
+.users-card h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 5vw, 2.9rem);
+  line-height: 1.1;
+}
+
+.users-card a {
+  color: var(--accent);
+}
+
+.users-muted {
+  color: var(--muted);
+}
+
+.users-banner {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  padding: 0.6rem 0.8rem;
+}
+
+.users-error {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.users-invite {
+  margin: 1.25rem 0;
+}
+
+.users-invite label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.users-invite-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.users-card input[type='email'],
+.users-card input[type='number'] {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.users-invite input[type='email'] {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.users-card button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.users-card button[type='submit'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface-strong);
+}
+
+.users-card button:disabled,
+.users-card input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.users-table-wrap {
+  overflow-x: auto;
+}
+
+.users-table {
+  border-collapse: collapse;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.users-table th,
+.users-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+}
+
+.users-table th[scope='row'],
+.users-table thead th:first-child {
+  text-align: left;
+}
+
+.users-table th[scope='row'] {
+  font-weight: 500;
+}
+
+.users-everyone {
+  background: var(--accent-soft);
+}
+
+.users-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.users-cap input {
+  width: 6.5rem;
+}
+
+.users-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
