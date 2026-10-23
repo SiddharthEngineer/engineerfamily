@@ -35,7 +35,8 @@ function Shell({ children }) {
 }
 
 function CapInput({ row, disabled, title, onSave }) {
-  const saved = row.cap_usd == null ? '' : String(row.cap_usd);
+  // Admins have no cap, whatever is stored (promoting a user keeps their old cap_usd): show "No cap".
+  const saved = row.admin || row.cap_usd == null ? '' : String(row.cap_usd);
   const [draft, setDraft] = useState(saved);
   useEffect(() => setDraft(saved), [saved]);
 
