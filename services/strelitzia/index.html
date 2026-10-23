@@ -6,8 +6,9 @@
   <title>Strelitzia</title>
   <meta name="description" content="Strelitzia is an open-source, self-hosted job search assistant that finds postings and tailors resumes and cover letters.">
   <link rel="icon" href="/strelitzia/favicon.svg" type="image/svg+xml">
-  <!-- ?v= bumps with each style.css change: Cloudflare may hand browsers max-age=14400 (README.md, Ingress). -->
+  <!-- ?v= bumps with each change to that file: Cloudflare may hand browsers max-age=14400 (README.md, Ingress). -->
   <link rel="stylesheet" href="/strelitzia/style.css?v=4">
+  <link rel="stylesheet" href="/strelitzia/demo.css?v=1">
   <script src="/shared/site-header.js" defer></script>
 </head>
 <body>
@@ -18,27 +19,128 @@
     <div class="pagelinks"><a href="/strelitzia/dashboard/">Dashboard</a><a href="/strelitzia/privacy">Privacy</a><a href="https://github.com/SiddharthEngineer/Strelitzia">GitHub</a></div>
   </div>
 
-  <h1>A self-hosted <span class="accent">job search</span> assistant</h1>
-  <p class="lede">Strelitzia finds job postings, scores how well they fit your background, and writes a tailored
-    resume and cover letter for each one. It runs on your own computer or server, not as a hosted service.</p>
+  <section class="hero">
+    <h1>A self-hosted <span class="accent">job search</span> assistant</h1>
+    <p class="lede">Paste a job link: Strelitzia reads the posting, scores the fit and writes a tailored resume and cover letter.</p>
+    <p class="cta"><a class="btn btn-primary" href="/strelitzia/dashboard/">Open the dashboard</a><a class="btn" href="https://github.com/SiddharthEngineer/Strelitzia">Run it yourself</a></p>
+    <p class="note">The dashboard is invite only, so here is a walk through it with made-up sample data.</p>
+  </section>
 
-  <h2>What it does</h2>
-  <ul>
-    <li>Collects postings from public job boards and company career pages.</li>
-    <li>Scores each posting against your resume and preferences.</li>
-    <li>Writes a one-page tailored resume and a cover letter as PDFs.</li>
-    <li>Gives you a dashboard to track the applications you send yourself. It never submits anything for you.</li>
-  </ul>
+  <section class="step" id="add">
+    <div class="step-text">
+      <p class="step-num">1</p>
+      <h2>Add a job by link</h2>
+      <p>Paste the link to a posting from a job board or a company's careers page.</p>
+    </div>
+    <div class="screen" aria-hidden="true">
+      <div class="screen-bar"><span></span><span></span><span></span></div>
+      <div class="screen-body">
+        <p class="label">Add job</p>
+        <div class="addjob"><span class="input"><span class="typed" data-text="https://careers.example.com/northwind-robotics/senior-backend-engineer">https://careers.example.com/northwind-robotics/senior-backend-engineer</span></span><span class="fake-btn">Add</span></div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Google Drive</h2>
-  <p>If you turn it on, Strelitzia saves your tailored resumes and cover letters to your own Google Drive, in folders
-    by company, role and date, so you can open them from any device. It asks for the
-    <code>drive.file</code> permission, which only lets it see and manage the files and folders Strelitzia itself
-    created. It can't read anything else in your Drive. See the <a href="/strelitzia/privacy">privacy policy</a> for details.</p>
+  <section class="step" id="read">
+    <div class="step-text">
+      <p class="step-num">2</p>
+      <h2>The posting is read for you</h2>
+      <p>Strelitzia pulls out the title, company, location, salary and requirements, so every job looks the same.</p>
+    </div>
+    <div class="screen" aria-hidden="true">
+      <div class="screen-bar"><span></span><span></span><span></span></div>
+      <div class="screen-body">
+        <p class="job-name">Senior Backend Engineer</p>
+        <p class="muted">Northwind Robotics</p>
+        <dl class="facts">
+          <div><dt>Location</dt><dd>Remote (US)</dd></div>
+          <div><dt>Salary</dt><dd>$165k–$190k</dd></div>
+          <div><dt>Type</dt><dd>Full time</dd></div>
+        </dl>
+        <div class="chips"><span class="chip">Python</span><span class="chip">PostgreSQL</span><span class="chip">Kubernetes</span><span class="chip">Event streams</span></div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Get it</h2>
-  <p>Strelitzia is open source under the AGPL-3.0 license (it began as a fork of ApplyPilot). The source code, setup
-    guide and issue tracker are on <a href="https://github.com/SiddharthEngineer/Strelitzia">GitHub</a>.</p>
+  <section class="step" id="score">
+    <div class="step-text">
+      <p class="step-num">3</p>
+      <h2>A fit score with reasons</h2>
+      <p>Each posting is scored against your resume and preferences, with the reasons and the gaps spelled out.</p>
+    </div>
+    <div class="screen" aria-hidden="true">
+      <div class="screen-bar"><span></span><span></span><span></span></div>
+      <div class="screen-body">
+        <div class="fit-head"><p class="job-name">Fit</p><p class="fit"><span class="fit-num" data-value="82">82</span><span class="fit-of">/100</span></p></div>
+        <span class="fit-bar"><span class="fit-fill" style="width: 82%"></span></span>
+        <ul class="reasons">
+          <li class="plus">Six years of Python services, as asked</li>
+          <li class="plus">Ran PostgreSQL at scale in your last role</li>
+          <li class="plus">Remote and the salary range match your preferences</li>
+          <li class="minus">No Kubernetes on your resume</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="tailor">
+    <div class="step-text">
+      <p class="step-num">4</p>
+      <h2>A tailored resume and cover letter</h2>
+      <p>Your resume is rewritten to put the matching experience first, and both come out as one-page PDFs.</p>
+    </div>
+    <div class="screen" aria-hidden="true">
+      <div class="screen-bar"><span></span><span></span><span></span></div>
+      <div class="screen-body">
+        <div class="compare">
+          <div><p class="label">Original</p>
+            <p class="line">Built internal tools in Python.</p>
+            <p class="line">Maintained the company database.</p></div>
+          <div><p class="label">Tailored</p>
+            <p class="line tailored">Built Python services handling 40k requests a minute.</p>
+            <p class="line tailored">Tuned and scaled PostgreSQL to 2 TB with zero downtime.</p></div>
+        </div>
+        <div class="chips files"><span class="chip file">resume.pdf</span><span class="chip file">cover letter.pdf</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="track">
+    <div class="step-text">
+      <p class="step-num">5</p>
+      <h2>Track your applications</h2>
+      <p>You send each application yourself and keep track of it in one list. Strelitzia never submits anything for you.</p>
+    </div>
+    <div class="screen" aria-hidden="true">
+      <div class="screen-bar"><span></span><span></span><span></span></div>
+      <div class="screen-body">
+        <ul class="jobs">
+          <li><span class="jobs-role">Senior Backend Engineer<small>Northwind Robotics</small></span><span class="badge badge-blue">Applied</span></li>
+          <li><span class="jobs-role">Platform Engineer<small>Bluefin Logistics</small></span><span class="badge badge-orange">Interview</span></li>
+          <li><span class="jobs-role">Staff Data Engineer<small>Quillmark Software</small></span><span class="badge badge-green">Offer</span></li>
+          <li><span class="jobs-role">Backend Developer<small>Harbor &amp; Pine Health</small></span><span class="badge badge-blue">Applied</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="plain">
+    <h2>Your data stays yours</h2>
+    <p>Strelitzia is self-hosted: it runs on your own computer or server, not as a hosted service, and your resume and
+      job data stay there.</p>
+
+    <h3>Google Drive</h3>
+    <p>If you turn it on, Strelitzia saves your tailored resumes and cover letters to your own Google Drive, in folders
+      by company, role and date, so you can open them from any device. It asks for the
+      <code>drive.file</code> permission, which only lets it see and manage the files and folders Strelitzia itself
+      created. It can't read anything else in your Drive. See the <a href="/strelitzia/privacy">privacy policy</a> for details.</p>
+  </section>
+
+  <section class="plain">
+    <h2>Get it</h2>
+    <p>Strelitzia is open source under the AGPL-3.0 license (it began as a fork of ApplyPilot). The source code, setup
+      guide and issue tracker are on <a href="https://github.com/SiddharthEngineer/Strelitzia">GitHub</a>.</p>
+  </section>
 
   <footer>Strelitzia · <a href="/strelitzia/privacy">Privacy policy</a> · <a href="https://engineerfamily.net">engineerfamily.net</a></footer>
 </main>

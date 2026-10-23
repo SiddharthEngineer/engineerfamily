@@ -1,5 +1,5 @@
 # Plan: the Strelitzia homepage becomes a scrollable demo
-**Status:** ❌ Not started
+**Status:** 🚧 In progress
 **Risk:** review (the public Strelitzia homepage; Google's OAuth reviewers read the Drive section)
 
 ## Goal
@@ -35,7 +35,7 @@ and "resume.pdf" chips; (5) a jobs list with status chips (Applied, Interview, O
 (e.g. "Northwind Robotics, Senior Backend Engineer"), no real people or employers. Mock screens are `aria-hidden` art with a
 text sentence beside them, so the page reads fine without them. Works at 390 px with no sideways scroll.
 **Validate:** `scripts/validate.sh` passes. `grep -c 'drive.file' services/strelitzia/index.html` → `1`.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (Task 1 commit)
 
 ### Task 2: scroll reveal and small motion
 **Runs:** unattended
