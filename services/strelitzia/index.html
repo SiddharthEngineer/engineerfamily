@@ -10,7 +10,14 @@
   <link rel="stylesheet" href="/strelitzia/style.css?v=4">
   <link rel="stylesheet" href="/strelitzia/demo.css?v=1">
   <script src="/shared/site-header.js" defer></script>
-  <script src="/strelitzia/demo.js?v=1" defer></script>
+  <!-- Motion is opt-in and decided before the first paint, so the page never shows the final state and then hides it
+       (demo.js, demo.css). If demo.js fails to load, the onerror puts the final state back. -->
+  <script>
+    if ('IntersectionObserver' in window && matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+      document.documentElement.classList.add('motion');
+    }
+  </script>
+  <script src="/strelitzia/demo.js?v=1" defer onerror="document.documentElement.classList.remove('motion')"></script>
 </head>
 <body>
 <ef-site-header active="strelitzia"></ef-site-header>
@@ -31,7 +38,7 @@
     <div class="step-text">
       <p class="step-num">1</p>
       <h2>Add a job by link</h2>
-      <p>Paste the link to a posting from a job board or a company's careers page.</p>
+      <p>Paste the link to a posting, or let Strelitzia collect postings from public job boards and company career pages.</p>
     </div>
     <div class="screen" aria-hidden="true">
       <div class="screen-bar"><span></span><span></span><span></span></div>

@@ -1,6 +1,6 @@
 /* The homepage demo: mock dashboard screens with made-up data, in the dashboard's look (Strelitzia
    dashboard/src/styles.css: surfaces, badges, fit bar), copied in a few lines rather than imported.
-   The default rules are the final state; demo.js opts into motion by adding .motion to <html>. */
+   The default rules are the final state; motion is opt-in via .motion on <html> (index.html, demo.js). */
 :root {
   --surface: #ffffff; --surface-2: #f5ede0; --success: #2f7a4f; --danger: #b42318; --hl: #fcefc2;
   --badge-orange-bg: #fde2c8; --badge-orange-fg: #8a3d00; --badge-blue-bg: #e0e1f7; --badge-blue-fg: #2e3290;
@@ -32,7 +32,7 @@
 .step-num { margin: 0 0 4px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #1b130c;
   font-weight: 700; font-size: 15px; line-height: 28px; text-align: center; }
 .plain { border-top: 1px solid var(--rule); padding-top: 8px; }
-h3 { font-size: 17px; margin: 20px 0 4px; }
+.plain h3 { font-size: 17px; margin: 20px 0 4px; }
 
 .screen { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; font-size: 14px;
   line-height: 1.45; box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--fg) 30%, transparent); }
@@ -40,7 +40,7 @@ h3 { font-size: 17px; margin: 20px 0 4px; }
 .screen-bar span { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
 .screen-body { padding: 14px; }
 .screen p { margin: 0; }
-.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px !important; }
+.label, .facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px !important; }
 .muted { color: var(--muted); }
 .job-name { font-weight: 700; font-size: 16px; }
 
@@ -50,7 +50,6 @@ h3 { font-size: 17px; margin: 20px 0 4px; }
 .fake-btn { align-self: center; padding: 6px 12px; border-radius: 6px; background: var(--accent); color: #1b130c; font-weight: 600; }
 
 .facts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 10px 0; }
-.facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .facts dd { margin: 0; font-weight: 600; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { padding: 2px 10px; border-radius: 999px; background: var(--badge-blue-bg); color: var(--badge-blue-fg); font-size: 13px; }
@@ -86,11 +85,13 @@ h3 { font-size: 17px; margin: 20px 0 4px; }
 .badge-orange { background: var(--badge-orange-bg); color: var(--badge-orange-fg); }
 .badge-green { background: var(--badge-green-bg); color: var(--badge-green-fg); }
 
-/* Motion, only when demo.js adds .motion (never with prefers-reduced-motion or without JS). Transitions sit on the
-   .is-visible side only, so hiding on load is instant and only the reveal animates. */
-.motion .step:not(.is-visible) { opacity: 0; transform: translateY(24px); }
-.motion .step.is-visible { transition: opacity 0.6s ease, transform 0.6s ease; }
-.motion .step:not(.is-visible) .tailored { background: transparent; }
-.motion .step.is-visible .tailored { transition: background-color 0.6s 0.5s; }
-.motion .step:not(.is-visible) .fit-fill { width: 0 !important; }
-.motion .step.is-visible .fit-fill { transition: width 1.2s ease-out; }
+/* Motion, only with .motion on <html> (never with prefers-reduced-motion or without JS), and only on screen so a printout
+   shows every step. Transitions sit on the .is-visible side only, so only the reveal animates. */
+@media screen {
+  .motion .step:not(.is-visible) { opacity: 0; transform: translateY(24px); }
+  .motion .step.is-visible { transition: opacity 0.6s ease, transform 0.6s ease; }
+  .motion .step:not(.is-visible) .tailored { background: transparent; }
+  .motion .step.is-visible .tailored { transition: background-color 0.6s 0.5s; }
+  .motion .step:not(.is-visible) .fit-fill { width: 0 !important; }
+  .motion .step.is-visible .fit-fill { transition: width 1.2s ease-out; }
+}
