@@ -74,7 +74,7 @@ h3 { font-size: 17px; margin: 20px 0 4px; }
 @media (max-width: 420px) { .compare { grid-template-columns: 1fr; } }
 .compare .line { padding: 3px 6px; margin-bottom: 4px !important; border-radius: 4px; }
 .compare .line:not(.tailored) { color: var(--muted); }
-.tailored { background: var(--hl); transition: background-color 0.6s; }
+.tailored { background: var(--hl); }
 
 .jobs { list-style: none; padding: 0; margin: 0; }
 .jobs li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--rule); }
@@ -86,9 +86,11 @@ h3 { font-size: 17px; margin: 20px 0 4px; }
 .badge-orange { background: var(--badge-orange-bg); color: var(--badge-orange-fg); }
 .badge-green { background: var(--badge-green-bg); color: var(--badge-green-fg); }
 
-/* Motion, only when demo.js adds .motion (never with prefers-reduced-motion or without JS). */
-.motion .step { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
-.motion .step.is-visible { opacity: 1; transform: none; }
+/* Motion, only when demo.js adds .motion (never with prefers-reduced-motion or without JS). Transitions sit on the
+   .is-visible side only, so hiding on load is instant and only the reveal animates. */
+.motion .step:not(.is-visible) { opacity: 0; transform: translateY(24px); }
+.motion .step.is-visible { transition: opacity 0.6s ease, transform 0.6s ease; }
 .motion .step:not(.is-visible) .tailored { background: transparent; }
-.motion .fit-fill { transition: width 1.2s ease-out; }
+.motion .step.is-visible .tailored { transition: background-color 0.6s 0.5s; }
 .motion .step:not(.is-visible) .fit-fill { width: 0 !important; }
+.motion .step.is-visible .fit-fill { transition: width 1.2s ease-out; }

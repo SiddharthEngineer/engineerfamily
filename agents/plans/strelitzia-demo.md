@@ -45,7 +45,7 @@ the Add-job box once, counts the score up to its value, and highlights the tailo
 With `prefers-reduced-motion: reduce` or without JS, everything shows in its final state at once (the default CSS is the
 final state; motion is opt-in from JS).
 **Validate:** `node --check services/strelitzia/demo.js` → no output. `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (Task 2 commit)
 
 ### Task 3: checks on preprod
 **Runs:** unattended (after the runner deploys the PR head) — skip and flag it if preprod isn't on this PR yet
