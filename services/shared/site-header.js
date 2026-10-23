@@ -95,20 +95,6 @@
     return versionPromise;
   }
 
-  // Whether to show "Users": Strelitzia's owner for now (site-perms swaps this for the site admin flag). Asked once
-  // per page, only when signed in; any error means no link.
-  let ownerPromise = null;
-  function fetchIsOwner() {
-    ownerPromise ??= fetch('/strelitzia/dashboard/api/auth/me', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-      .then((resp) => (resp.ok ? resp.json() : null))
-      .then((data) => Boolean(data && data.enabled && data.user && data.user.role === 'owner'))
-      .catch(() => false);
-    return ownerPromise;
-  }
-
   function initials(name, email) {
     const words = (name || '').trim().split(/\s+/).filter(Boolean);
     const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] || email || '?').slice(0, 1);
@@ -185,14 +171,19 @@
         return;
       }
       const label = me.name || me.email;
+      // An older app's /auth/me has no `pages`: keep the dashboard link it always had.
+      const strelitzia = !Array.isArray(me.pages) || me.pages.includes('strelitzia');
+      const links = [
+        strelitzia ? '<a class="item" href="/strelitzia/dashboard/">Strelitzia dashboard</a>' : '',
+        me.admin ? '<a class="item users" href="/users/">Users</a>' : '',
+      ].join('');
       root.innerHTML = `${css}
         <button class="pill avatar" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ef-menu"
           aria-label="Account: ${escapeHtml(label)}" title="${escapeHtml(label)}">${escapeHtml(initials(me.name, me.email))}</button>
         <div class="menu" id="ef-menu" hidden>
           ${me.name ? `<div class="name">${escapeHtml(me.name)}</div>` : ''}
           <div class="email">${escapeHtml(me.email)}</div>
-          <div class="rule"></div>
-          <a class="item" href="/strelitzia/dashboard/">Strelitzia dashboard</a>
+          ${links ? `<div class="rule"></div>${links}` : ''}
           <div class="rule"></div>
           <button class="item signout" type="button">Sign out</button>
         </div>`;
@@ -209,15 +200,6 @@
         if (event.relatedTarget && !root.contains(event.relatedTarget)) this.closeMenu(false);
       });
       root.querySelector('.signout').addEventListener('click', (event) => this.signOut(event.currentTarget));
-      // Add Users when the answer comes; the menu works without waiting for it.
-      fetchIsOwner().then((isOwner) => {
-        if (!isOwner || this.menu.querySelector('.users')) return;
-        const users = document.createElement('a');
-        users.className = 'item users';
-        users.href = '/strelitzia/dashboard/users';
-        users.textContent = 'Users';
-        this.menu.querySelector('a[href="/strelitzia/dashboard/"]').after(users);
-      });
     }
 
     // The version gets its own section in the account menu, between the name/email and the links. Signed out there

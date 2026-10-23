@@ -54,6 +54,12 @@ def games():
     return serve_vite_app()
 
 
+# The page is the SPA for anyone; its data comes from /api/admin/*, which only admins can read.
+@app.route("/users/")
+def users():
+    return serve_vite_app()
+
+
 # The Google consent screen links here, so it must answer 200. Vite copies public/ into dist/; the source copy
 # covers a checkout without a build.
 @app.route("/privacy")

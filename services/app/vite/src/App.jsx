@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import UsersPage from './UsersPage.jsx';
 
 function Navbar() {
   const location = useLocation();
@@ -56,6 +57,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/games/" element={<GamesPage />} />
+        <Route path="/users/" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
