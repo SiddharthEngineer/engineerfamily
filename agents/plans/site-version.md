@@ -39,7 +39,7 @@ it; else a remote branch at HEAD other than main/preprod/prod → its name; else
 short sha. `preprod-deploy` and the root deploy script call it after checkout (the root script as `deploy`, via `g`).
 **Validate:** `scripts/validate.sh` passes; `bash scripts/site-version.sh preprod .` in a temp clone at a tag, past a tag
 and on a branch prints the three expected labels (note them in the PR).
-**Status:** ✅ 2026-10-23 (Task 1 commit)
+**Status:** ✅ 2026-10-23 (b3537c5)
 
 ### Task 2: the header shows it
 **Runs:** unattended
@@ -50,7 +50,7 @@ Missing or bad file → nothing shown, no console error. At 390 px it may trunca
 wraps the header row or changes its height (`scripts/check-header-layout.mjs` must still pass unchanged). Document the
 element in Task 4's DEPLOY.md section (the shared README stays as is, to keep this plan in budget).
 **Validate:** `scripts/validate.sh` passes; `node --check services/shared/site-header.js`.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (Task 2 commit)
 
 ### Task 3: one prod command; retire the old tag flow; turn on `[release]`
 **Runs:** unattended

@@ -83,6 +83,18 @@
     return mePromise;
   }
 
+  // What's deployed here, from the version.json each deploy writes (scripts/site-version.sh); once per page. Anything
+  // missing or odd means no version text.
+  let versionPromise = null;
+  function fetchVersion() {
+    versionPromise ??= fetch('/shared/version.json', { cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => (data && typeof data.label === 'string' && data.label && typeof data.url === 'string'
+        && data.url.startsWith('https://github.com/') ? data : null))
+      .catch(() => null);
+    return versionPromise;
+  }
+
   // Whether to show "Users": Strelitzia's owner for now (site-perms swaps this for the site admin flag). Asked once
   // per page, only when signed in; any error means no link.
   let ownerPromise = null;
@@ -114,7 +126,7 @@
       this.onDocClick = (event) => {
         if (!event.composedPath().includes(this)) this.closeMenu(false);
       };
-      fetchMe().then((me) => this.render(me));
+      Promise.all([fetchMe(), fetchVersion()]).then(([me, version]) => this.render(me, version));
     }
 
     disconnectedCallback() {
@@ -126,13 +138,8 @@
       return `/auth/login?next=${encodeURIComponent(next)}`;
     }
 
-    render(me) {
+    render(me, version) {
       const root = this.shadowRoot;
-      // Sign-in off (or /auth/me unreachable): render nothing.
-      if (!me || !me.enabled) {
-        root.innerHTML = '';
-        return;
-      }
       const css = `<style>${BASE_CSS}
         :host { position: relative; gap: 8px; }
         .avatar {
@@ -156,17 +163,30 @@
           background: none; color: var(--ef-fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
         }
         .item:hover { background: var(--ef-hover); }
+        .version {
+          min-width: 0; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          color: var(--ef-muted); font-size: 12px; font-weight: 400; text-decoration: none;
+        }
+        .version:hover { color: var(--ef-fg); }
       </style>`;
+      const versionLink = version
+        ? `<a class="version" href="${escapeHtml(version.url)}" title="Deployed version">${escapeHtml(version.label)}</a>`
+        : '';
+      // Sign-in off (or /auth/me unreachable): just the version, if any.
+      if (!me || !me.enabled) {
+        root.innerHTML = versionLink ? `${css}${versionLink}` : '';
+        return;
+      }
       if (!me.signed_in) {
-        root.innerHTML = `${css}<a class="pill" href="/auth/login">Sign in</a>`;
-        const link = root.querySelector('a');
+        root.innerHTML = `${css}${versionLink}<a class="pill" href="/auth/login">Sign in</a>`;
+        const link = root.querySelector('a.pill');
         link.href = this.loginHref();
         // The path may have changed since render (client-side routing), so build `next` again on click.
         link.addEventListener('click', () => { link.href = this.loginHref(); });
         return;
       }
       const label = me.name || me.email;
-      root.innerHTML = `${css}
+      root.innerHTML = `${css}${versionLink}
         <button class="pill avatar" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ef-menu"
           aria-label="Account: ${escapeHtml(label)}" title="${escapeHtml(label)}">${escapeHtml(initials(me.name, me.email))}</button>
         <div class="menu" id="ef-menu" hidden>
