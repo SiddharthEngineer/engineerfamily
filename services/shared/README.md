@@ -36,9 +36,8 @@ The Strelitzia dashboard keeps its own bar and links, and places the pieces:
 - `<ef-profile next="/path">`: asks `/auth/me` once per page (see `services/app/auth.py`). Signed out: a **Sign in**
   button to `/auth/login?next=<next>` (`next` defaults to the current path and query). Signed in: a round initials
   button (no Google picture, so no third-party image loads) that opens a menu with the name, email, a Strelitzia
-  dashboard link, **Users** (`/strelitzia/dashboard/users`, only for the Strelitzia owner, from one
-  `/strelitzia/dashboard/api/auth/me` request; added when it answers) and **Sign out** (`POST /auth/logout`, then
-  reload). There is no Sign out outside the menu. Enter/Space opens the menu and focuses its first item, Escape closes
+  dashboard link (only when `/auth/me`'s `pages` has `strelitzia`; always, if `pages` is missing), **Users** (`/users/`,
+  only when `admin`) and **Sign out** (`POST /auth/logout`, then reload). There is no Sign out outside the menu. Enter/Space opens the menu and focuses its first item, Escape closes
   it and returns focus, focus leaving the menu closes it. Renders nothing while sign-in is off (`enabled: false`).
 - `light` on `<ef-home>` / `<ef-profile>`: ignore `prefers-color-scheme: dark` and stay light. `<ef-site-header>` sets it.
 
