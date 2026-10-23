@@ -25,9 +25,9 @@ The Strelitzia dashboard keeps its own bar and links, and places the pieces:
 </header>
 ```
 
-- `<ef-site-header active="games|strelitzia">`: a solid, full-width bar like the dashboard's top bar (white,
+- `<ef-site-header active="games|strelitzia|wordle">`: a solid, full-width bar like the dashboard's top bar (white,
   1 px rule under it, `8px 16px` padding, about 53 px tall). It is not sticky: it scrolls away with the page. It holds
-  `<ef-home light>`, a `nav` with **Games** (`/games/`) and **Strelitzia** (`/strelitzia/`) in the dashboard's link
+  `<ef-home light>`, a `nav` with **Games** (`/games/`), **Strelitzia** (`/strelitzia/`) and **Wordle** (`/wordle/`) in the dashboard's link
   style, and `<ef-profile light>` pushed right. The link named by `active` gets `aria-current="page"` and the
   highlight. Light DOM (so `ef-site-header header nav` can be queried) styled by one `<style>` it adds to `<head>`, with
   every rule scoped under `ef-site-header`. Always light, even in OS dark mode. Stays one row at phone width.

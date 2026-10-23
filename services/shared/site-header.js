@@ -1,7 +1,7 @@
 // engineerfamily site header pieces, the same on every page (see README.md here):
 //   <ef-home [light]>                 the round home icon to /, first thing in the header
 //   <ef-profile [light] next="/path"> sign in, or initials + a menu that ends with Sign out, last thing in the header
-//   <ef-site-header active="games|strelitzia">  the whole bar (home, site links, profile) for every page but the dashboard
+//   <ef-site-header active="games|strelitzia|wordle">  the whole bar (home, site links, profile) for every page but the dashboard
 // ef-home and ef-profile use Shadow DOM with their own fixed styles, so no page theme leaks in; `light` keeps them light
 // in OS dark mode. No build step; safe to load twice.
 (() => {
@@ -291,7 +291,7 @@
       }
       if (!this.querySelector('header.ef-site-header')) {
         this.innerHTML = `<header class="ef-site-header"><ef-home light></ef-home><nav aria-label="Site"><a
-          href="/games/" data-section="games">Games</a><a href="/strelitzia/" data-section="strelitzia">Strelitzia</a></nav><ef-profile
+          href="/games/" data-section="games">Games</a><a href="/strelitzia/" data-section="strelitzia">Strelitzia</a><a href="/wordle/" data-section="wordle">Wordle</a></nav><ef-profile
           light></ef-profile></header>`;
       }
       this.markActive();
