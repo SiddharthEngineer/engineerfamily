@@ -46,7 +46,9 @@
       "Bash(docker compose down:*)",
       "Bash(sudo:*)",
       "Read(**/.env)",
-      "Read(services/nginx/.htpasswd*)"
+      "Read(services/nginx/.htpasswd*)",
+      "Bash(make prod-release:*)",
+      "Bash(agent-runner versions promote:*)"
     ]
   }
 }

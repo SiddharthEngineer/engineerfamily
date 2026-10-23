@@ -38,3 +38,6 @@ health = [
     { url = "https://preprod.engineerfamily.net/strelitzia/dashboard/api/health", json_ok = true },
     { url = "https://preprod.engineerfamily.net/wordle/api/health", json_ok = true },
 ]
+
+[release]
+tags = true
