@@ -51,7 +51,7 @@ checkbox shows checked and disabled. Nobody else can see the page or its data.
 `me.pages` includes `strelitzia` (when `pages` is missing, as on an older app, keep today's always-shown link). Keep the
 menu's focus handling working when the first link changes. Don't restyle (E3 owns the look).
 **Validate:** `scripts/validate.sh` → passes; `node --check services/shared/site-header.js` → no output.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (6eda7f6)
 
 ## Validation
 - `scripts/validate.sh` passes; `npm run build` passes; `python -m pytest -q` passes.
