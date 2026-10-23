@@ -7,17 +7,16 @@
   <meta name="description" content="Strelitzia is an open-source, self-hosted job search assistant that finds postings and tailors resumes and cover letters.">
   <link rel="icon" href="/strelitzia/favicon.svg" type="image/svg+xml">
   <!-- ?v= bumps with each style.css change: Cloudflare may hand browsers max-age=14400 (README.md, Ingress). -->
-  <link rel="stylesheet" href="/strelitzia/style.css?v=3">
+  <link rel="stylesheet" href="/strelitzia/style.css?v=4">
   <script src="/shared/site-header.js" defer></script>
 </head>
 <body>
+<ef-site-header active="strelitzia"></ef-site-header>
 <main>
-  <header>
-    <ef-home compact></ef-home>
+  <div class="pagebar">
     <a class="brand" href="/strelitzia/"><img src="/strelitzia/favicon.svg" alt=""><span>Strelitzia</span></a>
-    <nav><a href="/strelitzia/dashboard/">Dashboard</a><a href="/strelitzia/privacy">Privacy</a><a href="https://github.com/SiddharthEngineer/Strelitzia">GitHub</a></nav>
-    <ef-profile></ef-profile>
-  </header>
+    <div class="pagelinks"><a href="/strelitzia/dashboard/">Dashboard</a><a href="/strelitzia/privacy">Privacy</a><a href="https://github.com/SiddharthEngineer/Strelitzia">GitHub</a></div>
+  </div>
 
   <h1>A self-hosted <span class="accent">job search</span> assistant</h1>
   <p class="lede">Strelitzia finds job postings, scores how well they fit your background, and writes a tailored

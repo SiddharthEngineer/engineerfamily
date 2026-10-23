@@ -32,86 +32,6 @@ body {
     linear-gradient(180deg, #f8f4eb 0%, #f1e8da 100%);
 }
 
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  padding: 0.5rem 1rem;
-}
-
-.site-nav {
-  max-width: 1120px;
-  margin: 0 auto;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow);
-}
-
-/* <ef-home> first, the nav, <ef-profile> last. At phone width the nav gets its own row below and scrolls (see below). */
-.nav-menu {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  list-style: none;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.site-nav > ef-profile {
-  margin-left: auto;
-}
-
-/* Signed in, home + initials + Sign out fill a phone-width row, so the nav would shrink to nothing beside them. */
-@media (max-width: 600px) {
-  .site-nav {
-    flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
-    border-radius: 24px;
-  }
-
-  .nav-menu {
-    order: 1;
-    flex-basis: 100%;
-  }
-}
-
-.nav-item {
-  position: relative;
-}
-
-.nav-link {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  padding: 0.45rem 0.65rem;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.nav-link:hover,
-.nav-item.is-active > .nav-link,
-.nav-link.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .page-shell {
   max-width: 1120px;
   margin: 0 auto;
@@ -119,7 +39,7 @@ body {
 }
 
 .home-shell {
-  min-height: calc(100vh - 90px);
+  min-height: calc(100vh - 54px);
 }
 
 .home-card {
@@ -147,7 +67,7 @@ body {
 }
 
 .games-shell {
-  min-height: calc(100vh - 90px);
+  min-height: calc(100vh - 54px);
 }
 
 .games-card {

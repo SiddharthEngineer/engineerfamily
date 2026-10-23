@@ -2,38 +2,10 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 function Navbar() {
   const location = useLocation();
-  const isGamesPage = location.pathname.startsWith('/games');
+  const active = location.pathname.startsWith('/games') ? 'games' : undefined;
 
-  return (
-    <header className="site-header">
-      <nav className="site-nav" aria-label="Main navigation">
-        {/* Shared with every engineerfamily.net page (services/shared/site-header.js); don't restyle. */}
-        <ef-home></ef-home>
-
-        <ul className="nav-menu">
-          <li className="nav-item">
-            <a className={`nav-link ${isGamesPage ? 'is-active' : ''}`} href="/games/">
-              Games
-            </a>
-          </li>
-          <li className="nav-item">
-            {/* nginx serves /strelitzia/ (static page + dashboard), not this app, so a full page load. */}
-            <a className="nav-link" href="/strelitzia/">
-              Strelitzia
-            </a>
-          </li>
-          <li className="nav-item">
-            {/* nginx sends /wordle/ to the wordle container, not this app, so a full page load. */}
-            <a className="nav-link" href="/wordle/">
-              Wordle solver
-            </a>
-          </li>
-        </ul>
-
-        <ef-profile></ef-profile>
-      </nav>
-    </header>
-  );
+  // The shared site header (services/shared/site-header.js), the same bar on every engineerfamily.net page; don't restyle.
+  return <ef-site-header active={active}></ef-site-header>;
 }
 
 // Google's OAuth verification reads this page for the app's purpose. index.html has the same text inside #root for

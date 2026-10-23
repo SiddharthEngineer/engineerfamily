@@ -1,5 +1,5 @@
 # Plan: one site header bar, like the Strelitzia dashboard's top bar
-**Status:** ❌ Not started
+**Status:** ✅ 2026-10-22 (#66)
 **Risk:** review (visible on every engineerfamily.net page; changes `scripts/` and `agents/settings/`)
 **Depends on:** - (replaces header-style, PR #63, closed 2026-10-22)
 
@@ -54,7 +54,7 @@ home icon and dropdown, because those are the shared `<ef-home>` / `<ef-profile>
 - README: document the three elements and that pages other than the dashboard use `<ef-site-header>` as the first child
   of `<body>` and add no header CSS of their own.
 **Validate:** `node --check services/shared/site-header.js` → no output; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ### Task 2: every page uses `<ef-site-header>`
 **Runs:** unattended
@@ -67,7 +67,7 @@ On the Strelitzia pages, the brand and the Dashboard · Privacy · GitHub links 
 above the `h1` (page style, not header style); remove the page's `header` rules and `nav a` margin rule; bump `style.css?v=`.
 Page bodies are otherwise unchanged.
 **Validate:** `cd services/app/vite && npm ci && npm run build` → builds; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ### Task 3: layout check and validator permissions
 **Runs:** unattended
@@ -81,14 +81,14 @@ exit codes). validate.json: allow `Bash(npm ci --prefix services/app/vite:*)`, `
 `Bash(node --check:*)`, `Bash(node scripts/check-header-layout.mjs:*)` and `Bash(npx playwright install chromium)`.
 **Validate:** `node --check scripts/check-header-layout.mjs`; `python3 -m json.tool agents/settings/validate.json >/dev/null`;
 `scripts/validate.sh` passes. (The script runs against preprod in the Human test steps, after the runner deploys the PR.)
-**Status:** ❌
+**Status:** ✅ 2026-10-22: script 531b622; validate.json permissions added by the user (808cea0)
 
 ### Task 4: tracking
 **Runs:** unattended
 **Files:** agents/ROADMAP.md (modify), agents/plans/site-header-bar.md (modify)
 **What:** Task statuses; E3's status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-22
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green; the Vite build succeeds.

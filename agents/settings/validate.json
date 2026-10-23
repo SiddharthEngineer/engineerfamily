@@ -28,7 +28,12 @@
       "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.local.yml config -q)",
       "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.preprod.yml config -q)",
       "Bash(docker compose --env-file .env.template -f docker-compose.base.yml -f docker-compose.prod.yml config -q)",
-      "Bash(docker run --rm * nginx:alpine nginx -t)"
+      "Bash(docker run --rm * nginx:alpine nginx -t)",
+      "Bash(npm ci --prefix services/app/vite:*)",
+      "Bash(npm run build --prefix services/app/vite:*)",
+      "Bash(node --check:*)",
+      "Bash(node scripts/check-header-layout.mjs:*)",
+      "Bash(npx playwright install chromium)"
     ],
     "deny": [
       "Edit(./**)",
