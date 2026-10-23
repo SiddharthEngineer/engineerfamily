@@ -1,5 +1,5 @@
 # Plan: the Strelitzia homepage becomes a scrollable demo
-**Status:** ❌ Not started
+**Status:** 🔍 In review (#70); Task 3 (preprod checks) waits for the preprod deploy
 **Risk:** review (the public Strelitzia homepage; Google's OAuth reviewers read the Drive section)
 
 ## Goal
@@ -35,7 +35,7 @@ and "resume.pdf" chips; (5) a jobs list with status chips (Applied, Interview, O
 (e.g. "Northwind Robotics, Senior Backend Engineer"), no real people or employers. Mock screens are `aria-hidden` art with a
 text sentence beside them, so the page reads fine without them. Works at 390 px with no sideways scroll.
 **Validate:** `scripts/validate.sh` passes. `grep -c 'drive.file' services/strelitzia/index.html` → `1`.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (4f49f46)
 
 ### Task 2: scroll reveal and small motion
 **Runs:** unattended
@@ -45,7 +45,7 @@ the Add-job box once, counts the score up to its value, and highlights the tailo
 With `prefers-reduced-motion: reduce` or without JS, everything shows in its final state at once (the default CSS is the
 final state; motion is opt-in from JS).
 **Validate:** `node --check services/strelitzia/demo.js` → no output. `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (543ba71; review fixes 02c7aae)
 
 ### Task 3: checks on preprod
 **Runs:** unattended (after the runner deploys the PR head) — skip and flag it if preprod isn't on this PR yet
@@ -53,14 +53,14 @@ final state; motion is opt-in from JS).
 **What:** `node scripts/check-header-layout.mjs https://preprod.engineerfamily.net`, and
 `curl -s -o /dev/null -w '%{http_code}' https://preprod.engineerfamily.net/strelitzia/demo.js` → `200`.
 **Validate:** both pass.
-**Status:** ❌
+**Status:** ⏭️ skipped 2026-10-23: preprod is not on PR #70 yet; run after the runner deploys it
 
 ### Task 4: tracking
 **Runs:** unattended
 **Files:** agents/ROADMAP.md (modify), agents/plans/strelitzia-demo.md (modify)
 **What:** Task statuses; E4's ROADMAP status to `✅ (#<pr>)`.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-23
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.

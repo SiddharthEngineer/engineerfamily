@@ -1,0 +1,97 @@
+/* The homepage demo: mock dashboard screens with made-up data, in the dashboard's look (Strelitzia
+   dashboard/src/styles.css: surfaces, badges, fit bar), copied in a few lines rather than imported.
+   The default rules are the final state; motion is opt-in via .motion on <html> (index.html, demo.js). */
+:root {
+  --surface: #ffffff; --surface-2: #f5ede0; --success: #2f7a4f; --danger: #b42318; --hl: #fcefc2;
+  --badge-orange-bg: #fde2c8; --badge-orange-fg: #8a3d00; --badge-blue-bg: #e0e1f7; --badge-blue-fg: #2e3290;
+  --badge-green-bg: #d5eedd; --badge-green-fg: #1f5e3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1d1a3a; --surface-2: #27234a; --success: #6fd49a; --danger: #ff8a80; --hl: #463a10;
+    --badge-orange-bg: #4a2a12; --badge-orange-fg: #ffb877; --badge-blue-bg: #262b66; --badge-blue-fg: #b8bcff;
+    --badge-green-bg: #173b2a; --badge-green-fg: #7fe0a8;
+  }
+}
+
+/* Hero */
+.hero { margin-bottom: 24px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 8px; }
+.btn { display: inline-block; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface);
+  color: var(--fg); font-weight: 600; text-decoration: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #1b130c; }
+.btn:hover { filter: brightness(1.05); text-decoration: underline; }
+.note { color: var(--muted); font-size: 15px; }
+
+/* One "screen" per step: text beside the mock on wide screens, stacked on phones. */
+.step { display: grid; grid-template-columns: 1fr 1.35fr; gap: 16px 32px; align-items: center; padding: 40px 0;
+  border-top: 1px solid var(--rule); }
+.step > * { min-width: 0; }
+@media (max-width: 680px) { .step { grid-template-columns: 1fr; padding: 28px 0; } }
+.step h2 { margin-top: 0; }
+.step-num { margin: 0 0 4px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #1b130c;
+  font-weight: 700; font-size: 15px; line-height: 28px; text-align: center; }
+.plain { border-top: 1px solid var(--rule); padding-top: 8px; }
+.plain h3 { font-size: 17px; margin: 20px 0 4px; }
+
+.screen { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; font-size: 14px;
+  line-height: 1.45; box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--fg) 30%, transparent); }
+.screen-bar { display: flex; gap: 5px; padding: 8px 10px; background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+.screen-bar span { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
+.screen-body { padding: 14px; }
+.screen p { margin: 0; }
+.label, .facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px !important; }
+.muted { color: var(--muted); }
+.job-name { font-weight: 700; font-size: 16px; }
+
+.addjob { display: flex; gap: 8px; }
+.addjob .input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow-wrap: anywhere; min-height: 2.6em; }
+.fake-btn { align-self: center; padding: 6px 12px; border-radius: 6px; background: var(--accent); color: #1b130c; font-weight: 600; }
+
+.facts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 10px 0; }
+.facts dd { margin: 0; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 2px 10px; border-radius: 999px; background: var(--badge-blue-bg); color: var(--badge-blue-fg); font-size: 13px; }
+.chip.file { background: var(--surface-2); color: var(--fg); border: 1px solid var(--rule); }
+.chip.file::before { content: "▤ "; color: var(--danger); }
+
+.fit-head { display: flex; justify-content: space-between; align-items: baseline; }
+.fit { font-variant-numeric: tabular-nums; }
+.fit-num { font-size: 30px; font-weight: 700; color: var(--success); }
+.fit-of { color: var(--muted); }
+.fit-bar { display: block; height: 8px; margin: 6px 0 10px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--rule);
+  overflow: hidden; }
+.fit-fill { display: block; height: 100%; background: var(--success); }
+.reasons { list-style: none; padding: 0; margin: 0; }
+.reasons li { padding-left: 22px; position: relative; }
+.reasons li::before { position: absolute; left: 2px; font-weight: 700; }
+.reasons .plus::before { content: "✓"; color: var(--success); }
+.reasons .minus::before { content: "!"; color: var(--danger); left: 6px; }
+
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 420px) { .compare { grid-template-columns: 1fr; } }
+.compare .line { padding: 3px 6px; margin-bottom: 4px !important; border-radius: 4px; }
+.compare .line:not(.tailored) { color: var(--muted); }
+.tailored { background: var(--hl); }
+
+.jobs { list-style: none; padding: 0; margin: 0; }
+.jobs li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.jobs li:last-child { border-bottom: 0; }
+.jobs-role { min-width: 0; font-weight: 600; }
+.jobs-role small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge-blue { background: var(--badge-blue-bg); color: var(--badge-blue-fg); }
+.badge-orange { background: var(--badge-orange-bg); color: var(--badge-orange-fg); }
+.badge-green { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+
+/* Motion, only with .motion on <html> (never with prefers-reduced-motion or without JS), and only on screen so a printout
+   shows every step. Transitions sit on the .is-visible side only, so only the reveal animates. */
+@media screen {
+  .motion .step:not(.is-visible) { opacity: 0; transform: translateY(24px); }
+  .motion .step.is-visible { transition: opacity 0.6s ease, transform 0.6s ease; }
+  .motion .step:not(.is-visible) .tailored { background: transparent; }
+  .motion .step.is-visible .tailored { transition: background-color 0.6s 0.5s; }
+  .motion .step:not(.is-visible) .fit-fill { width: 0 !important; }
+  .motion .step.is-visible .fit-fill { transition: width 1.2s ease-out; }
+}
