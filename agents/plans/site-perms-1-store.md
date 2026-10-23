@@ -84,7 +84,7 @@ only when it is set (`${SITE_DB_PASSWORD:+postgresql://engineerfamily:${SITE_DB_
 compose file: prod `site`, preprod empty. New `sitedb` network on `app` and `postgres-db`; `app` keeps `web`.
 `.env.template`: the new variables, commented, with no real emails.
 **Validate:** `scripts/validate.sh` → passes (bash -n, compose config for all envs, nginx -t).
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 3`; creating the DBs and the `.env` values is still M2)
 
 ## Validation
 - `scripts/validate.sh` passes; `cd services/app && python -m pytest -q` passes.

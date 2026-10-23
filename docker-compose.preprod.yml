@@ -42,8 +42,16 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - SITE_SESSION_SECRET=${SITE_SESSION_SECRET:-}
       - PUBLIC_URL=https://preprod.engineerfamily.net
+      # Site permissions (services/app/perms.py). No password: env-only mode (SITE_ADMIN_EMAILS are admins, everyone
+      # else gets SITE_EVERYONE). The emails seed an empty DB once (make preprod-site-db-init creates it).
+      - SITE_DATABASE_URL=${SITE_DB_PASSWORD_PREPROD:+postgresql://engineerfamily:${SITE_DB_PASSWORD_PREPROD}@postgres-db:5432/engineerfamily_preprod}
+      - SITE_ADMIN_EMAILS=${SITE_ADMIN_EMAILS:-}
+      - SITE_MEMBER_EMAILS=${SITE_MEMBER_EMAILS:-}
+      # Pages for visitors who are signed out or not invited (none: preprod is invite-only once part 3 gates it).
+      - SITE_EVERYONE=
     networks:
       - web
+      - sitedb
 
   # ─── Streamlit ────────────────────────────────────────
   # Off by default (unused). Enable with COMPOSE_PROFILES=streamlit, and restore its nginx proxy vhost.
@@ -89,6 +97,7 @@ services:
     networks:
       - web
       - dashboard
+      - sitedb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U umami"]
       interval: 10s
@@ -130,6 +139,9 @@ services:
 networks:
   # nginx, strelitzia and postgres-db only: strelitzia trusts X-Auth-Request-* headers, which only nginx may set.
   dashboard:
+    driver: bridge
+  # app and postgres-db only: the site permissions DB, without putting app on dashboard.
+  sitedb:
     driver: bridge
 
 volumes:
