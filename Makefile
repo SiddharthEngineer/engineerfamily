@@ -185,6 +185,7 @@ preprod-deploy:
 	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
 	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
 	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
+	bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR)
 	$(PREPROD) up -d --build --remove-orphans
 # nginx.conf is a single-file bind mount: git checkout swaps its inode, so a reload would
 # keep the old config. Recreate the container instead.

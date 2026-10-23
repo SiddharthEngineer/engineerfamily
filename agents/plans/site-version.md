@@ -1,5 +1,5 @@
 # Plan: the site header shows what's deployed, and prod deploys promote the GitHub release
-**Status:** ❌ Not started
+**Status:** 🔄 In progress
 **Risk:** review (every page's header; `Makefile`, `scripts/`, `agents/runner.toml`)
 **Depends on:** E3 [site-header-bar](site-header-bar.md) (same header file; queue order), agent-runner A21
 [runner-15-versions](https://github.com/SiddharthEngineer/agent-runner/blob/main/agents/plans/runner-15-versions.md)
@@ -39,7 +39,7 @@ it; else a remote branch at HEAD other than main/preprod/prod → its name; else
 short sha. `preprod-deploy` and the root deploy script call it after checkout (the root script as `deploy`, via `g`).
 **Validate:** `scripts/validate.sh` passes; `bash scripts/site-version.sh preprod .` in a temp clone at a tag, past a tag
 and on a branch prints the three expected labels (note them in the PR).
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (Task 1 commit)
 
 ### Task 2: the header shows it
 **Runs:** unattended

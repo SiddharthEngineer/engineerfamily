@@ -18,6 +18,7 @@ case "$action" in
     g fetch --prune --force --tags origin
     g checkout -q -B "$env" "origin/$env"
     g reset -q --hard "origin/$env"
+    runuser -u deploy -- bash scripts/site-version.sh "$env" "$dir"
     "${compose[@]}" pull --ignore-pull-failures --quiet
     "${compose[@]}" up -d --build --remove-orphans
     docker image prune -f >/dev/null
