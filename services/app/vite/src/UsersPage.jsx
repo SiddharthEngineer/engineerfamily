@@ -256,7 +256,7 @@ export default function UsersPage() {
     if (!window.confirm(`Remove ${row.email}? They lose every page that isn't open to everyone.`)) return;
     setError('');
     try {
-      await api('DELETE', userPath(row.email));
+      await api('DELETE', userPath(row.email), {}); // the API takes only JSON writes, DELETE included
       setData((d) => ({ ...d, users: d.users.filter((u) => u.email !== row.email) }));
     } catch (e) {
       setError(`${row.email}: ${e.message}`);
