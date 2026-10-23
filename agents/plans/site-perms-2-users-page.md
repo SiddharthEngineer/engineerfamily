@@ -1,5 +1,5 @@
 # Plan: Site permissions 2/4: Users page and profile menu link
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-23
 **Risk:** review (new admin UI and a change to the shared site header)
 **Depends on:** site-perms-1-store; site-header-bar (E3, edits the same `site-header.js`)
 

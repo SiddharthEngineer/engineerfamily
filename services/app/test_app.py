@@ -1,8 +1,14 @@
 """Dev-only checks for the SPA routes in app.py: cd services/app && python -m pytest test_app.py -q"""
 
+import os
+
 import pytest
 
-import app as site
+# app.py sets up the permissions store on import: keep it off any real database (env-only mode).
+for name in ("SITE_DATABASE_URL", "SITE_ADMIN_EMAILS", "SITE_MEMBER_EMAILS", "SITE_EVERYONE"):
+    os.environ.pop(name, None)
+
+import app as site  # noqa: E402
 
 
 @pytest.fixture

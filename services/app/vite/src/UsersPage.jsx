@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Admin-only: who may open which page. The data path is the /api/admin/* API (services/app/admin.py), which refuses
 // non-admins itself; this page only hides what they couldn't use anyway. Every change saves on its own (no Save button).
 
 const EVERYONE = '*';
 const NEEDS_ACCOUNT = 'Needs a signed-in, invited user';
+
+const who = (row) => (row.email === EVERYONE ? 'everyone' : row.email);
 
 async function api(method, path, body) {
   const options = { method, credentials: 'same-origin', headers: { Accept: 'application/json' } };
@@ -46,6 +48,7 @@ function CapInput({ row, disabled, title, onSave }) {
       onSave(undefined, 'the cap must be a number of dollars, 0 or more, or empty for no cap');
       return;
     }
+    setDraft(cap === null ? '' : String(cap));
     onSave(cap);
   }
 
@@ -53,12 +56,10 @@ function CapInput({ row, disabled, title, onSave }) {
     <span className="users-cap" title={title}>
       <span aria-hidden="true">$</span>
       <input
-        type="number"
-        min="0"
-        step="0.01"
+        type="text"
         inputMode="decimal"
         placeholder="No cap"
-        aria-label={`Cap Spend for ${row.email === EVERYONE ? 'everyone' : row.email}`}
+        aria-label={`Cap Spend for ${who(row)}`}
         value={draft}
         disabled={disabled}
         onChange={(e) => setDraft(e.target.value)}
@@ -74,7 +75,6 @@ function CapInput({ row, disabled, title, onSave }) {
 function UserRow({ row, pages, me, readOnly, onChange, onRemove }) {
   const everyone = row.email === EVERYONE;
   const self = !everyone && row.email === me;
-  const who = everyone ? 'everyone' : row.email;
   const cells = [];
 
   for (const page of pages) {
@@ -83,7 +83,7 @@ function UserRow({ row, pages, me, readOnly, onChange, onRemove }) {
       <td key={page.key} title={blocked ? NEEDS_ACCOUNT : undefined}>
         <input
           type="checkbox"
-          aria-label={`${page.label} for ${who}`}
+          aria-label={`${page.label} for ${who(row)}`}
           checked={row.admin || row.pages.includes(page.key)}
           disabled={readOnly || row.admin || blocked}
           onChange={(e) => onChange(row, { pages: { [page.key]: e.target.checked } })}
@@ -91,13 +91,17 @@ function UserRow({ row, pages, me, readOnly, onChange, onRemove }) {
       </td>
     );
     if (page.cap) {
-      const capBlocked = everyone;
+      // Granting the page resets the cap to the default, so the cap opens up only once the page is ticked.
+      const granted = row.pages.includes(page.key);
+      let capTitle;
+      if (everyone) capTitle = NEEDS_ACCOUNT;
+      else if (!row.admin && !granted) capTitle = `Tick ${page.label} first`;
       cells.push(
         <td key={`${page.key}-cap`}>
           <CapInput
             row={row}
-            disabled={readOnly || row.admin || capBlocked}
-            title={capBlocked ? NEEDS_ACCOUNT : undefined}
+            disabled={readOnly || row.admin || everyone || !granted}
+            title={capTitle}
             onSave={(cap, error) => onChange(row, { cap_usd: cap }, error)}
           />
         </td>
@@ -112,7 +116,7 @@ function UserRow({ row, pages, me, readOnly, onChange, onRemove }) {
         {everyone ? null : (
           <input
             type="checkbox"
-            aria-label={`Admin for ${who}`}
+            aria-label={`Admin for ${who(row)}`}
             checked={row.admin}
             disabled={readOnly || self}
             onChange={(e) => onChange(row, { admin: e.target.checked })}
@@ -155,11 +159,12 @@ export default function UsersPage() {
   const [invite, setInvite] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviting, setInviting] = useState(false);
+  const queues = useRef({});
 
   useEffect(() => {
     let live = true;
     api('GET', '/auth/me')
-      .then((who) => live && setMe(who))
+      .then((answer) => live && setMe(answer))
       .catch(() => live && setMe(null));
     return () => {
       live = false;
@@ -203,29 +208,36 @@ export default function UsersPage() {
   const readOnly = !data.db;
   const myEmail = (me.email || '').trim().toLowerCase();
 
-  function replaceRow(email, row) {
+  function updateRow(email, update) {
     setData((d) =>
-      email === EVERYONE ? { ...d, everyone: row } : { ...d, users: d.users.map((u) => (u.email === email ? row : u)) }
+      email === EVERYONE
+        ? { ...d, everyone: update(d.everyone) }
+        : { ...d, users: d.users.map((u) => (u.email === email ? update(u) : u)) }
     );
   }
 
-  async function change(row, body, localError) {
+  // One request at a time per row, so a later click can't be overwritten by an earlier answer. A refused change
+  // reloads the table, which also keeps any other change to the row that did save.
+  function change(row, body, localError) {
+    const label = row.email === EVERYONE ? 'Everyone' : row.email;
     if (localError) {
-      setError(`${row.email === EVERYONE ? 'Everyone' : row.email}: ${localError}`);
+      setError(`${label}: ${localError}`);
       return;
     }
     setError('');
-    replaceRow(row.email, applyChange(row, body));
-    try {
-      const saved =
-        row.email === EVERYONE
-          ? await api('PATCH', '/api/admin/everyone', body)
-          : await api('PATCH', userPath(row.email), body);
-      replaceRow(row.email, saved);
-    } catch (e) {
-      replaceRow(row.email, row);
-      setError(`${row.email === EVERYONE ? 'Everyone' : row.email}: ${e.message}`);
-    }
+    updateRow(row.email, (current) => applyChange(current, body));
+    const path = row.email === EVERYONE ? '/api/admin/everyone' : userPath(row.email);
+    const previous = queues.current[row.email] || Promise.resolve();
+    const run = previous.then(async () => {
+      try {
+        const saved = await api('PATCH', path, body);
+        if (queues.current[row.email] === run) updateRow(row.email, () => saved);
+      } catch (e) {
+        setError(`${label}: ${e.message}`);
+        api('GET', '/api/admin/users').then(setData, () => {});
+      }
+    });
+    queues.current[row.email] = run;
   }
 
   async function remove(row) {

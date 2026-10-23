@@ -146,7 +146,7 @@ body {
 }
 
 .users-card input[type='email'],
-.users-card input[type='number'] {
+.users-cap input {
   font: inherit;
   color: var(--text);
   background: var(--surface-strong);
