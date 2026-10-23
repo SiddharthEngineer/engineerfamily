@@ -12,12 +12,12 @@
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
-	tag-preprod tag-prod deploy-preprod deploy-prod validate-release-tagging sync-release-branch check-github-cli \
+	prod-release deploy-prod check-github-cli \
 	prod-changes
 
 # Prod and preprod targets always act on the deploy checkouts in /srv, wherever make runs from (e.g. the dev clone
 # in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned Strelitzia
-# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, strelitzia-deploy, wordle-deploy).
+# checkouts. Edits in a dev clone reach them only through a deploy (preprod-deploy, prod-release, strelitzia-deploy, wordle-deploy).
 # Compose project names are pinned, not taken from the checkout's directory name: the project name
 # prefixes container and volume names, so a renamed checkout would otherwise start with empty volumes.
 PROD_DIR ?= /srv/engineerfamily-prod
@@ -84,13 +84,9 @@ help:
 	@echo "    preprod-wordle-logs        Tail the preprod Wordle solver logs"
 	@echo ""
 	@echo "  Releases:"
-	@echo "    tag-preprod      Tag current commit for preprod         (e.g. make tag-preprod v=1.2.3)"
-	@echo "    deploy-preprod   Trigger deploy of tagged version       (e.g. make deploy-preprod ref=v1.2.3-preprod)"
-	@echo "    tag-prod         Tag current commit for prod            (e.g. make tag-prod v=1.2.3)"
-	@echo "    deploy-prod      Trigger deploy of tagged version       (e.g. make deploy-prod ref=v1.2.3)"
-	@echo "    validate-release-tagging Validate tag branch policy for v=<major.minor.patch>"
-	@echo "    sync-release-branch Ensure release branch points to latest tag for v=<major.minor.patch>"
-	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last prod tag, Strelitzia and Wordle since prod)"
+	@echo "    prod-release     Deploy the newest tag (or v=X.Y.Z) to prod and promote its GitHub release (asks first)"
+	@echo "    deploy-prod      Deploy a tag to prod without promoting, for rollbacks (e.g. make deploy-prod ref=v1.4.2)"
+	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last full release, Strelitzia and Wordle since prod)"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    shell-app        Open shell in app container"
@@ -179,8 +175,8 @@ wordle-logs:
 
 # ─── Preprod ─────────────────────────────────────────────
 # The everyday way to put an engineerfamily change on preprod: no tag and no GitHub workflow, run from the VPS.
-# Same steps as scripts/vps/engineerfamily-deploy, but at any commit. The `preprod` branch on GitHub moves only with
-# tag deploys (deploy-preprod), so it can lag behind what this put on preprod.
+# Same steps as scripts/vps/engineerfamily-deploy, but at any commit; the local `preprod` branch is just a name here.
+# site-version.sh writes services/shared/version.json for the header's version text.
 preprod-deploy:
 	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
 	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
@@ -237,38 +233,41 @@ preprod-applypilot-up: preprod-strelitzia-up
 preprod-applypilot-logs: preprod-strelitzia-logs
 
 # ─── Releases ────────────────────────────────────────────
-# Usage: make tag-preprod v=1.2.3     → creates and pushes tag v1.2.3-preprod
-#        make deploy-preprod ref=v1.2.3-preprod → triggers deploy to preprod
-#        make tag-prod v=1.2.3        → creates and pushes tag v1.2.3
-#        make deploy-prod ref=v1.2.3  → triggers deploy to prod
+# The runner tags every PR merge (vX.Y.Z) and keeps a vX.Y pre-release on GitHub (agent-runner `versions`).
+#   make prod-release [v=X.Y.Z]    → deploy the newest tag (or vX.Y.Z) to prod, then promote its release to full
+#   make deploy-prod ref=vX.Y.Z    → deploy a tag without promoting anything: rollbacks
+# Both are the user's; agents never run them.
 
 # Read-only: what deploy-prod / strelitzia-deploy / wordle-deploy would ship next, with PR links. Run it before a prod deploy.
 prod-changes:
 	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR)
 
-tag-preprod:
-	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)
+# Same trigger as deploy-prod (inlined, so `make -n prod-release` runs nothing). A failed or cancelled deploy run stops
+# here, before promote. The run is found by its creation time, after the trigger.
+prod-release:
 	@$(MAKE) check-github-cli
-	@$(MAKE) validate-release-tagging v=$(v)
-	@$(MAKE) sync-release-branch v=$(v)
-	git tag -f v$(v)-preprod
-	git push origin v$(v)-preprod --force
-	@echo "✓ Tagged v$(v)-preprod"
-
-tag-prod:
-	@test -n "$(v)" || (echo "Usage: make tag-prod v=1.2.3" && exit 1)
-	@$(MAKE) check-github-cli
-	@$(MAKE) validate-release-tagging v=$(v)
-	@$(MAKE) sync-release-branch v=$(v)
-	git tag -f v$(v)
-	git push origin v$(v) --force
-	@echo "✓ Tagged v$(v)"
-
-deploy-preprod:
-	@test -n "$(ref)" || (echo "Usage: make deploy-preprod ref=v1.2.3-preprod" && exit 1)
-	@$(MAKE) check-github-cli
-	@echo "→ Triggering deploy of $(ref) to preprod..."
-	"$(GH)" workflow run deploy.yml --ref main -f environment=preprod -f ref=$(ref)
+	agent-runner versions sync engineerfamily
+	git -C $(CURDIR) fetch -q --tags origin
+	@set -eu; \
+	tag='$(if $(v),v$(patsubst v%,%,$(v)))'; \
+	tag=$${tag:-$$(git -C $(CURDIR) tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n 1)}; \
+	test -n "$$tag" || { echo "prod-release: no vX.Y.Z tag found"; exit 1; }; \
+	git -C $(CURDIR) rev-parse -q --verify "refs/tags/$$tag" >/dev/null || { echo "prod-release: no tag $$tag"; exit 1; }; \
+	bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR); \
+	printf 'Deploy %s to prod? [y/N] ' "$$tag"; read -r answer; \
+	case "$$answer" in y|Y|yes) ;; *) echo "Not deployed."; exit 1 ;; esac; \
+	since=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	echo "→ Triggering deploy of $$tag to production..."; \
+	"$(GH)" workflow run deploy.yml --ref main -f environment=prod -f ref="$$tag"; \
+	run=; for i in $$(seq 30); do \
+		run=$$("$(GH)" run list --workflow deploy.yml --limit 5 --json databaseId,createdAt \
+			--jq "[.[] | select(.createdAt >= \"$$since\")] | last | .databaseId // empty"); \
+		[ -n "$$run" ] && break; sleep 2; \
+	done; \
+	test -n "$$run" || { echo "prod-release: no deploy.yml run started; nothing promoted"; exit 1; }; \
+	"$(GH)" run watch "$$run" --exit-status || { echo "prod-release: deploy run $$run failed; nothing promoted"; exit 1; }; \
+	agent-runner versions promote engineerfamily "$$tag"; \
+	echo "✓ $$tag is on prod and its release is promoted"
 
 deploy-prod:
 	@test -n "$(ref)" || (echo "Usage: make deploy-prod ref=v1.2.3" && exit 1)
@@ -287,21 +286,6 @@ check-github-cli:
 		echo "Run '$(GH) auth login' or set GH_TOKEN to a GitHub token."; \
 		exit 1; \
 	fi
-
-delete-tag:
-	git tag -d $(v)
-	git push origin --delete $(v)
-
-# Policy gate that must pass before creating any tag.
-validate-release-tagging:
-	@test -n "$(v)" || (echo "Usage: make validate-release-tagging v=1.2.3" && exit 1)
-	@./scripts/release_branch_sync.sh validate "$(v)"
-
-# Ensures a branch named release-v<major>.<minor> exists and enforces tagging
-# policy: tags must be set from main or the matching release branch.
-sync-release-branch:
-	@test -n "$(v)" || (echo "Usage: make sync-release-branch v=1.2.3" && exit 1)
-	@./scripts/release_branch_sync.sh sync "$(v)"
 
 # ─── Shells ──────────────────────────────────────────────
 shell-app:

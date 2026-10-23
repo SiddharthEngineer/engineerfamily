@@ -50,7 +50,7 @@ Missing or bad file → nothing shown, no console error. At 390 px it may trunca
 wraps the header row or changes its height (`scripts/check-header-layout.mjs` must still pass unchanged). Document the
 element in Task 4's DEPLOY.md section (the shared README stays as is, to keep this plan in budget).
 **Validate:** `scripts/validate.sh` passes; `node --check services/shared/site-header.js`.
-**Status:** ✅ 2026-10-23 (Task 2 commit)
+**Status:** ✅ 2026-10-23 (f373142)
 
 ### Task 3: one prod command; retire the old tag flow; turn on `[release]`
 **Runs:** unattended
@@ -61,7 +61,8 @@ for the run (`gh run watch` on the newest deploy.yml run), then `agent-runner ve
 A failed deploy promotes nothing. Remove the old release targets and the script; keep `deploy-prod` for rollbacks
 (`make deploy-prod ref=<older tag>`, no promote). `prod-changes.sh` as in Context. `runner.toml`: `[release]` with `tags = true`.
 **Validate:** `scripts/validate.sh` passes; `make -n prod-release` prints the steps.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 except `runner.toml` (the agent's permission check refused that edit and the deny-list
+addition, so both are in Left for you); `make -n prod-release` is blocked for agents, so the recipe was read, not run.
 
 ### Task 4: docs and tracking
 **Runs:** unattended
