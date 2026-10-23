@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 EVERYONE = "*"
 DEFAULT_CAP_USD = 5.0
+PREPARE_LOCK = 1366519909  # any constant: serialises prepare() across the workers
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,8 @@ def looks_like_email(email) -> bool:
     """A local part, a dotted domain and no whitespace: enough to catch typos before an invite nobody can use."""
     email = norm_email(email)
     local, _, domain = email.partition("@")
-    return bool(local) and "." in domain and not any(c.isspace() for c in email)
+    return (bool(local) and "." in domain and "@" not in domain and "," not in email
+            and not any(c.isspace() for c in email))
 
 
 def _ordered(keys):
@@ -187,16 +189,25 @@ def access_for(conn, email: str | None) -> Access:
     email = norm_email(email) or None
     if email == EVERYONE:
         email = None
-    if conn is None or not _admin_count(conn):
-        # No database, or nobody seeded yet: the env decides, and anti-lockout keeps `site` open without admins.
+    if conn is None or not _run(conn, "SELECT COUNT(*) FROM site_users").fetchone()[0]:
+        # No database, or not seeded yet: the env decides, and anti-lockout keeps `site` open without admins.
         return _env_access(email)
     row = _get(conn, email) if email else None
     if row and row.admin:
         return Access(email, True, frozenset(PAGE_KEYS), None)
+    extra = frozenset()
+    if not _admin_count(conn):
+        # Every admin got demoted or removed (two at once can slip past the last-admin guard). The env admins can get
+        # back in to fix it, and with none of those either, anti-lockout keeps `site` open.
+        env_admins = _emails(os.environ.get("SITE_ADMIN_EMAILS"))
+        if email and email in env_admins:
+            return Access(email, True, frozenset(PAGE_KEYS), None)
+        if not env_admins:
+            extra = frozenset({"site"})
     if row:
-        return Access(email, False, frozenset(row.pages), row.cap_usd)
+        return Access(email, False, frozenset(row.pages) | extra, row.cap_usd)
     everyone = _get(conn, EVERYONE)
-    return Access(email, False, _strip_account_pages(everyone.pages if everyone else ()), None)
+    return Access(email, False, _strip_account_pages(everyone.pages if everyone else ()) | extra, None)
 
 
 def list_rows(conn) -> list[Row]:
@@ -244,6 +255,9 @@ def set_admin(conn, email, admin: bool) -> Row:
     if row.admin and not admin and _admin_count(conn) <= 1:
         raise PermsError("can't remove the last admin")
     _run(conn, "UPDATE site_users SET admin = ? WHERE email = ?", (bool(admin), email))
+    if row.admin and not admin and row.cap_usd is None:
+        # Admins have no cap; a demoted one gets the default instead of unlimited Strelitzia spend.
+        _run(conn, "UPDATE site_users SET cap_usd = ? WHERE email = ?", (DEFAULT_CAP_USD, email))
     return _get(conn, email)
 
 
@@ -296,10 +310,10 @@ def seed(conn, admins, members, everyone_pages) -> dict | None:
     """
     if _run(conn, "SELECT COUNT(*) FROM site_users").fetchone()[0]:
         return None
-    admins = [norm_email(e) for e in admins if norm_email(e) and norm_email(e) != EVERYONE]
+    admins = [e for e in map(norm_email, admins) if looks_like_email(e)]
     if not admins:
         return None
-    members = [m for m in (norm_email(e) for e in members) if m and m != EVERYONE and m not in admins]
+    members = [e for e in map(norm_email, members) if looks_like_email(e) and e not in admins]
     for email in dict.fromkeys(admins):
         _insert_user(conn, email, True, None, PAGE_KEYS)
     for email in dict.fromkeys(members):
@@ -323,6 +337,9 @@ def connect():
 
 def prepare(conn):
     """Create the tables and seed them from the env. Logs counts, never emails."""
+    if not isinstance(conn, sqlite3.Connection):
+        # The gunicorn workers start together, and concurrent CREATE TABLE IF NOT EXISTS can collide in Postgres.
+        _run(conn, f"SELECT pg_advisory_xact_lock({PREPARE_LOCK})")
     create_tables(conn)
     counts = seed(conn, _emails(os.environ.get("SITE_ADMIN_EMAILS")), _emails(os.environ.get("SITE_MEMBER_EMAILS")),
                   _page_keys(os.environ.get("SITE_EVERYONE")))

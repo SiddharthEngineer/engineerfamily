@@ -121,6 +121,34 @@ def test_second_admin_can_be_demoted_and_removed(conn):
     assert [r.email for r in perms.list_rows(conn)] == [ADMIN]
 
 
+def test_demoted_admin_gets_default_cap(conn):
+    perms.set_admin(conn, MEMBER, True)
+    row = perms.set_admin(conn, ADMIN, False)
+    assert row.cap_usd == 5.0
+    assert perms.access_for(conn, ADMIN).cap_usd == 5.0
+
+
+def test_no_admin_left_lets_env_admins_back_in(conn, monkeypatch):
+    perms._run(conn, "UPDATE site_users SET admin = ?", (False,))  # what a race past the guard would leave
+    monkeypatch.setenv("SITE_ADMIN_EMAILS", ADMIN)
+    assert perms.access_for(conn, ADMIN).admin is True
+    assert perms.access_for(conn, MEMBER).pages == frozenset(perms.PAGE_KEYS)  # the DB still decides for the rest
+    assert perms.access_for(conn, STRANGER).pages == {"site"}
+    monkeypatch.setenv("SITE_EVERYONE", "")
+    perms.set_grant(conn, "*", "site", False)
+    assert perms.access_for(conn, STRANGER).pages == frozenset()
+    monkeypatch.delenv("SITE_ADMIN_EMAILS")
+    assert perms.access_for(conn, STRANGER).pages == {"site"}  # anti-lockout
+
+
+@pytest.mark.parametrize("email, ok", [
+    ("a@b.co", True), ("a@b", False), ("@b.co", False), ("a@b@c.co", False), ("a@b.co,c@d.co", False),
+    ("a b@c.co", False),
+])
+def test_looks_like_email(email, ok):
+    assert perms.looks_like_email(email) is ok
+
+
 def test_seed_only_on_empty_db(conn):
     assert perms.seed(conn, ["other@example.com"], [], ["site", "bracket"]) is None
     assert perms.get_row(conn, "other@example.com") is None
@@ -130,7 +158,7 @@ def test_seed_only_on_empty_db(conn):
 def test_seed_writes_admins_members_and_everyone():
     conn = sqlite3.connect(":memory:")
     perms.create_tables(conn)
-    counts = perms.seed(conn, [ADMIN, ADMIN], [MEMBER, ADMIN], [])
+    counts = perms.seed(conn, [ADMIN, ADMIN, "typo@gmail"], [MEMBER, ADMIN], [])
     assert counts == {"admins": 1, "members": 1, "everyone_pages": 0}
     assert [r.email for r in perms.list_rows(conn)] == [ADMIN, MEMBER]
     assert perms.access_for(conn, STRANGER).pages == frozenset()

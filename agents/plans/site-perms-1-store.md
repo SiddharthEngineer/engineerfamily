@@ -1,5 +1,5 @@
 # Plan: Site permissions 1/4: permissions store, admin API, per-page verify
-**Status:** 🔄 In progress
+**Status:** ✅ Done 2026-10-23 (preprod checks wait for M2 and a preprod deploy)
 **Risk:** review (new Postgres DB, compose, Makefile and scripts, and the auth endpoint nginx trusts)
 
 ## Goal
