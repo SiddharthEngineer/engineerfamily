@@ -127,7 +127,7 @@
         if (!event.composedPath().includes(this)) this.closeMenu(false);
       };
       const version = fetchVersion();
-      // The account UI doesn't wait for the version; it slots in before it when it comes.
+      // The menu doesn't wait for the version; its section slots in when it comes.
       fetchMe().then((me) => {
         this.render(me);
         return version;
@@ -168,20 +168,17 @@
           background: none; color: var(--ef-fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
         }
         .item:hover { background: var(--ef-hover); }
-        .version {
-          min-width: 0; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          color: var(--ef-muted); font-size: 12px; font-weight: 400; text-decoration: none;
-        }
+        .version { color: var(--ef-muted); font-size: 13px; overflow-wrap: anywhere; }
         .version:hover { color: var(--ef-fg); }
       </style>`;
-      // Sign-in off (or /auth/me unreachable): only the version, if any.
+      // Sign-in off (or /auth/me unreachable): render nothing.
       if (!me || !me.enabled) {
-        root.innerHTML = css;
+        root.innerHTML = '';
         return;
       }
       if (!me.signed_in) {
         root.innerHTML = `${css}<a class="pill" href="/auth/login">Sign in</a>`;
-        const link = root.querySelector('a.pill');
+        const link = root.querySelector('a');
         link.href = this.loginHref();
         // The path may have changed since render (client-side routing), so build `next` again on click.
         link.addEventListener('click', () => { link.href = this.loginHref(); });
@@ -223,15 +220,18 @@
       });
     }
 
+    // The version gets its own section in the account menu, between the name/email and the links. Signed out there
+    // is no menu, so no version.
     showVersion(version) {
-      const root = this.shadowRoot;
-      if (!version || root.querySelector('.version')) return;
+      if (!version || !this.menu || this.menu.querySelector('.version')) return;
       const link = document.createElement('a');
-      link.className = 'version';
+      link.className = 'item version';
       link.href = version.url;
       link.title = 'Deployed version';
-      link.textContent = version.label;
-      root.querySelector('style').after(link);
+      link.textContent = `Version ${version.label}`;
+      const rule = document.createElement('div');
+      rule.className = 'rule';
+      this.menu.querySelector('.rule').after(link, rule);
     }
 
     openMenu() {

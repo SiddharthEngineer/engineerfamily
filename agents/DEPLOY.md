@@ -36,9 +36,9 @@ every page including the Strelitzia dashboard. It links to GitHub:
 | preprod, on `main` past a tag | `v1.4.2+3` (3 untagged commits) | the compare view from the tag |
 | anything else | the short sha | the commit |
 
-No `version.json` (local dev, or prod before the deploy script is reinstalled) means no version text. The header fetches
-it once per page with `cache: 'no-store'`, so a deploy shows up on the next page load. At 390 px a long branch name
-truncates with an ellipsis; the header row never wraps.
+It shows as its own section of the avatar menu (signed in only), between the name/email and the links. No
+`version.json` (local dev, or prod before the deploy script is reinstalled) means no version section. The header fetches
+it once per page with `cache: 'no-store'`, so a deploy shows up on the next page load.
 
 ### Deploying
 

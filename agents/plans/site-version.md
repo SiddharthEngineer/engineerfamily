@@ -45,9 +45,10 @@ and on a branch prints the three expected labels (note them in the PR).
 **Runs:** unattended
 **Files:** services/shared/site-header.js (modify)
 **What:** `<ef-profile>` fetches `/shared/version.json` once per page (`cache: 'no-store'`) and renders
-`<a class="version" href=url>label</a>` before the avatar: 12px, muted colour, no underline, `title="Deployed version"`.
-Missing or bad file → nothing shown, no console error. At 390 px it may truncate with an ellipsis (max 14ch) but never
-wraps the header row or changes its height (`scripts/check-header-layout.mjs` must still pass unchanged). Document the
+`Version <label>` as its own section of the avatar menu, between the name/email and the Strelitzia dashboard link (with
+the menu's rules around it): muted 13px, links to `url`, `title="Deployed version"`. Signed out there is no menu, so no
+version. Missing or bad file → nothing shown, no console error. The header row itself doesn't change
+(`scripts/check-header-layout.mjs` must still pass unchanged). Document the
 element in Task 4's DEPLOY.md section (the shared README stays as is, to keep this plan in budget).
 **Validate:** `scripts/validate.sh` passes; `node --check services/shared/site-header.js`.
 **Status:** ✅ 2026-10-23 (f373142)
@@ -79,11 +80,12 @@ Old `-preprod` tags and `release-v*` branches stay as history. AGENTS.md: the De
 ## Human test steps (preprod)
 1. `curl -sS https://preprod.engineerfamily.net/shared/version.json` → `label` is this PR's branch name and `url`
    is `https://github.com/SiddharthEngineer/engineerfamily/pulls?q=is:pr+head:<branch>`.
-2. At 1280 px on `/`, `/games/`, `/strelitzia/` and `/strelitzia/dashboard/` (signed in as the dev test account): the
-   branch name shows at the top right, left of the avatar, in small muted text; it opens the PR search above.
-3. At 390 px on `/` and `/strelitzia/dashboard/`: one header row, nothing overlaps, no sideways scroll.
+2. At 1280 px on `/`, `/games/`, `/strelitzia/` and `/strelitzia/dashboard/` (signed in as the dev test account): click
+   the avatar; `Version <branch>` is its own section between the name/email and Strelitzia dashboard; it opens the PR
+   search above.
+3. At 390 px on `/` and `/strelitzia/dashboard/`: the menu fits on screen, a long branch name wraps, no sideways scroll.
 4. `node scripts/check-header-layout.mjs https://preprod.engineerfamily.net` → every line `ok`, exit 0.
-5. Signed out, `/` still shows the version text next to Sign in.
+5. Signed out, `/` shows only Sign in (no version text).
 
 ## Left for you
 - Add `[release]` / `tags = true` to `agents/runner.toml` (before the `[preprod]` table) and deny `make prod-release`
