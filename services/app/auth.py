@@ -2,8 +2,8 @@
 
 It only knows who you are (Google `sub`, verified email, name), kept in Flask's signed session cookie `ef_session`:
 host-only (no Domain), Path=/, HttpOnly, Secure on https, SameSite=Lax, 30 days. Signing in grants nothing by itself;
-the Strelitzia dashboard decides who may use it. Off (login 404s, /auth/me says enabled: false) while
-GOOGLE_CLIENT_ID is unset.
+`perms` decides which pages a visitor may open (/auth/verify?page=<key>). Off (login 404s, /auth/me says
+enabled: false) while GOOGLE_CLIENT_ID is unset.
 """
 
 import logging
@@ -17,6 +17,8 @@ from flask import Blueprint, abort, current_app, jsonify, redirect, request, ses
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
+
+import perms
 
 
 log = logging.getLogger(__name__)
@@ -82,7 +84,7 @@ def _back(next_path, outcome=None):
     return redirect(next_path, code=303)
 
 
-def _no_store(response):
+def no_store(response):
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -123,7 +125,7 @@ def login():
         "state": state,
         "prompt": "select_account",
     }
-    return _no_store(redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}", code=303))
+    return no_store(redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}", code=303))
 
 
 @bp.get("/callback")
@@ -137,43 +139,62 @@ def callback():
     if not (state and isinstance(expected, str) and secrets.compare_digest(state.encode(), expected.encode())):
         # A forged callback, or a stale one (a second login tab, Back into the callback): nobody is signed in.
         log.warning("sign-in callback with a missing or wrong state")
-        return _no_store(_back(next_path, "error"))
+        return no_store(_back(next_path, "error"))
     code = request.args.get("code")
     if request.args.get("error") or not code:
-        return _no_store(_back(next_path, "error"))
+        return no_store(_back(next_path, "error"))
     body = _exchange_code(code)
     token = body.get("id_token") if body else None
     if not isinstance(token, str) or not token:
         if body is not None:
             log.warning("Google token exchange returned no id_token")
-        return _no_store(_back(next_path, "error"))
+        return no_store(_back(next_path, "error"))
     try:
         info = id_token.verify_oauth2_token(token, google_requests.Request(), current_app.config["GOOGLE_CLIENT_ID"],
                                             clock_skew_in_seconds=CLOCK_SKEW_SECONDS)
     except (ValueError, GoogleAuthError) as exc:
         log.warning("Google ID token rejected: %s", type(exc).__name__)
-        return _no_store(_back(next_path, "error"))
+        return no_store(_back(next_path, "error"))
     if not info.get("email_verified") or not info.get("email") or not info.get("sub"):
-        return _no_store(_back(next_path, "error"))
+        return no_store(_back(next_path, "error"))
     session.permanent = True
     session["sub"] = str(info["sub"])
     session["email"] = str(info["email"])
     session["name"] = str(info.get("name") or "")
-    return _no_store(_back(next_path))
+    return no_store(_back(next_path))
 
 
 def _signed_in():
     return bool(session.get("sub") and session.get("email"))
 
 
+def current_email():
+    """The signed-in visitor's email, or None."""
+    return session["email"] if _enabled() and _signed_in() else None
+
+
+def current_access():
+    """What the current visitor may open. A database error is logged and answered in env-only mode."""
+    email = current_email()
+    try:
+        with perms.db() as conn:
+            return perms.access_for(conn, email)
+    except Exception as exc:
+        log.warning("site permissions database unavailable, using env-only mode: %s", type(exc).__name__)
+        return perms.access_for(None, email)
+
+
 @bp.get("/me")
 def me():
-    signed_in = _enabled() and _signed_in()
-    return _no_store(jsonify(
+    signed_in = current_email() is not None
+    access = current_access()
+    return no_store(jsonify(
         enabled=_enabled(),
         signed_in=signed_in,
         email=session.get("email") if signed_in else None,
         name=(session.get("name") or None) if signed_in else None,
+        admin=access.admin,
+        pages=[key for key in perms.PAGE_KEYS if key in access.pages],
     ))
 
 
@@ -181,16 +202,33 @@ def me():
 def logout():
     # SameSite=Lax already keeps cross-site POSTs from carrying the cookie.
     session.clear()
-    return _no_store(current_app.response_class(status=204))
+    return no_store(current_app.response_class(status=204))
 
 
 @bp.get("/verify")
 def verify():
-    """For nginx auth_request: always 204, with the identity headers (oauth2-proxy's names) only when signed in."""
+    """For nginx auth_request, with the identity headers (oauth2-proxy's names) only when signed in.
+
+    Without ?page= it always answers 204. With ?page=<key>: 204 plus X-Auth-Request-Access/-Admin (and -Cap-Usd for
+    cap pages) when the visitor may open that page, else 401 signed out or 403 signed in. Unknown key: 404.
+    """
+    key = request.args.get("page")
     response = current_app.response_class(status=204)
-    if _enabled() and _signed_in():
+    if key is not None:
+        try:
+            page = perms.page(key)
+        except perms.PermsError:
+            abort(404)
+        access = current_access()
+        if key not in access.pages:
+            return no_store(current_app.response_class(status=403 if access.email else 401))
+        response.headers["X-Auth-Request-Access"] = key
+        response.headers["X-Auth-Request-Admin"] = "1" if access.admin else "0"
+        if page.cap:
+            response.headers["X-Auth-Request-Cap-Usd"] = "none" if access.cap_usd is None else f"{access.cap_usd:.2f}"
+    if current_email():
         response.headers["X-Auth-Request-Email"] = session["email"]
         response.headers["X-Auth-Request-User"] = session["sub"]
         # Headers are Latin-1, so the display name is percent-encoded (the dashboard unquotes it).
         response.headers["X-Auth-Request-Preferred-Username"] = quote(session.get("name") or "", safe="")
-    return _no_store(response)
+    return no_store(response)

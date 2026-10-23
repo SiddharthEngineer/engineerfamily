@@ -37,10 +37,18 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - SITE_SESSION_SECRET=${SITE_SESSION_SECRET:-}
       - PUBLIC_URL=https://engineerfamily.net
+      # Site permissions (services/app/perms.py). No password: env-only mode (SITE_ADMIN_EMAILS are admins, everyone
+      # else gets SITE_EVERYONE). The emails seed an empty DB once (make site-db-init creates it).
+      - SITE_DATABASE_URL=${SITE_DB_PASSWORD:+postgresql://engineerfamily:${SITE_DB_PASSWORD}@postgres-db:5432/engineerfamily}
+      - SITE_ADMIN_EMAILS=${SITE_ADMIN_EMAILS:-}
+      - SITE_MEMBER_EMAILS=${SITE_MEMBER_EMAILS:-}
+      # Pages for visitors who are signed out or not invited (the whole site stays public).
+      - SITE_EVERYONE=site
     ports:
       - "127.0.0.1:8000:8000"  # loopback only; nginx reaches app over the web network
     networks:
       - web
+      - sitedb
 
   # ─── Streamlit ────────────────────────────────────────
   # Off by default (unused). Enable with COMPOSE_PROFILES=streamlit, and restore its nginx proxy vhost.
@@ -76,7 +84,8 @@ services:
     networks:
       - web
 
-  # Postgres for umami (its superuser) and Strelitzia (role and DBs `strelitzia`, `strelitzia_test`; make strelitzia-db-init).
+  # Postgres for umami (its superuser), Strelitzia (role and DBs `strelitzia`, `strelitzia_test`; make strelitzia-db-init)
+  # and site permissions (role and DB `engineerfamily`; make site-db-init).
   postgres-db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -92,6 +101,7 @@ services:
     networks:
       - web
       - dashboard
+      - sitedb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U umami"]
       interval: 10s
@@ -136,6 +146,9 @@ services:
 networks:
   # nginx, strelitzia and postgres-db only: strelitzia trusts X-Auth-Request-* headers, which only nginx may set.
   dashboard:
+    driver: bridge
+  # app and postgres-db only: the site permissions DB, without putting app on dashboard.
+  sitedb:
     driver: bridge
 
 volumes:

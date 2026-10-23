@@ -4,10 +4,10 @@
 
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
-	up down build restart logs ps strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
+	up down build restart logs ps site-db-init strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
 	wordle-deploy wordle-logs \
 	preprod-deploy preprod-up preprod-down preprod-build preprod-logs preprod-ps \
-	preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
+	preprod-site-db-init preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
 	preprod-wordle-deploy preprod-wordle-logs \
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
@@ -60,6 +60,7 @@ help:
 	@echo "    restart          Rebuild + restart changed services"
 	@echo "    logs             Tail logs for all containers"
 	@echo "    ps               Show container status"
+	@echo "    site-db-init     Create the engineerfamily role + DB (site permissions) in postgres-db (idempotent)"
 	@echo "    strelitzia-db-init Create the strelitzia role + DBs in postgres-db (idempotent)"
 	@echo "    strelitzia-up    Rebuild + restart only the Strelitzia dashboard (from /srv/Strelitzia-prod as checked out)"
 	@echo "    strelitzia-deploy Check out Strelitzia origin/trunk (or ref=<sha|tag>) in /srv/Strelitzia-prod, then strelitzia-up"
@@ -75,6 +76,7 @@ help:
 	@echo "    preprod-build    Rebuild preprod images"
 	@echo "    preprod-logs     Tail logs for preprod containers"
 	@echo "    preprod-ps       Show preprod container status"
+	@echo "    preprod-site-db-init       Create the engineerfamily role + engineerfamily_preprod DB (idempotent)"
 	@echo "    preprod-strelitzia-db-init Create the strelitzia role + strelitzia_preprod DB (idempotent)"
 	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
 	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
@@ -144,6 +146,9 @@ logs:
 ps:
 	$(PROD) ps
 
+site-db-init:
+	bash $(PROD_DIR)/scripts/init-site-db.sh
+
 strelitzia-db-init:
 	bash $(PROD_DIR)/scripts/init-strelitzia-db.sh
 
@@ -199,6 +204,9 @@ preprod-logs:
 
 preprod-ps:
 	$(PREPROD) ps
+
+preprod-site-db-init:
+	bash $(PREPROD_DIR)/scripts/init-site-db.sh preprod
 
 preprod-strelitzia-db-init:
 	bash $(PREPROD_DIR)/scripts/init-strelitzia-db.sh preprod

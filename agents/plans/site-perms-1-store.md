@@ -1,5 +1,5 @@
 # Plan: Site permissions 1/4: permissions store, admin API, per-page verify
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-23 (preprod checks wait for M2 and a preprod deploy)
 **Risk:** review (new Postgres DB, compose, Makefile and scripts, and the auth endpoint nginx trusts)
 
 ## Goal
@@ -49,7 +49,7 @@ out or not invited. `/auth/verify?page=<key>` answers whether the current visito
   the user's `.env` step leaves the site as open as today.
 **Validate:** `cd services/app && python -m pytest test_perms.py -q` → passes; it covers admin = everything, the everyone
 fallback, `needs_account` stripped for strangers, the last-admin guard, seed only on an empty DB, env-only mode, anti-lockout.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 1`)
 
 ### Task 2: Admin API and per-page verify
 **Runs:** unattended
@@ -71,7 +71,7 @@ fallback, `needs_account` stripped for strangers, the last-admin guard, seed onl
   (comma lists) and `SITE_EVERYONE` (comma list of page keys, may be empty). Log counts, never emails.
 **Validate:** `cd services/app && python -m pytest -q` → all pass, including: non-admin gets 403 on `/api/admin/users`;
 verify returns the Access/Admin/Cap headers; `?page=strelitzia` 403 for a signed-in stranger; no-`page` verify unchanged.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 2`)
 
 ### Task 3: Database wiring (compose, init script, make targets)
 **Runs:** unattended (writing the files); creating the DBs and the `.env` values is the user's ROADMAP step M2
@@ -84,7 +84,7 @@ only when it is set (`${SITE_DB_PASSWORD:+postgresql://engineerfamily:${SITE_DB_
 compose file: prod `site`, preprod empty. New `sitedb` network on `app` and `postgres-db`; `app` keeps `web`.
 `.env.template`: the new variables, commented, with no real emails.
 **Validate:** `scripts/validate.sh` → passes (bash -n, compose config for all envs, nginx -t).
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 3`; creating the DBs and the `.env` values is still M2)
 
 ## Validation
 - `scripts/validate.sh` passes; `cd services/app && python -m pytest -q` passes.

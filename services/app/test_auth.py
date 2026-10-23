@@ -15,11 +15,12 @@ ENV = {
     "SITE_SESSION_SECRET": "test-session-secret",
     "PUBLIC_URL": "https://preprod.engineerfamily.net",
 }
+SITE_ENV = ("SITE_DATABASE_URL", "SITE_ADMIN_EMAILS", "SITE_MEMBER_EMAILS", "SITE_EVERYONE")
 ID_INFO = {"sub": "1234567890", "email": "test@example.com", "email_verified": True, "name": "Zoë Test"}
 
 
 def make_app(monkeypatch, env):
-    for name in ENV:
+    for name in (*ENV, *SITE_ENV):
         monkeypatch.delenv(name, raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
@@ -107,7 +108,9 @@ def test_callback_sets_site_cookie(client, google):
     assert google["verify"] == ("signed.id.token", ENV["GOOGLE_CLIENT_ID"], 30)
     assert google["post"]["redirect_uri"] == "https://preprod.engineerfamily.net/auth/callback"
     me = client.get("/auth/me").get_json()
-    assert me == {"enabled": True, "signed_in": True, "email": "test@example.com", "name": "Zoë Test"}
+    # No admin anywhere (env-only mode, no SITE_ADMIN_EMAILS): anti-lockout leaves the site open.
+    assert me == {"enabled": True, "signed_in": True, "email": "test@example.com", "name": "Zoë Test",
+                  "admin": False, "pages": ["site"]}
 
 
 def test_wrong_state_signs_nobody_in(client, google):
@@ -157,7 +160,8 @@ def test_disabled_without_client_id(monkeypatch):
     assert client.get("/auth/callback").status_code == 404
     resp = client.get("/auth/me")
     assert resp.headers["Cache-Control"] == "no-store"
-    assert resp.get_json() == {"enabled": False, "signed_in": False, "email": None, "name": None}
+    assert resp.get_json() == {"enabled": False, "signed_in": False, "email": None, "name": None,
+                               "admin": False, "pages": ["site"]}
     assert client.get("/auth/verify").status_code == 204
 
 
@@ -168,7 +172,7 @@ def test_refuses_half_configured(monkeypatch, missing):
 
 
 def test_privacy_page(monkeypatch):
-    for name in ENV:
+    for name in (*ENV, *SITE_ENV):
         monkeypatch.delenv(name, raising=False)
     site = importlib.import_module("app")
     resp = site.app.test_client().get("/privacy")
