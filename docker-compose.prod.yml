@@ -120,6 +120,19 @@ services:
     networks:
       - dashboard
 
+  # ─── Wordle solver (engineerfamily.net/wordle/, public, rate-limited in nginx) ───
+  # Built from /srv/Wordle-prod, a detached commit of SiddharthEngineer/Wordle; `make wordle-deploy` moves it and rebuilds just this service.
+  wordle:
+    build:
+      context: ../Wordle-prod
+    restart: unless-stopped
+    # Scoring is CPU-heavy and the page is public: cap it so it can't starve the rest of the stack.
+    cpus: 1.0
+    mem_limit: 1g
+    # Only on `web`: no DB, no identity headers.
+    networks:
+      - web
+
 networks:
   # nginx, strelitzia and postgres-db only: strelitzia trusts X-Auth-Request-* headers, which only nginx may set.
   dashboard:

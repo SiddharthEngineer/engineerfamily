@@ -22,6 +22,12 @@ function Navbar() {
               Strelitzia
             </a>
           </li>
+          <li className="nav-item">
+            {/* nginx sends /wordle/ to the wordle container, not this app, so a full page load. */}
+            <a className="nav-link" href="/wordle/">
+              Wordle solver
+            </a>
+          </li>
         </ul>
 
         <ef-profile></ef-profile>

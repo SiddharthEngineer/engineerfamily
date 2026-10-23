@@ -15,6 +15,7 @@ services:
     depends_on:
       - app
       - strelitzia
+      - wordle
     networks:
       - web
       - dashboard
@@ -112,6 +113,19 @@ services:
     # Only on `dashboard` (nginx, postgres-db), so nothing else can send it X-Auth-Request-* headers. Egress still works.
     networks:
       - dashboard
+
+  # ─── Wordle solver (preprod.engineerfamily.net/wordle/, health at 127.0.0.1:8080, public, rate-limited in nginx) ───
+  # Built from /srv/Wordle-preprod, a detached commit of SiddharthEngineer/Wordle; `make preprod-wordle-deploy` moves it (or `make preprod-deploy` rebuilds it with the rest).
+  wordle:
+    build:
+      context: ../Wordle-preprod
+    restart: unless-stopped
+    # Scoring is CPU-heavy and the page is public: cap it so it can't starve the rest of the stack.
+    cpus: 1.0
+    mem_limit: 1g
+    # Only on `web`: no DB, no identity headers.
+    networks:
+      - web
 
 networks:
   # nginx, strelitzia and postgres-db only: strelitzia trusts X-Auth-Request-* headers, which only nginx may set.

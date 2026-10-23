@@ -5,8 +5,10 @@
 .PHONY: help run-app run-streamlit \
 	local-up local-down local-build local-logs local-ps \
 	up down build restart logs ps strelitzia-db-init strelitzia-up strelitzia-deploy strelitzia-logs \
+	wordle-deploy wordle-logs \
 	preprod-deploy preprod-up preprod-down preprod-build preprod-logs preprod-ps \
 	preprod-strelitzia-db-init preprod-strelitzia-up preprod-strelitzia-logs \
+	preprod-wordle-deploy preprod-wordle-logs \
 	applypilot-db-init applypilot-up applypilot-deploy applypilot-logs \
 	preprod-applypilot-db-init preprod-applypilot-up preprod-applypilot-logs \
 	shell-app shell-streamlit \
@@ -15,12 +17,14 @@
 
 # Prod and preprod targets always act on the deploy checkouts in /srv, wherever make runs from (e.g. the dev clone
 # in ~/src). Those checkouts hold the untracked .env and htpasswd files and sit next to the pinned Strelitzia
-# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, strelitzia-deploy).
+# checkouts. Edits in a dev clone reach them only through a deploy (tag-preprod/tag-prod, strelitzia-deploy, wordle-deploy).
 # Compose project names are pinned, not taken from the checkout's directory name: the project name
 # prefixes container and volume names, so a renamed checkout would otherwise start with empty volumes.
 PROD_DIR ?= /srv/engineerfamily-prod
 PREPROD_DIR ?= /srv/engineerfamily-preprod
 STRELITZIA_PROD_DIR ?= /srv/Strelitzia-prod
+WORDLE_PROD_DIR ?= /srv/Wordle-prod
+WORDLE_PREPROD_DIR ?= /srv/Wordle-preprod
 PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 	-f $(PROD_DIR)/docker-compose.base.yml -f $(PROD_DIR)/docker-compose.prod.yml
 PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
@@ -60,6 +64,8 @@ help:
 	@echo "    strelitzia-up    Rebuild + restart only the Strelitzia dashboard (from /srv/Strelitzia-prod as checked out)"
 	@echo "    strelitzia-deploy Check out Strelitzia origin/trunk (or ref=<sha|tag>) in /srv/Strelitzia-prod, then strelitzia-up"
 	@echo "    strelitzia-logs  Tail the Strelitzia dashboard logs"
+	@echo "    wordle-deploy    Check out Wordle origin/main (or ref=<sha|tag>) in $(WORDLE_PROD_DIR), rebuild only wordle"
+	@echo "    wordle-logs      Tail the Wordle solver logs"
 	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
@@ -72,6 +78,8 @@ help:
 	@echo "    preprod-strelitzia-db-init Create the strelitzia role + strelitzia_preprod DB (idempotent)"
 	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
 	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
+	@echo "    preprod-wordle-deploy      Check out Wordle origin/main (or ref=<sha>) in $(WORDLE_PREPROD_DIR), rebuild only wordle"
+	@echo "    preprod-wordle-logs        Tail the preprod Wordle solver logs"
 	@echo ""
 	@echo "  Releases:"
 	@echo "    tag-preprod      Tag current commit for preprod         (e.g. make tag-preprod v=1.2.3)"
@@ -80,7 +88,7 @@ help:
 	@echo "    deploy-prod      Trigger deploy of tagged version       (e.g. make deploy-prod ref=v1.2.3)"
 	@echo "    validate-release-tagging Validate tag branch policy for v=<major.minor.patch>"
 	@echo "    sync-release-branch Ensure release branch points to latest tag for v=<major.minor.patch>"
-	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last prod tag, Strelitzia since prod)"
+	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last prod tag, Strelitzia and Wordle since prod)"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    shell-app        Open shell in app container"
@@ -154,6 +162,16 @@ strelitzia-deploy:
 strelitzia-logs:
 	$(PROD) logs -f --tail=100 strelitzia
 
+# Wordle solver, same shape as strelitzia-deploy: a detached, pinned commit of SiddharthEngineer/Wordle in /srv/Wordle-prod.
+wordle-deploy:
+	git -C $(WORDLE_PROD_DIR) fetch -q --prune origin
+	git -C $(WORDLE_PROD_DIR) checkout -q --detach $(or $(ref),origin/main)
+	@echo "→ Wordle-prod at $$(git -C $(WORDLE_PROD_DIR) log --oneline -1)"
+	$(PROD) up -d --build --force-recreate --no-deps wordle
+
+wordle-logs:
+	$(PROD) logs -f --tail=100 wordle
+
 # ─── Preprod ─────────────────────────────────────────────
 # The everyday way to put an engineerfamily change on preprod: no tag and no GitHub workflow, run from the VPS.
 # Same steps as scripts/vps/engineerfamily-deploy, but at any commit. The `preprod` branch on GitHub moves only with
@@ -191,6 +209,15 @@ preprod-strelitzia-up:
 preprod-strelitzia-logs:
 	$(PREPROD) logs -f --tail=100 strelitzia
 
+preprod-wordle-deploy:
+	git -C $(WORDLE_PREPROD_DIR) fetch -q --prune origin
+	git -C $(WORDLE_PREPROD_DIR) checkout -q --detach $(or $(ref),origin/main)
+	@echo "→ Wordle-preprod at $$(git -C $(WORDLE_PREPROD_DIR) log --oneline -1)"
+	$(PREPROD) up -d --build --force-recreate --no-deps wordle
+
+preprod-wordle-logs:
+	$(PREPROD) logs -f --tail=100 wordle
+
 # Deprecated ApplyPilot names (the Strelitzia runner's config and old habits); remove once nothing uses them.
 applypilot-db-init: strelitzia-db-init
 applypilot-up: strelitzia-up
@@ -206,9 +233,9 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 #        make tag-prod v=1.2.3        → creates and pushes tag v1.2.3
 #        make deploy-prod ref=v1.2.3  → triggers deploy to prod
 
-# Read-only: what deploy-prod / strelitzia-deploy would ship next, with PR links. Run it before a prod deploy.
+# Read-only: what deploy-prod / strelitzia-deploy / wordle-deploy would ship next, with PR links. Run it before a prod deploy.
 prod-changes:
-	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR)
+	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR)
 
 tag-preprod:
 	@test -n "$(v)" || (echo "Usage: make tag-preprod v=1.2.3" && exit 1)

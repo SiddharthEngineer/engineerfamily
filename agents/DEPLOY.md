@@ -99,6 +99,8 @@ every deploy. Don't `git pull` there: it can only bring in what the last deploy 
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
 | `/srv/Strelitzia-prod` | Prod dashboard build context, detached at a trunk commit (`make strelitzia-deploy`). |
 | `/srv/Strelitzia-preprod` | Preprod dashboard build context, moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
+| `/srv/Wordle-prod` | Prod Wordle solver build context, detached at a `main` commit (`make wordle-deploy [ref=<sha>]`). |
+| `/srv/Wordle-preprod` | Preprod Wordle solver build context (`make preprod-wordle-deploy [ref=<sha>]`). |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
@@ -107,4 +109,6 @@ never changes container or volume names.
 Every prod and preprod `make` target acts on these `/srv` checkouts, so it can be run from the dev clone.
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
 Edits reach preprod with `make preprod-deploy` and prod with `make tag-prod` + `make deploy-prod`, or for
-Strelitzia with `make strelitzia-deploy`. Use `make local-up` to run the dev tree.
+Strelitzia with `make strelitzia-deploy`, and for the Wordle solver with `make wordle-deploy [ref=<sha>]`
+(preprod: `make preprod-wordle-deploy [ref=<sha>]`). `deploy-prod` and `preprod-deploy` build `wordle` too, so
+`/srv/Wordle-prod` and `/srv/Wordle-preprod` must exist first. Use `make local-up` to run the dev tree.

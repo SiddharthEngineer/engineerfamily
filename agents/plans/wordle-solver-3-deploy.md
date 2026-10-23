@@ -1,5 +1,5 @@
 # Plan: Wordle solver, part 3: serve it at engineerfamily.net/wordle/
-**Status:** ❌ Not started
+**Status:** 🟡 Tasks 1–3 done 2026-10-22; Task 4 (interactive: /srv checkouts, preprod deploy) left for the user
 **Risk:** review (compose, nginx, Makefile and scripts are high-risk paths)
 **Depends on:** wordle-solver-2-web
 
@@ -40,7 +40,7 @@ Wordle repo, public with no sign-in, rate-limited, linked from the home page. Th
 `restart: unless-stopped`, `networks: [web]`, `cpus: 1.0`, `mem_limit: 1g`, comment block in the Strelitzia style
 (where it's built from, which make target moves it). No published ports.
 **Validate:** `scripts/validate.sh` → `PASS  compose preprod` and `PASS  compose prod`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit)
 
 ### Task 2: nginx routing and rate limit
 **Runs:** unattended
@@ -53,7 +53,7 @@ nested `location /wordle/api/` with `limit_req zone=wordle_api burst=10 nodelay;
 `proxy_read_timeout 30s;`, `client_max_body_size 16k;`, `gzip on; gzip_types application/json;` and the same proxy lines.
 No `auth_request` (public). Preprod: same plus `X-Robots-Tag`, and the host-only `location = /wordle/api/health`.
 **Validate:** `scripts/validate.sh` → `PASS  nginx preprod`, `PASS  nginx prod`.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit)
 
 ### Task 3: Make targets, prod-changes, home link, docs, runner health
 **Runs:** unattended
@@ -70,7 +70,7 @@ agents/DEPLOY.md (modify), agents/runner.toml (modify)
   rows and the deploy commands. runner.toml: health `{ url = "https://preprod.engineerfamily.net/wordle/api/health", json_ok = true }`.
 **Validate:** `scripts/validate.sh` → all PASS; `make -n wordle-deploy` and `make -n preprod-wordle-deploy` print the
 git and compose commands (dry run, nothing executes); `bash -n scripts/prod-changes.sh` → ok.
-**Status:** ❌
+**Status:** ✅ 2026-10-22 (this commit). `make -n` dry runs not run: make is denied to the unattended agent; Makefile recipes checked by reading the diff
 
 ### Task 4: Create the /srv checkouts and try it on preprod
 **Runs:** interactive (the user: `/srv` checkouts, `make`, preprod deploy)
@@ -78,7 +78,7 @@ git and compose commands (dry run, nothing executes); `bash -n scripts/prod-chan
 **What:** as the deploy user, `git clone https://github.com/SiddharthEngineer/Wordle /srv/Wordle-prod` and
 `/srv/Wordle-preprod` (owner `deploy:srv`, setgid, group-writable, like the Strelitzia ones), and a dev clone in
 `~/src/Wordle`. Then `make preprod-deploy ref=<PR head>` and follow the Human test steps.
-**Validate:** `curl -s https://preprod.engineerfamily.net/wordle/api/health` → `{"ok":true,"words":12971}`.
+**Validate:** `curl -s https://preprod.engineerfamily.net/wordle/api/health` → `{"ok":true,"words":12972}` (the list has 12,972 words, see wordle-solver-2-web).
 **Status:** ❌
 
 ## Validation
@@ -86,11 +86,14 @@ git and compose commands (dry run, nothing executes); `bash -n scripts/prod-chan
 - After the preprod deploy, through Cloudflare:
   `curl -s -o /dev/null -w "%{http_code}" https://preprod.engineerfamily.net/wordle/` → `200`;
   `curl -s -o /dev/null -w "%{http_code}" https://preprod.engineerfamily.net/wordle` → `301`;
-  `for i in $(seq 30); do curl -s -o /dev/null -w "%{http_code}\n" -X POST -H 'content-type: application/json' -d '{"rows":[]}' https://preprod.engineerfamily.net/wordle/api/solve; done | sort | uniq -c`
-  → some `429`s alongside `200`s.
+  `seq 30 | xargs -P 30 -I{} curl -s -o /dev/null -w "%{http_code}\n" -X POST -H 'content-type: application/json' -d '{"rows":[]}' https://preprod.engineerfamily.net/wordle/api/solve | sort | uniq -c`
+  → some `429`s alongside `200`s. In parallel: one solve takes ~0.35 s, so a sequential loop stays under 5 r/s and never
+  gets a 429. 2026-10-23 on preprod: 13 × 200, 17 × 429; `/wordle` → 301.
+- 2026-10-23 preprod checks: steps 2–8 pass. Step 1 failed on the header: the Wordle page used `<ef-site-header>`, which
+  `services/shared/site-header.js` doesn't define. The fix is in the Wordle repo (`<ef-home>` … `<ef-profile>`), not here.
 
 ## Human test steps (preprod)
-1. Open `https://preprod.engineerfamily.net/wordle/` signed out: grid, on-screen keyboard and a 12,971-word table load;
+1. Open `https://preprod.engineerfamily.net/wordle/` signed out: grid, on-screen keyboard and a 12,972-word table load;
    the header shows the engineerfamily link and Sign in.
 2. Type `CRANE`. Click the C tile once (yellow), twice (green), three times (black). Set any colors, press Submit:
    "N words left" drops, the next row unlocks, the table refreshes.

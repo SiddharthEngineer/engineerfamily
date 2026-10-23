@@ -9,6 +9,7 @@ Each family member has their own subdomain under `engineerfamily.net`.
 | `streamlit.engineerfamily.net` | Siddharth | Streamlit. Off by default (compose profile `streamlit`); the host 301s to the home page. |
 | `umami.engineerfamily.net` | Siddharth | Umami |
 | `engineerfamily.net/strelitzia/` | Siddharth | Static (nginx): Strelitzia homepage + privacy policy for its Google OAuth consent screen; `/strelitzia/dashboard/` = Strelitzia job dashboard (FastAPI + React, site sign-in via nginx `auth_request`). `strelitzia.` and `applypilot.engineerfamily.net` 301 here, `/app/…` to `/strelitzia/dashboard/…`. |
+| `engineerfamily.net/wordle/` | Siddharth | Wordle solver (FastAPI, `wordle` container built from `/srv/Wordle-prod`). Public, no sign-in; nginx rate-limits `/wordle/api/` per visitor (`CF-Connecting-IP`). |
 
 ---
 
@@ -20,6 +21,7 @@ Internet → Cloudflare (DNS + SSL + CDN) → Hetzner VPS
                          ├── streamlit (opt-in profile)
                          ├── umami (opt-in profile)
                          ├── strelitzia (job dashboard, built from /srv/Strelitzia-prod; nginx /strelitzia/dashboard/)
+                         ├── wordle (Wordle solver, built from /srv/Wordle-prod; nginx /wordle/, public)
                          └── postgres-db (Postgres for umami and Strelitzia's `strelitzia` DB on 127.0.0.1:5432, see `make strelitzia-db-init`)
 ```
 
