@@ -42,7 +42,7 @@ checkbox shows checked and disabled. Nobody else can see the page or its data.
   scrolling the table horizontally inside its card.
 **Validate:** `cd services/app/vite && npm ci && npm run build` → builds; `cd services/app && python -m pytest -q` → passes
 (add a test that `GET /users/` returns the SPA).
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (1bcdcc1)
 
 ### Task 2: Profile menu link
 **Runs:** unattended
