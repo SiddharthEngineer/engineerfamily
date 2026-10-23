@@ -152,6 +152,15 @@ function applyChange(row, change) {
   return next;
 }
 
+// What `change` would put back: the row's current values for everything the change touches.
+function undoOf(row, change) {
+  const undo = {};
+  if ('admin' in change) undo.admin = row.admin;
+  if ('cap_usd' in change) undo.cap_usd = row.cap_usd;
+  if (change.pages) undo.pages = Object.fromEntries(Object.keys(change.pages).map((key) => [key, row.pages.includes(key)]));
+  return undo;
+}
+
 export default function UsersPage() {
   const [me, setMe] = useState(undefined);
   const [data, setData] = useState(null);
@@ -218,7 +227,8 @@ export default function UsersPage() {
   }
 
   // One request at a time per row, so a later click can't be overwritten by an earlier answer. A refused change
-  // reloads the table, which also keeps any other change to the row that did save.
+  // reloads the table, which also keeps any other change to the row that did save. If the reload fails too (the usual
+  // reason a save fails is the network), the change is undone by hand so the table never shows what wasn't saved.
   function change(row, body, localError) {
     const label = row.email === EVERYONE ? 'Everyone' : row.email;
     if (localError) {
@@ -226,6 +236,7 @@ export default function UsersPage() {
       return;
     }
     setError('');
+    const undo = undoOf(row, body);
     updateRow(row.email, (current) => applyChange(current, body));
     const path = row.email === EVERYONE ? '/api/admin/everyone' : userPath(row.email);
     const previous = queues.current[row.email] || Promise.resolve();
@@ -235,7 +246,7 @@ export default function UsersPage() {
         if (queues.current[row.email] === run) updateRow(row.email, () => saved);
       } catch (e) {
         setError(`${label}: ${e.message}`);
-        api('GET', '/api/admin/users').then(setData, () => {});
+        api('GET', '/api/admin/users').then(setData, () => updateRow(row.email, (current) => applyChange(current, undo)));
       }
     });
     queues.current[row.email] = run;
