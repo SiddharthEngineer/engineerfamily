@@ -2,5 +2,6 @@ flask>=3.0
 gunicorn>=21.0
 google-auth>=2.0
 requests>=2.31
-# Dev only: python -m pytest test_auth.py
+psycopg[binary]>=3.1
+# Dev only: python -m pytest -q
 pytest

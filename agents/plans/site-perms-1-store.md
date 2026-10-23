@@ -1,5 +1,5 @@
 # Plan: Site permissions 1/4: permissions store, admin API, per-page verify
-**Status:** ❌ Not started
+**Status:** 🔄 In progress
 **Risk:** review (new Postgres DB, compose, Makefile and scripts, and the auth endpoint nginx trusts)
 
 ## Goal
@@ -49,7 +49,7 @@ out or not invited. `/auth/verify?page=<key>` answers whether the current visito
   the user's `.env` step leaves the site as open as today.
 **Validate:** `cd services/app && python -m pytest test_perms.py -q` → passes; it covers admin = everything, the everyone
 fallback, `needs_account` stripped for strangers, the last-admin guard, seed only on an empty DB, env-only mode, anti-lockout.
-**Status:** ❌
+**Status:** ✅ 2026-10-23 (`feat(site-perms-1-store): Task 1`)
 
 ### Task 2: Admin API and per-page verify
 **Runs:** unattended
