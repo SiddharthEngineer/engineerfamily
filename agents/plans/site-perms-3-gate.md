@@ -1,5 +1,5 @@
 # Plan: Site permissions 3/4: nginx enforces Site and per-page access
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-24 (preprod checks wait for M2 and a preprod deploy)
 **Risk:** review (nginx on every public route; a mistake locks people out or opens a page)
 **Depends on:** site-perms-1-store, site-perms-2-users-page
 

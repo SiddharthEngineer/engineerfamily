@@ -199,6 +199,25 @@ def test_denied_escapes_next(client):
     assert 'next="/x&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"' in page
 
 
+def test_denied_json_for_api_calls(client):
+    resp = client.get("/auth/denied", query_string={"status": "403"}, headers={"Accept": "application/json"})
+    assert resp.status_code == 403
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert resp.get_json() == {"error": "forbidden"}
+    resp = client.get("/auth/denied", query_string={"status": "401"}, headers={"Accept": "application/json"})
+    assert (resp.status_code, resp.get_json()) == (401, {"error": "sign_in_required"})
+    # A browser sends text/html first (and */*), so it gets the page.
+    resp = client.get("/auth/denied", headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
+    assert resp.mimetype == "text/html"
+
+
+def test_denied_without_sign_in_has_no_login_link(monkeypatch):
+    client = make_app(monkeypatch, {}).test_client()
+    resp = client.get("/auth/denied", query_string={"status": "401"})
+    assert resp.status_code == 401
+    assert "/auth/login" not in resp.get_data(as_text=True)
+
+
 @pytest.mark.parametrize("missing", ["GOOGLE_CLIENT_SECRET", "SITE_SESSION_SECRET", "PUBLIC_URL"])
 def test_refuses_half_configured(monkeypatch, missing):
     with pytest.raises(RuntimeError, match=missing):

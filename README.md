@@ -61,10 +61,10 @@ edited on `/users/` by admins) and nginx enforces it (see **Site permissions** b
 |---|---|
 | `GET /auth/login?next=<path>` | 303 to Google (`openid email profile`, `prompt=select_account`). `next` must be a same-site path. |
 | `GET /auth/callback` | Checks `state`, exchanges the code, verifies the ID token (verified email only), 303 to `next`; failures go to `next?signin=error` and store nothing. |
-| `GET /auth/me` | `{"enabled", "signed_in", "email", "name"}`, `Cache-Control: no-store`. |
+| `GET /auth/me` | `{"enabled", "signed_in", "email", "name", "admin", "pages"}` (`pages`: the page keys this visitor may open; the header uses them and `admin` for its links), `Cache-Control: no-store`. |
 | `POST /auth/logout` | Clears the session, 204. |
 | `GET /auth/verify?page=<key>` | For nginx `auth_request` (a 404 from outside): 204 when the visitor may open the page, with `X-Auth-Request-Access`, `-Admin` (and `-Cap-Usd` for Strelitzia), plus `X-Auth-Request-Email`, `-User` (Google `sub`) and `-Preferred-Username` (percent-encoded name) when signed in; else 401 signed out, 403 signed in. oauth2-proxy's header names. |
-| `GET /auth/denied?status=401\|403` | The no-access page nginx shows on a refusal (`X-Original-URI` or `?next=` is the page asked for): 401 "Sign in to continue" with a Sign in button, 403 "You don't have access to this page. Ask an admin." |
+| `GET /auth/denied?status=401\|403` | The no-access page nginx shows on a refusal (`X-Original-URI` or `?next=` is the page asked for): 401 "Sign in to continue" with a Sign in button, 403 "You don't have access to this page. Ask an admin." A request that asks for JSON gets `{"error": ...}` instead. |
 
 - **Cookie** `ef_session`: Flask's signed session, `Path=/`, no `Domain` (host-only, so prod, preprod, `www` and
   `umami.` never share it), `HttpOnly`, `Secure`, `SameSite=Lax`, 30 days from sign-in. Signed with `SITE_SESSION_SECRET`.

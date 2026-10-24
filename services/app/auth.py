@@ -14,7 +14,7 @@ from datetime import timedelta
 from urllib.parse import quote, urlencode
 
 import requests
-from flask import Blueprint, abort, current_app, jsonify, redirect, request, session
+from flask import Blueprint, abort, current_app, jsonify, make_response, redirect, request, session
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -272,11 +272,17 @@ DENIED_PAGE = """<!doctype html>
 def denied():
     """The page nginx shows (error_page 401/403) when /auth/verify?page= refuses a visitor.
 
-    nginx passes the refused path in X-Original-URI; ?next= works too, for a direct link.
+    nginx passes the refused path in X-Original-URI; ?next= works too, for a direct link. A fetch that asks for JSON
+    (the dashboard's API calls) gets JSON, so it can tell a refusal from a broken response.
     """
     status = 403 if request.args.get("status") == "403" else 401
     next_path = safe_next(request.args.get("next") or request.headers.get("X-Original-URI"))
-    if status == 401:
+    if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+        return no_store(make_response(jsonify(error="forbidden" if status == 403 else "sign_in_required"), status))
+    if status == 401 and not _enabled():
+        title = "No access"
+        body = f"  <h1>{title}</h1>\n  <p>This page is only open to people who are signed in, and sign-in is off here.</p>"
+    elif status == 401:
         title = "Sign in to continue"
         login = "/auth/login?next=" + quote(next_path, safe="")
         body = (f"  <h1>{title}</h1>\n  <p>This page is only open to people who are signed in.</p>\n"
