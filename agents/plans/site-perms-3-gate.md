@@ -64,7 +64,7 @@ link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to 
 (one `PAGES` entry in `services/app/perms.py` + one `/_auth_<key>` location). DEPLOY.md: the M2 steps (DB init, `.env`
 variables, no real emails) and that prod needs them before the first prod deploy containing parts 1-3.
 **Validate:** `scripts/validate.sh` → passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (acccbd7)
 
 ## Validation
 - `scripts/validate.sh` passes; `cd services/app && python -m pytest -q` passes.
