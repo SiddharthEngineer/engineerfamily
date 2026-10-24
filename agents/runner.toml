@@ -31,12 +31,16 @@ doc_or_test = ["*.md", "agents/*", ".claude/commands/*", "tests/*"]
 deploy = "make -C /srv/engineerfamily-preprod preprod-deploy ref={sha}"
 release = "make -C /srv/engineerfamily-preprod preprod-deploy"
 netrc_env = "PREPROD_NETRC"
-# Through Cloudflare, so the checks prove the public host routes to the right nginx.
+# Only paths that answer signed out, before and after the Site gate (site-perms-3): preprod's Everyone row has no Site
+# grant, so `/`, `/strelitzia/` and the API health URLs are 401 through Cloudflare. The public ones go through
+# Cloudflare, proving the host routes to the right nginx and app; the API health checks use nginx's 127.0.0.1:8080
+# health server (no auth_request), which preprod.sh can reach because it runs on the VPS.
 health = [
-    { url = "https://preprod.engineerfamily.net/", status = 200 },
-    { url = "https://preprod.engineerfamily.net/strelitzia/", status = 200 },
-    { url = "https://preprod.engineerfamily.net/strelitzia/dashboard/api/health", json_ok = true },
-    { url = "https://preprod.engineerfamily.net/wordle/api/health", json_ok = true },
+    { url = "https://preprod.engineerfamily.net/healthz", status = 200 },
+    { url = "https://preprod.engineerfamily.net/privacy", status = 200 },
+    { url = "https://preprod.engineerfamily.net/strelitzia/privacy", status = 200 },
+    { url = "http://127.0.0.1:8080/strelitzia/dashboard/api/health", json_ok = true },
+    { url = "http://127.0.0.1:8080/wordle/api/health", json_ok = true },
 ]
 
 [release]
