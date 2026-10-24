@@ -6,6 +6,7 @@ host-only (no Domain), Path=/, HttpOnly, Secure on https, SameSite=Lax, 30 days.
 enabled: false) while GOOGLE_CLIENT_ID is unset.
 """
 
+import html
 import logging
 import os
 import secrets
@@ -13,7 +14,7 @@ from datetime import timedelta
 from urllib.parse import quote, urlencode
 
 import requests
-from flask import Blueprint, abort, current_app, jsonify, redirect, request, session
+from flask import Blueprint, abort, current_app, jsonify, make_response, redirect, request, session
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -210,7 +211,8 @@ def verify():
     """For nginx auth_request, with the identity headers (oauth2-proxy's names) only when signed in.
 
     Without ?page= it always answers 204. With ?page=<key>: 204 plus X-Auth-Request-Access/-Admin (and -Cap-Usd for
-    cap pages) when the visitor may open that page, else 401 signed out or 403 signed in. Unknown key: 404.
+    cap pages) when the visitor may open that page, else 401 signed out or 403 signed in. Unknown key: 404. Every page
+    also needs `site`: a page's own auth_request replaces nginx's server-level Site check.
     """
     key = request.args.get("page")
     response = current_app.response_class(status=204)
@@ -220,7 +222,7 @@ def verify():
         except perms.PermsError:
             abort(404)
         access = current_access()
-        if key not in access.pages:
+        if key not in access.pages or "site" not in access.pages:
             return no_store(current_app.response_class(status=403 if access.email else 401))
         response.headers["X-Auth-Request-Access"] = key
         response.headers["X-Auth-Request-Admin"] = "1" if access.admin else "0"
@@ -231,4 +233,64 @@ def verify():
         response.headers["X-Auth-Request-User"] = session["sub"]
         # Headers are Latin-1, so the display name is percent-encoded (the dashboard unquotes it).
         response.headers["X-Auth-Request-Preferred-Username"] = quote(session.get("name") or "", safe="")
+    return no_store(response)
+
+
+DENIED_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} · engineerfamily</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <script src="/shared/site-header.js" defer></script>
+  <style>
+    :root {{ --bg: #f8f4eb; --fg: #2e1f14; --muted: #6d5a4c; --link: #a3462d; }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{ --bg: #1b1612; --fg: #f3eee6; --muted: #c2b5a8; --link: #f0a58d; }}
+    }}
+    body {{ margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }}
+    header {{ display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }}
+    main {{ max-width: 480px; margin: 0 auto; padding: 64px 16px; text-align: center; }}
+    h1 {{ font-size: 26px; margin: 0 0 12px; }}
+    p {{ color: var(--muted); }}
+    a.button {{ display: inline-block; margin-top: 12px; padding: 10px 20px; border-radius: 999px; background: var(--link);
+      color: var(--bg); font-weight: 600; text-decoration: none; }}
+  </style>
+</head>
+<body>
+<header><ef-home light></ef-home><ef-profile light next="{next_attr}"></ef-profile></header>
+<main>
+{body}
+</main>
+</body>
+</html>
+"""
+
+
+@bp.get("/denied")
+def denied():
+    """The page nginx shows (error_page 401/403) when /auth/verify?page= refuses a visitor.
+
+    nginx passes the refused path in X-Original-URI; ?next= works too, for a direct link. A fetch that asks for JSON
+    (the dashboard's API calls) gets JSON, so it can tell a refusal from a broken response.
+    """
+    status = 403 if request.args.get("status") == "403" else 401
+    next_path = safe_next(request.args.get("next") or request.headers.get("X-Original-URI"))
+    if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+        return no_store(make_response(jsonify(error="forbidden" if status == 403 else "sign_in_required"), status))
+    if status == 401 and not _enabled():
+        title = "No access"
+        body = f"  <h1>{title}</h1>\n  <p>This page is only open to people who are signed in, and sign-in is off here.</p>"
+    elif status == 401:
+        title = "Sign in to continue"
+        login = "/auth/login?next=" + quote(next_path, safe="")
+        body = (f"  <h1>{title}</h1>\n  <p>This page is only open to people who are signed in.</p>\n"
+                f'  <a class="button" href="{html.escape(login)}">Sign in</a>')
+    else:
+        title = "No access"
+        body = f"  <h1>{title}</h1>\n  <p>You don't have access to this page. Ask an admin.</p>"
+    page = DENIED_PAGE.format(title=title, next_attr=html.escape(next_path), body=body)
+    response = current_app.response_class(page, status=status, mimetype="text/html")
     return no_store(response)

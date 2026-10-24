@@ -53,17 +53,18 @@ docker compose down
 
 ## Auth
 
-Site-wide Google sign-in lives in the Flask app (`services/app/auth.py`), at `/auth/*`. It only knows who you are; every
-page stays open to signed-out visitors, and signing in grants nothing by itself. Who may use the Strelitzia dashboard
-stays in Strelitzia's own `users` table (owner + invites).
+Site-wide Google sign-in lives in the Flask app (`services/app/auth.py`), at `/auth/*`. It only knows who you are, and
+signing in grants nothing by itself. What a visitor may open comes from the site permissions (`services/app/perms.py`,
+edited on `/users/` by admins) and nginx enforces it (see **Site permissions** below).
 
 | Route | What |
 |---|---|
 | `GET /auth/login?next=<path>` | 303 to Google (`openid email profile`, `prompt=select_account`). `next` must be a same-site path. |
 | `GET /auth/callback` | Checks `state`, exchanges the code, verifies the ID token (verified email only), 303 to `next`; failures go to `next?signin=error` and store nothing. |
-| `GET /auth/me` | `{"enabled", "signed_in", "email", "name"}`, `Cache-Control: no-store`. |
+| `GET /auth/me` | `{"enabled", "signed_in", "email", "name", "admin", "pages"}` (`pages`: the page keys this visitor may open; the header uses them and `admin` for its links), `Cache-Control: no-store`. |
 | `POST /auth/logout` | Clears the session, 204. |
-| `GET /auth/verify` | For nginx `auth_request`: 204, with `X-Auth-Request-Email`, `X-Auth-Request-User` (Google `sub`) and `X-Auth-Request-Preferred-Username` (percent-encoded name) only when signed in. oauth2-proxy's header names. |
+| `GET /auth/verify?page=<key>` | For nginx `auth_request` (a 404 from outside): 204 when the visitor may open the page, with `X-Auth-Request-Access`, `-Admin` (and `-Cap-Usd` for Strelitzia), plus `X-Auth-Request-Email`, `-User` (Google `sub`) and `-Preferred-Username` (percent-encoded name) when signed in; else 401 signed out, 403 signed in. oauth2-proxy's header names. |
+| `GET /auth/denied?status=401\|403` | The no-access page nginx shows on a refusal (`X-Original-URI` or `?next=` is the page asked for): 401 "Sign in to continue" with a Sign in button, 403 "You don't have access to this page. Ask an admin." A request that asks for JSON gets `{"error": ...}` instead. |
 
 - **Cookie** `ef_session`: Flask's signed session, `Path=/`, no `Domain` (host-only, so prod, preprod, `www` and
   `umami.` never share it), `HttpOnly`, `Secure`, `SameSite=Lax`, 30 days from sign-in. Signed with `SITE_SESSION_SECRET`.
@@ -77,6 +78,28 @@ stays in Strelitzia's own `users` table (owner + invites).
   top left and the `<ef-profile>` sign-in / profile / Sign out control top right. See `services/shared/README.md`.
   `node scripts/check-header-layout.mjs <base-url> [--netrc FILE]` checks the signed-in header fits on one row at 1280 and 390 px.
 - Tests (dev only, no CI): `cd services/app && python -m pytest test_auth.py -q`.
+
+### Site permissions
+
+Every page on `engineerfamily.net` and `preprod.engineerfamily.net` needs the **Site** grant; some pages also need their
+own grant (**Strelitzia** for `/strelitzia/dashboard/`, **Bracket Analyzer** for `/bracket/`). A page's own grant
+is never enough on its own: `/auth/verify?page=<key>` also requires Site, because the page's `auth_request` replaces
+the server-level Site check. The **Everyone** row
+covers signed-out visitors and anyone not on the list: on prod it starts with Site (`SITE_EVERYONE=site`), so the public
+site looks unchanged; on preprod it starts empty, so preprod is sign-in-only. While no admin exists at all, everyone gets
+Site, so a deploy before the DB and `.env` step (`agents/DEPLOY.md`) can't lock anyone out.
+
+- **How**: the main vhost in `nginx.{prod,preprod}.conf` sets `auth_request /_auth_site` at server level, and each
+  restricted page's location replaces it with its own (`/_auth_strelitzia`, `/_auth_bracket`). Each `/_auth_<key>` is an
+  internal location proxying to `/auth/verify?page=<key>`. A 401 or 403 goes to `@denied401` / `@denied403`, which show
+  `/auth/denied`. The dashboard also gets the visitor's `X-Auth-Request-Access`, `-Admin` and `-Cap-Usd`.
+- **Open without Site** (`auth_request off`): `/auth/` (sign-in and the no-access page), `/privacy` and
+  `/strelitzia/privacy` with its `style.css` and `favicon.svg` (Google's consent screen links them), `/healthz`,
+  `/robots.txt`, `/shared/`, `/favicon.ico`, the Vite `/assets/` bundle, and the preprod `127.0.0.1` health server.
+  The `/strelitzia/` about page needs Site. `nginx.local.conf` has no sign-in, so local stays ungated.
+- **Adding a restricted page**: one `Page(...)` entry in `PAGES` in `services/app/perms.py` (it shows up on `/users/`),
+  plus in both nginx confs one `location = /_auth_<key>` (a copy of `/_auth_bracket`) and `auth_request /_auth_<key>;`
+  in the page's location. Don't use a bare `return` there: it runs before `auth_request`, so nothing is checked.
 
 ---
 
@@ -128,11 +151,12 @@ Recommended pattern for this repo now:
    - `engineerfamily.net` -> `app:8000` (including `/auth/*` and `/privacy`)
    - `engineerfamily.net/shared/` -> static files in `services/shared/` (the shared header script)
    - `engineerfamily.net/strelitzia/` -> static files in `services/strelitzia/` (served by nginx)
-   - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000`, behind `auth_request` to Flask's `/auth/verify`:
-     nginx sets `X-Auth-Request-{Email,User,Preferred-Username}` from the site sign-in, replacing any client copy, and the
-     dashboard (`STRELITZIA_AUTH_MODE=proxy`) checks its invites. `/auth/verify` is a 404 from outside, and
+   - Every page on the main host needs the Site grant, checked by nginx `auth_request` (see **Site permissions**)
+   - `engineerfamily.net/strelitzia/dashboard/` -> `strelitzia:8000`, behind `auth_request` to Flask's
+     `/auth/verify?page=strelitzia`: nginx sets `X-Auth-Request-{Email,User,Preferred-Username,Access,Admin,Cap-Usd}`,
+     replacing any client copy, for the dashboard (`STRELITZIA_AUTH_MODE=proxy`). `/auth/verify` is a 404 from outside, and
      `strelitzia` sits only on the `dashboard` network (with `nginx` and `postgres-db`), so nothing else can reach it.
-     Preprod has no basic auth either: Google sign-in gates the dashboard as on prod, and `preprod.engineerfamily.net`
+     Preprod has no basic auth: its Everyone row has no Site grant, so it is sign-in-only, and `preprod.engineerfamily.net`
      sends `X-Robots-Tag: noindex, nofollow` and a `Disallow: /` robots.txt. Ship Strelitzia trunk with `make strelitzia-deploy`
    - `www.engineerfamily.net` -> 301 to `engineerfamily.net` (one host-only `ef_session` cookie)
    - `streamlit.engineerfamily.net` -> 301 to `engineerfamily.net` while the `streamlit` profile is off

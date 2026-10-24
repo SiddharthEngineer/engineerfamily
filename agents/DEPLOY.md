@@ -77,6 +77,21 @@ Merging to `main` never ships prod: until the next `prod-release`, prod keeps ru
 The `prod` branch in `/srv/engineerfamily-prod` (tracking `origin/prod`) belongs to the deploy script, which recreates it on
 every deploy. Don't `git pull` there: it can only bring in what the last deploy pushed to `origin/prod`.
 
+#### Site permissions setup (ROADMAP M2)
+
+The site permissions (README.md, **Site permissions**) need their DB and `.env` values in each env. Until then the app
+runs in env-only mode, and with no admin anywhere everyone keeps Site, so nothing locks up; but nobody can grant
+anything. Real addresses go only in the `/srv` `.env` files, never in the repo, an issue or a PR.
+
+1. Preprod, in `/srv/engineerfamily-preprod/.env`: `SITE_DB_PASSWORD_PREPROD=` (`openssl rand -hex 24`) and
+   `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy`.
+2. Prod, **before the first prod deploy containing site-perms parts 1-3** (the nginx gate ships in part 3): in
+   `/srv/engineerfamily-prod/.env` `SITE_DB_PASSWORD=`, `SITE_ADMIN_EMAILS=` and `SITE_MEMBER_EMAILS=`, then
+   `make site-db-init`. The emails seed an empty DB once; after that `/users/` decides. Prod's Everyone row starts with
+   Site, so the public site stays open.
+3. Check from outside: signed out, `https://preprod.engineerfamily.net/` answers 401 (the "Sign in to continue" page),
+   and `/privacy`, `/strelitzia/privacy`, `/healthz` and `/shared/site-header.js` answer 200.
+
 #### How the workflow works
 
 1. Resolves `ref` as a tag or branch commit on origin.

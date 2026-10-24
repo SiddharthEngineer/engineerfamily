@@ -21,7 +21,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E7 | Wordle solver 3/3: `wordle` service, nginx `/wordle/`, make targets, home link | [wordle-solver-3-deploy](plans/wordle-solver-3-deploy.md) | review | 🟡 Tasks 1–3 done 2026-10-22, PR open; Task 4 (/srv checkouts + preprod) left for the user | E6, M1 |
 | E8 | Site permissions 1/4: `engineerfamily` DB, per-page grants, admin API, `/auth/verify?page=` | [site-perms-1-store](plans/site-perms-1-store.md) | review | ✅ built 2026-10-23, PR open (preprod checks after M2) | E4 (queue order) |
 | E9 | Site permissions 2/4: admin-only Users page at `/users/`, profile-menu link | [site-perms-2-users-page](plans/site-perms-2-users-page.md) | review | ✅ built 2026-10-23 (PR pending review) | E8, E3 |
-| E10 | Site permissions 3/4: nginx enforces Site + per-page access, no-access pages | [site-perms-3-gate](plans/site-perms-3-gate.md) | review | ⏳ planned 2026-10-21 | E9, M2 (preprod half) |
+| E10 | Site permissions 3/4: nginx enforces Site + per-page access, no-access pages | [site-perms-3-gate](plans/site-perms-3-gate.md) | review | ✅ built 2026-10-24, PR open (preprod checks after M2) | E9, M2 (preprod half) |
 | E11 | Version in the header's account menu (prod `vX.Y`, preprod `vX.Y.Z` or the PR branch, dashboard too); `make prod-release` deploys the newest tag and promotes its release; old tag flow retired | [site-version](plans/site-version.md) | review | ✅ (#74) | E3, agent-runner A21 |
 
 ## Backlog
