@@ -165,6 +165,40 @@ def test_disabled_without_client_id(monkeypatch):
     assert client.get("/auth/verify").status_code == 204
 
 
+def test_denied_signed_out(client):
+    resp = client.get("/auth/denied", query_string={"status": "401"}, headers={"X-Original-URI": "/games/?a=1&b=2"})
+    assert resp.status_code == 401
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert resp.mimetype == "text/html"
+    page = resp.get_data(as_text=True)
+    assert "Sign in to continue" in page
+    assert 'href="/auth/login?next=%2Fgames%2F%3Fa%3D1%26b%3D2"' in page
+    assert 'next="/games/?a=1&amp;b=2"' in page
+    assert "/shared/site-header.js" in page and "<ef-home" in page
+
+
+def test_denied_signed_in(client):
+    resp = client.get("/auth/denied", query_string={"status": "403", "next": "/strelitzia/dashboard/"})
+    assert resp.status_code == 403
+    page = resp.get_data(as_text=True)
+    assert "You don't have access to this page. Ask an admin." in page
+    assert "/auth/login" not in page
+    assert 'next="/strelitzia/dashboard/"' in page
+
+
+@pytest.mark.parametrize("next_path", ["//evil.com/", "https://evil.com/", "/\\evil.com"])
+def test_denied_blocks_open_redirect(client, next_path):
+    page = client.get("/auth/denied", query_string={"status": "401", "next": next_path}).get_data(as_text=True)
+    assert "evil.com" not in page
+    assert 'href="/auth/login?next=%2F"' in page
+
+
+def test_denied_escapes_next(client):
+    page = client.get("/auth/denied", query_string={"next": '/x"><script>alert(1)</script>'}).get_data(as_text=True)
+    assert "<script>alert" not in page
+    assert 'next="/x&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"' in page
+
+
 @pytest.mark.parametrize("missing", ["GOOGLE_CLIENT_SECRET", "SITE_SESSION_SECRET", "PUBLIC_URL"])
 def test_refuses_half_configured(monkeypatch, missing):
     with pytest.raises(RuntimeError, match=missing):

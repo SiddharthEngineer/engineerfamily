@@ -6,6 +6,7 @@ host-only (no Domain), Path=/, HttpOnly, Secure on https, SameSite=Lax, 30 days.
 enabled: false) while GOOGLE_CLIENT_ID is unset.
 """
 
+import html
 import logging
 import os
 import secrets
@@ -231,4 +232,58 @@ def verify():
         response.headers["X-Auth-Request-User"] = session["sub"]
         # Headers are Latin-1, so the display name is percent-encoded (the dashboard unquotes it).
         response.headers["X-Auth-Request-Preferred-Username"] = quote(session.get("name") or "", safe="")
+    return no_store(response)
+
+
+DENIED_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} · engineerfamily</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico">
+  <script src="/shared/site-header.js" defer></script>
+  <style>
+    :root {{ --bg: #f8f4eb; --fg: #2e1f14; --muted: #6d5a4c; --link: #a3462d; }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{ --bg: #1b1612; --fg: #f3eee6; --muted: #c2b5a8; --link: #f0a58d; }}
+    }}
+    body {{ margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }}
+    header {{ display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; }}
+    main {{ max-width: 480px; margin: 0 auto; padding: 64px 16px; text-align: center; }}
+    h1 {{ font-size: 26px; margin: 0 0 12px; }}
+    p {{ color: var(--muted); }}
+    a.button {{ display: inline-block; margin-top: 12px; padding: 10px 20px; border-radius: 999px; background: var(--link);
+      color: var(--bg); font-weight: 600; text-decoration: none; }}
+  </style>
+</head>
+<body>
+<header><ef-home light></ef-home><ef-profile light next="{next_attr}"></ef-profile></header>
+<main>
+{body}
+</main>
+</body>
+</html>
+"""
+
+
+@bp.get("/denied")
+def denied():
+    """The page nginx shows (error_page 401/403) when /auth/verify?page= refuses a visitor.
+
+    nginx passes the refused path in X-Original-URI; ?next= works too, for a direct link.
+    """
+    status = 403 if request.args.get("status") == "403" else 401
+    next_path = safe_next(request.args.get("next") or request.headers.get("X-Original-URI"))
+    if status == 401:
+        title = "Sign in to continue"
+        login = "/auth/login?next=" + quote(next_path, safe="")
+        body = (f"  <h1>{title}</h1>\n  <p>This page is only open to people who are signed in.</p>\n"
+                f'  <a class="button" href="{html.escape(login)}">Sign in</a>')
+    else:
+        title = "No access"
+        body = f"  <h1>{title}</h1>\n  <p>You don't have access to this page. Ask an admin.</p>"
+    page = DENIED_PAGE.format(title=title, next_attr=html.escape(next_path), body=body)
+    response = current_app.response_class(page, status=status, mimetype="text/html")
     return no_store(response)
