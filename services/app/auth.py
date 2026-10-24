@@ -211,7 +211,8 @@ def verify():
     """For nginx auth_request, with the identity headers (oauth2-proxy's names) only when signed in.
 
     Without ?page= it always answers 204. With ?page=<key>: 204 plus X-Auth-Request-Access/-Admin (and -Cap-Usd for
-    cap pages) when the visitor may open that page, else 401 signed out or 403 signed in. Unknown key: 404.
+    cap pages) when the visitor may open that page, else 401 signed out or 403 signed in. Unknown key: 404. Every page
+    also needs `site`: a page's own auth_request replaces nginx's server-level Site check.
     """
     key = request.args.get("page")
     response = current_app.response_class(status=204)
@@ -221,7 +222,7 @@ def verify():
         except perms.PermsError:
             abort(404)
         access = current_access()
-        if key not in access.pages:
+        if key not in access.pages or "site" not in access.pages:
             return no_store(current_app.response_class(status=403 if access.email else 401))
         response.headers["X-Auth-Request-Access"] = key
         response.headers["X-Auth-Request-Admin"] = "1" if access.admin else "0"

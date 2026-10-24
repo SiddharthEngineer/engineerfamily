@@ -7,6 +7,7 @@ import pytest
 from flask import Flask
 
 import auth
+import perms
 
 
 ENV = {
@@ -143,6 +144,19 @@ def test_verify_headers_only_with_session(client, google):
     assert resp.headers["X-Auth-Request-Email"] == "test@example.com"
     assert resp.headers["X-Auth-Request-User"] == "1234567890"
     assert resp.headers["X-Auth-Request-Preferred-Username"] == "Zo%C3%AB%20Test"
+
+
+@pytest.mark.parametrize("pages, key, expected", [
+    ({"site", "strelitzia"}, "strelitzia", 204),
+    ({"strelitzia"}, "strelitzia", 403),
+    ({"bracket"}, "bracket", 403),
+    ({"site"}, "bracket", 403),
+    ({"site"}, "site", 204),
+])
+def test_verify_page_needs_site_too(client, monkeypatch, pages, key, expected):
+    access = perms.Access(email="test@example.com", admin=False, pages=frozenset(pages), cap_usd=None)
+    monkeypatch.setattr(auth, "current_access", lambda: access)
+    assert client.get("/auth/verify", query_string={"page": key}).status_code == expected
 
 
 def test_logout_clears_session(client, google):

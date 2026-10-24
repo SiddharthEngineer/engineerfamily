@@ -82,7 +82,9 @@ edited on `/users/` by admins) and nginx enforces it (see **Site permissions** b
 ### Site permissions
 
 Every page on `engineerfamily.net` and `preprod.engineerfamily.net` needs the **Site** grant; some pages also need their
-own grant (**Strelitzia** for `/strelitzia/dashboard/`, **Bracket Analyzer** for `/bracket/`). The **Everyone** row
+own grant (**Strelitzia** for `/strelitzia/dashboard/`, **Bracket Analyzer** for `/bracket/`). A page's own grant
+is never enough on its own: `/auth/verify?page=<key>` also requires Site, because the page's `auth_request` replaces
+the server-level Site check. The **Everyone** row
 covers signed-out visitors and anyone not on the list: on prod it starts with Site (`SITE_EVERYONE=site`), so the public
 site looks unchanged; on preprod it starts empty, so preprod is sign-in-only. While no admin exists at all, everyone gets
 Site, so a deploy before the DB and `.env` step (`agents/DEPLOY.md`) can't lock anyone out.
