@@ -55,7 +55,7 @@ link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to 
 - Other vhosts that serve site content (www, `strelitzia(-preprod)`/`applypilot(-preprod)` redirects) only redirect to
   the main host today; confirm that and leave them. Don't touch umami/streamlit vhosts.
 **Validate:** `scripts/validate.sh` → passes (`nginx -t` for each conf).
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (6dfe147). `/bracket/` proxies to the app (404) instead of `return 404`: `return` runs before `auth_request`, so it would skip the check.
 
 ### Task 3: Docs
 **Runs:** unattended
