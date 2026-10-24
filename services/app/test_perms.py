@@ -343,6 +343,9 @@ def test_admin_invites_changes_and_removes(site):
                         json={"pages": {"strelitzia": True, "site": False}, "cap_usd": 12.5})
     assert resp.status_code == 200
     assert resp.get_json()["pages"] == ["strelitzia"] and resp.get_json()["cap_usd"] == 12.5
+    # A page grant without Site opens nothing: the page's auth_request replaces nginx's Site check.
+    assert as_(site, "new@example.com").get("/auth/verify?page=strelitzia").status_code == 403
+    assert client.patch("/api/admin/users/new@example.com", json={"pages": {"site": True}}).status_code == 200
     assert as_(site, "new@example.com").get("/auth/verify?page=strelitzia").headers["X-Auth-Request-Cap-Usd"] == "12.50"
     assert client.patch("/api/admin/users/new@example.com", json={"cap_usd": None}).get_json()["cap_usd"] is None
     assert client.patch("/api/admin/users/new@example.com", json={"admin": True}).get_json()["admin"] is True
@@ -378,6 +381,8 @@ def test_admin_changes_everyone(site):
     assert resp.status_code == 200
     assert resp.get_json()["pages"] == ["bracket"]
     assert as_(site).get("/auth/verify?page=site").status_code == 401
+    assert as_(site).get("/auth/verify?page=bracket").status_code == 401
+    assert client.patch("/api/admin/everyone", json={"pages": {"site": True}}).status_code == 200
     assert as_(site).get("/auth/verify?page=bracket").status_code == 204
     resp = client.patch("/api/admin/everyone", json={"pages": {"strelitzia": True}})
     assert resp.status_code == 400 and "needs an account" in resp.get_json()["error"]

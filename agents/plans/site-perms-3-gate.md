@@ -1,5 +1,5 @@
 # Plan: Site permissions 3/4: nginx enforces Site and per-page access
-**Status:** ❌ Not started
+**Status:** ✅ Done 2026-10-24 (preprod checks wait for M2 and a preprod deploy)
 **Risk:** review (nginx on every public route; a mistake locks people out or opens a page)
 **Depends on:** site-perms-1-store, site-perms-2-users-page
 
@@ -36,7 +36,7 @@ to match) with the shared header (`/shared/site-header.js`, `<ef-home>`, `<ef-pr
 link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to this page. Ask an admin." (403). Escape
 `next`. Reuse `safe_next`.
 **Validate:** `cd services/app && python -m pytest -q` → passes, including the escaping and open-redirect cases.
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (8d57795)
 
 ### Task 2: Gate prod and preprod in nginx
 **Runs:** unattended
@@ -55,7 +55,7 @@ link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to 
 - Other vhosts that serve site content (www, `strelitzia(-preprod)`/`applypilot(-preprod)` redirects) only redirect to
   the main host today; confirm that and leave them. Don't touch umami/streamlit vhosts.
 **Validate:** `scripts/validate.sh` → passes (`nginx -t` for each conf).
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (6dfe147). `/bracket/` proxies to the app (404) instead of `return 404`: `return` runs before `auth_request`, so it would skip the check.
 
 ### Task 3: Docs
 **Runs:** unattended
@@ -64,7 +64,7 @@ link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to 
 (one `PAGES` entry in `services/app/perms.py` + one `/_auth_<key>` location). DEPLOY.md: the M2 steps (DB init, `.env`
 variables, no real emails) and that prod needs them before the first prod deploy containing parts 1-3.
 **Validate:** `scripts/validate.sh` → passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (acccbd7)
 
 ## Validation
 - `scripts/validate.sh` passes; `cd services/app && python -m pytest -q` passes.

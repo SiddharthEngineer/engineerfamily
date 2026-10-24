@@ -7,6 +7,7 @@ import pytest
 from flask import Flask
 
 import auth
+import perms
 
 
 ENV = {
@@ -145,6 +146,19 @@ def test_verify_headers_only_with_session(client, google):
     assert resp.headers["X-Auth-Request-Preferred-Username"] == "Zo%C3%AB%20Test"
 
 
+@pytest.mark.parametrize("pages, key, expected", [
+    ({"site", "strelitzia"}, "strelitzia", 204),
+    ({"strelitzia"}, "strelitzia", 403),
+    ({"bracket"}, "bracket", 403),
+    ({"site"}, "bracket", 403),
+    ({"site"}, "site", 204),
+])
+def test_verify_page_needs_site_too(client, monkeypatch, pages, key, expected):
+    access = perms.Access(email="test@example.com", admin=False, pages=frozenset(pages), cap_usd=None)
+    monkeypatch.setattr(auth, "current_access", lambda: access)
+    assert client.get("/auth/verify", query_string={"page": key}).status_code == expected
+
+
 def test_logout_clears_session(client, google):
     state = start_login(client)["state"][0]
     client.get("/auth/callback", query_string={"state": state, "code": "abc"})
@@ -163,6 +177,59 @@ def test_disabled_without_client_id(monkeypatch):
     assert resp.get_json() == {"enabled": False, "signed_in": False, "email": None, "name": None,
                                "admin": False, "pages": ["site"]}
     assert client.get("/auth/verify").status_code == 204
+
+
+def test_denied_signed_out(client):
+    resp = client.get("/auth/denied", query_string={"status": "401"}, headers={"X-Original-URI": "/games/?a=1&b=2"})
+    assert resp.status_code == 401
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert resp.mimetype == "text/html"
+    page = resp.get_data(as_text=True)
+    assert "Sign in to continue" in page
+    assert 'href="/auth/login?next=%2Fgames%2F%3Fa%3D1%26b%3D2"' in page
+    assert 'next="/games/?a=1&amp;b=2"' in page
+    assert "/shared/site-header.js" in page and "<ef-home" in page
+
+
+def test_denied_signed_in(client):
+    resp = client.get("/auth/denied", query_string={"status": "403", "next": "/strelitzia/dashboard/"})
+    assert resp.status_code == 403
+    page = resp.get_data(as_text=True)
+    assert "You don't have access to this page. Ask an admin." in page
+    assert "/auth/login" not in page
+    assert 'next="/strelitzia/dashboard/"' in page
+
+
+@pytest.mark.parametrize("next_path", ["//evil.com/", "https://evil.com/", "/\\evil.com"])
+def test_denied_blocks_open_redirect(client, next_path):
+    page = client.get("/auth/denied", query_string={"status": "401", "next": next_path}).get_data(as_text=True)
+    assert "evil.com" not in page
+    assert 'href="/auth/login?next=%2F"' in page
+
+
+def test_denied_escapes_next(client):
+    page = client.get("/auth/denied", query_string={"next": '/x"><script>alert(1)</script>'}).get_data(as_text=True)
+    assert "<script>alert" not in page
+    assert 'next="/x&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"' in page
+
+
+def test_denied_json_for_api_calls(client):
+    resp = client.get("/auth/denied", query_string={"status": "403"}, headers={"Accept": "application/json"})
+    assert resp.status_code == 403
+    assert resp.headers["Cache-Control"] == "no-store"
+    assert resp.get_json() == {"error": "forbidden"}
+    resp = client.get("/auth/denied", query_string={"status": "401"}, headers={"Accept": "application/json"})
+    assert (resp.status_code, resp.get_json()) == (401, {"error": "sign_in_required"})
+    # A browser sends text/html first (and */*), so it gets the page.
+    resp = client.get("/auth/denied", headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
+    assert resp.mimetype == "text/html"
+
+
+def test_denied_without_sign_in_has_no_login_link(monkeypatch):
+    client = make_app(monkeypatch, {}).test_client()
+    resp = client.get("/auth/denied", query_string={"status": "401"})
+    assert resp.status_code == 401
+    assert "/auth/login" not in resp.get_data(as_text=True)
 
 
 @pytest.mark.parametrize("missing", ["GOOGLE_CLIENT_SECRET", "SITE_SESSION_SECRET", "PUBLIC_URL"])
