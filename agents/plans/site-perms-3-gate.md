@@ -36,7 +36,7 @@ to match) with the shared header (`/shared/site-header.js`, `<ef-home>`, `<ef-pr
 link to `/auth/login?next=<safe_next(next)>` (401) or "You don't have access to this page. Ask an admin." (403). Escape
 `next`. Reuse `safe_next`.
 **Validate:** `cd services/app && python -m pytest -q` → passes, including the escaping and open-redirect cases.
-**Status:** ❌
+**Status:** ✅ 2026-10-24 (8d57795)
 
 ### Task 2: Gate prod and preprod in nginx
 **Runs:** unattended
