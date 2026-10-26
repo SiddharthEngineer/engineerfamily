@@ -1,5 +1,5 @@
 # Plan: components.toml pins Strelitzia and Wordle; every deploy builds the pinned tags
-**Status:** ❌ Not started
+**Status:** ✅ Built 2026-10-26 (PR open; prod needs M5)
 **Risk:** review (the prod and preprod deploy path: `scripts/vps/engineerfamily-deploy`, `Makefile`, `scripts/`)
 **Depends on:** M4 (Strelitzia and Wordle have `v1.0.0` tags and releases)
 
@@ -51,7 +51,7 @@ service = "wordle"
 `check [--remote]` → exit 1 with one line per problem (unknown key, missing `repo`/`tag`/`service`, a tag not matching the
 regex, a name not `[a-z][a-z0-9-]*`); `--remote` also checks each tag exists (`git ls-remote --tags https://github.com/<repo>`).
 **Validate:** `python3 scripts/components.py check --remote` → exit 0; `python3 scripts/components.py list` → 2 lines.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 2: deploys check out the pins
 **Runs:** unattended
@@ -66,7 +66,7 @@ skips the step with a note, leaving the child checkouts as they are. `preprod-de
 pinned tag (`ref=` still overrides, e.g. `ref=origin/trunk` for a hand deploy of the head).
 **Validate:** `scripts/validate.sh` passes (`bash -n` covers the root script); `make -n preprod-deploy` shows the
 checkouts at the pinned tags (agents can't run `make` against `/srv`: read the recipe and note it in the PR).
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 3: validate the pins everywhere
 **Runs:** unattended
@@ -76,7 +76,7 @@ checkouts at the pinned tags (agents can't run `make` against `/srv`: read the r
 runs `components.py` against temp files: good file → exit 0 and 2 `list` lines; a bad tag, a missing key, an unknown key and a
 bad name each → exit 1 with the problem named. `scripts/validate.sh` runs the test too.
 **Validate:** `bash tests/components-test.sh` → one `ok` per case; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 4: docs and tracking
 **Runs:** unattended
@@ -86,7 +86,7 @@ runner's bump PRs, `hold`), how preprod for a child PR still runs the PR head, a
 now default to the pin. The `/srv` table: child checkouts sit at pinned tags. AGENTS.md Map and Deploys bullets. ROADMAP:
 E12 row, M5 (reinstall the root deploy script).
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes, including the new `components` step and test; CI is green.

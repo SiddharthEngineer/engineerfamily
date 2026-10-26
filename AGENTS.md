@@ -8,6 +8,7 @@ Layout and routing are in `README.md`; how deploys work is in `agents/DEPLOY.md`
 - `services/`: `app/` (Flask home page and site auth), `nginx/` (`nginx.{local,preprod,prod}.conf`), `strelitzia/` and
   `shared/` (static files nginx serves), `streamlit/`.
 - `docker-compose.base.yml` + `docker-compose.{local,preprod,prod}.yml`; `.env.template` (the real `.env` files live in `/srv`).
+- `components.toml`: the Strelitzia and Wordle tags every deploy builds (`scripts/components.py` reads it); a pin change is a PR.
 - `Makefile`: dev, preprod and prod targets (they act on the `/srv` checkouts wherever make runs); `make prod-changes`.
 - `scripts/`: `validate.sh`, `prod-changes.sh`, `site-version.sh` (header version), DB setup, `vps/` (deploy user and SSH hardening).
 - `agents/ROADMAP.md`: the only status tracker. `agents/plans/<slug>.md`: one spec per change (`done/` holds the archive).
@@ -23,8 +24,8 @@ for each conf. CI runs the same on every PR.
 ## Deploys
 - **Preprod:** `make preprod-deploy [ref=<sha|tag|origin/branch>]` on the VPS. No tag needed. Push first, because it deploys what is on GitHub.
 - **Prod:** only with the user's explicit go-ahead, every time. `make prod-release [v=X.Y.Z]` deploys the newest tag and
-  promotes its GitHub release. Rollback: `make deploy-prod ref=<previous tag>`. The Strelitzia dashboard ships on its own
-  with `make strelitzia-deploy [ref=<sha>]`.
+  promotes its GitHub release. Every deploy checks Strelitzia and Wordle out at their `components.toml` pins first. Rollback: `make deploy-prod ref=<previous tag>`. The Strelitzia dashboard ships on its own
+  with `make strelitzia-deploy [ref=<sha>]` (default: its pin).
   Run `make prod-changes` first to see what will ship.
 - After a deploy, check from outside, through Cloudflare: `curl -s -o /dev/null -w "%{http_code}" https://<host>/`. A check
   against `127.0.0.1:8080` doesn't prove the public hostname routes to the right nginx.
