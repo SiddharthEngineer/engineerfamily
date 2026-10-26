@@ -40,6 +40,23 @@ It shows as its own section of the avatar menu (signed in only), between the nam
 `version.json` (local dev, or prod before the deploy script is reinstalled) means no version section. The header fetches
 it once per page with `cache: 'no-store'`, so a deploy shows up on the next page load.
 
+### Child repo pins (`components.toml`)
+
+`components.toml` at the repo root pins each child repo (Strelitzia, Wordle) to a tag. Every engineerfamily deploy, prod
+and preprod, checks each child out at its pin in `/srv/<Repo>-<env>` before it builds, and prints `→ <name> at <tag>`. So an
+engineerfamily tag names one exact set of versions: deploying it deploys its pins, and rolling back rolls the children back
+too. A ref from before the pins (no `components.toml`) leaves the child checkouts as they are.
+
+- **A pin change is an ordinary PR.** The runner opens a `Pin <name> <tag>` PR after each child merge (agent-runner A28);
+  `hold = "reason"` on a component stops that for it. A plan can also raise, hold or pair pins.
+- **Reading them:** `python3 scripts/components.py list` (or `get <name> tag`); `check [--remote]` is the validation
+  `scripts/validate.sh` runs (`--offline` skips checking the tags exist on GitHub).
+- **Preprod for a child PR** still runs that PR's head: the runner's `preprod.sh` checks the PR sha out in
+  `/srv/<Repo>-preprod` and rebuilds only that service, without `preprod-deploy`. The next `preprod-deploy` puts the pin back.
+- **`make strelitzia-deploy` / `make wordle-deploy`** default to the pin in `/srv/engineerfamily-prod/components.toml`;
+  `ref=` still overrides (e.g. `ref=origin/trunk` for a hand deploy of the head).
+- The root deploy script maps component names to `/srv` dirs itself and takes only a `vX.Y.Z` tag from the repo.
+
 ### Deploying
 
 #### Preprod Deploy
@@ -52,7 +69,7 @@ make preprod-deploy ref=origin/my-branch # a pushed branch, before merging
 make preprod-deploy ref=<sha|tag>
 ```
 
-It checks that commit out in `/srv/engineerfamily-preprod`, writes `version.json`, rebuilds the stack
+It checks that commit out in `/srv/engineerfamily-preprod`, checks the children out at its pins, writes `version.json`, rebuilds the stack
 (`up -d --build --remove-orphans`) and recreates nginx. Push the commit first, because it deploys what is on GitHub.
 The runner deploys each PR's head this way, and `main` again after a merge (once the tag exists, so the header shows it).
 
@@ -112,10 +129,10 @@ anything. Real addresses go only in the `/srv` `.env` files, never in the repo, 
 | `~dev/src/{engineerfamily,Strelitzia,…}` | Development clones. All editing and commits happen here. |
 | `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
-| `/srv/Strelitzia-prod` | Prod dashboard build context, detached at a trunk commit (`make strelitzia-deploy`). |
-| `/srv/Strelitzia-preprod` | Preprod dashboard build context, moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
-| `/srv/Wordle-prod` | Prod Wordle solver build context, detached at a `main` commit (`make wordle-deploy [ref=<sha>]`). |
-| `/srv/Wordle-preprod` | Preprod Wordle solver build context (`make preprod-wordle-deploy [ref=<sha>]`). |
+| `/srv/Strelitzia-prod` | Prod dashboard build context, detached at its pinned tag (every prod deploy, `make strelitzia-deploy`). |
+| `/srv/Strelitzia-preprod` | Preprod dashboard build context, at its pinned tag after `preprod-deploy`; moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
+| `/srv/Wordle-prod` | Prod Wordle solver build context, detached at its pinned tag (every prod deploy, `make wordle-deploy [ref=<sha>]`). |
+| `/srv/Wordle-preprod` | Preprod Wordle solver build context, at its pinned tag after `preprod-deploy` (`make preprod-wordle-deploy [ref=<sha>]`). |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename

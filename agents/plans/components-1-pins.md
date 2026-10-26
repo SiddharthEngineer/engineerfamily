@@ -86,7 +86,7 @@ runner's bump PRs, `hold`), how preprod for a child PR still runs the PR head, a
 now default to the pin. The `/srv` table: child checkouts sit at pinned tags. AGENTS.md Map and Deploys bullets. ROADMAP:
 E12 row, M5 (reinstall the root deploy script).
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes, including the new `components` step and test; CI is green.
