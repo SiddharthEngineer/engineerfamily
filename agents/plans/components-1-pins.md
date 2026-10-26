@@ -1,5 +1,5 @@
 # Plan: components.toml pins Strelitzia and Wordle; every deploy builds the pinned tags
-**Status:** ❌ Not started
+**Status:** ✅ Built 2026-10-26 (PR open; prod needs M5)
 **Risk:** review (the prod and preprod deploy path: `scripts/vps/engineerfamily-deploy`, `Makefile`, `scripts/`)
 **Depends on:** M4 (Strelitzia and Wordle have `v1.0.0` tags and releases)
 

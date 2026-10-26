@@ -8,6 +8,7 @@
 Standard library only (Python 3.11+): the root deploy script runs it on the VPS host.
 """
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -51,8 +52,13 @@ def remote_problems(data):
     out = []
     for name, comp in data.items():
         url = f"https://github.com/{comp['repo']}"
-        r = subprocess.run(["git", "ls-remote", "--tags", url, f"refs/tags/{comp['tag']}"],
-                           capture_output=True, text=True, timeout=60)
+        try:
+            r = subprocess.run(["git", "ls-remote", "--tags", url, f"refs/tags/{comp['tag']}"],
+                               capture_output=True, text=True, timeout=60,
+                               env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+        except subprocess.TimeoutExpired:
+            out.append(f"{name}: git ls-remote {url} timed out")
+            continue
         if r.returncode != 0:
             err = (r.stderr.strip().splitlines() or ["?"])[-1]
             out.append(f"{name}: git ls-remote {url} failed: {err}")

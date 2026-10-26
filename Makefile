@@ -37,18 +37,19 @@ define checkout-pins
 @if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
 		pins=$$(python3 $(1)/scripts/components.py --file $(1)/components.toml list) || exit 1; \
 		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
+			[ -n "$$name" ] || continue; \
 			case $$name in \
 				strelitzia) cdir=/srv/Strelitzia-$(2) ;; \
 				wordle) cdir=/srv/Wordle-$(2) ;; \
 				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
 			esac; \
-			git -C $$cdir fetch -q --prune --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
+			git -C $$cdir fetch -q --prune --force --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
 			echo "→ $$name at $$tag"; \
 		done; \
 	fi
 endef
 # A component's tag as pinned in the prod checkout: the default ref of strelitzia-deploy and wordle-deploy.
-pin = $$(python3 $(CURDIR)/scripts/components.py --file $(PROD_DIR)/components.toml get $(1) tag)
+pin = $$(python3 $(PROD_DIR)/scripts/components.py get $(1) tag || { echo "no $(1) pin in $(PROD_DIR) (a ref before components.toml?); pass ref=" >&2; exit 1; })
 
 # Make does not load interactive shell configuration, so also check the
 # standard Homebrew locations used on macOS.
@@ -176,7 +177,7 @@ strelitzia-up:
 
 # Prod Strelitzia builds from a detached commit, by default its components.toml pin; nobody edits /srv/Strelitzia-prod by hand.
 strelitzia-deploy:
-	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune --tags origin
+	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune --force --tags origin
 	r=$(or $(ref),$(call pin,strelitzia)) && git -C $(STRELITZIA_PROD_DIR) checkout -q --detach $$r
 	@echo "→ Strelitzia-prod at $$(git -C $(STRELITZIA_PROD_DIR) log --oneline -1)"
 	$(PROD) up -d --build --force-recreate --no-deps strelitzia
@@ -186,7 +187,7 @@ strelitzia-logs:
 
 # Wordle solver, same shape as strelitzia-deploy: a detached commit of SiddharthEngineer/Wordle in /srv/Wordle-prod.
 wordle-deploy:
-	git -C $(WORDLE_PROD_DIR) fetch -q --prune --tags origin
+	git -C $(WORDLE_PROD_DIR) fetch -q --prune --force --tags origin
 	r=$(or $(ref),$(call pin,wordle)) && git -C $(WORDLE_PROD_DIR) checkout -q --detach $$r
 	@echo "→ Wordle-prod at $$(git -C $(WORDLE_PROD_DIR) log --oneline -1)"
 	$(PROD) up -d --build --force-recreate --no-deps wordle
