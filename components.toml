@@ -1,0 +1,12 @@
+# Which version of each child repo the site runs. Every engineerfamily deploy checks these tags out before it builds.
+# The runner opens a "Pin <name> <tag>" PR after each child merge (agent-runner A28); `hold` stops that for one component.
+[strelitzia]
+repo = "SiddharthEngineer/Strelitzia"
+tag = "v1.0.0"
+service = "strelitzia"
+
+[wordle]
+repo = "SiddharthEngineer/Wordle"
+tag = "v1.0.0"
+service = "wordle"
+# hold = "reason"   # optional: the runner leaves this pin alone and logs the reason

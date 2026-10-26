@@ -51,7 +51,7 @@ service = "wordle"
 `check [--remote]` → exit 1 with one line per problem (unknown key, missing `repo`/`tag`/`service`, a tag not matching the
 regex, a name not `[a-z][a-z0-9-]*`); `--remote` also checks each tag exists (`git ls-remote --tags https://github.com/<repo>`).
 **Validate:** `python3 scripts/components.py check --remote` → exit 0; `python3 scripts/components.py list` → 2 lines.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 2: deploys check out the pins
 **Runs:** unattended
