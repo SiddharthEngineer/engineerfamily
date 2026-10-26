@@ -76,7 +76,7 @@ checkouts at the pinned tags (agents can't run `make` against `/srv`: read the r
 runs `components.py` against temp files: good file → exit 0 and 2 `list` lines; a bad tag, a missing key, an unknown key and a
 bad name each → exit 1 with the problem named. `scripts/validate.sh` runs the test too.
 **Validate:** `bash tests/components-test.sh` → one `ok` per case; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 4: docs and tracking
 **Runs:** unattended
