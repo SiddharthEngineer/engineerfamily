@@ -142,8 +142,9 @@ logs:
 ps:
 	$(PROD) ps
 
+# The clone's script against the /srv checkout: it works before the first deploy that ships the script.
 site-db-init:
-	bash $(PROD_DIR)/scripts/init-site-db.sh
+	bash $(CURDIR)/scripts/init-site-db.sh prod $(PROD_DIR)
 
 strelitzia-db-init:
 	bash $(PROD_DIR)/scripts/init-strelitzia-db.sh
@@ -204,7 +205,7 @@ preprod-ps:
 	$(PREPROD) ps
 
 preprod-site-db-init:
-	bash $(PREPROD_DIR)/scripts/init-site-db.sh preprod
+	bash $(CURDIR)/scripts/init-site-db.sh preprod $(PREPROD_DIR)
 
 preprod-strelitzia-db-init:
 	bash $(PREPROD_DIR)/scripts/init-strelitzia-db.sh preprod

@@ -87,8 +87,12 @@ anything. Real addresses go only in the `/srv` `.env` files, never in the repo, 
    `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy`.
 2. Prod, **before the first prod deploy containing site-perms parts 1-3** (the nginx gate ships in part 3): in
    `/srv/engineerfamily-prod/.env` `SITE_DB_PASSWORD=`, `SITE_ADMIN_EMAILS=` and `SITE_MEMBER_EMAILS=`, then
-   `make site-db-init`. The emails seed an empty DB once; after that `/users/` decides. Prod's Everyone row starts with
-   Site, so the public site stays open.
+   `make site-db-init` from the dev clone at `origin/main` (`git pull` first). It runs the clone's
+   `scripts/init-site-db.sh` with prod's `.env` and compose files, so it works while prod still runs a tag from before
+   the script (v1.4.0); it only creates the role and database in the running `postgres-db`. The emails seed an empty DB
+   once, when the new app first starts; after that `/users/` decides. List every current Strelitzia user in
+   `SITE_MEMBER_EMAILS` (members get every page, Strelitzia included): once the gate is live, anyone not listed loses
+   the dashboard. Prod's Everyone row starts with Site, so the public site stays open.
 3. Check from outside: signed out, `https://preprod.engineerfamily.net/` answers 401 (the "Sign in to continue" page),
    and `/privacy`, `/strelitzia/privacy`, `/healthz` and `/shared/site-header.js` answer 200.
 
