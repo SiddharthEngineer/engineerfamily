@@ -66,7 +66,7 @@ skips the step with a note, leaving the child checkouts as they are. `preprod-de
 pinned tag (`ref=` still overrides, e.g. `ref=origin/trunk` for a hand deploy of the head).
 **Validate:** `scripts/validate.sh` passes (`bash -n` covers the root script); `make -n preprod-deploy` shows the
 checkouts at the pinned tags (agents can't run `make` against `/srv`: read the recipe and note it in the PR).
-**Status:** ❌
+**Status:** ✅ 2026-10-26 (this commit)
 
 ### Task 3: validate the pins everywhere
 **Runs:** unattended

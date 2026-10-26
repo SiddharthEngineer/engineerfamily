@@ -12,12 +12,32 @@ case "$env" in
 esac
 cd "$dir"
 g() { runuser -u deploy -- git -c safe.directory="$dir" "$@"; }
+# Check out each child repo at its components.toml tag. Only the tag comes from the repo: names map to /srv dirs here.
+pins() {
+  if [ ! -f components.toml ]; then
+    echo "→ no components.toml at this ref; child checkouts left as they are"; return
+  fi
+  local lines name repo tag service cdir
+  lines=$(runuser -u deploy -- python3 scripts/components.py list)
+  while IFS=$'\t' read -r name repo tag service; do
+    case "$name" in
+      strelitzia) cdir=/srv/Strelitzia-$env ;;
+      wordle)     cdir=/srv/Wordle-$env ;;
+      *) echo "unknown component '$name' in components.toml" >&2; exit 1 ;;
+    esac
+    [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad tag '$tag' for $name" >&2; exit 1; }
+    runuser -u deploy -- git -c safe.directory="$cdir" -C "$cdir" fetch -q --prune --tags origin
+    runuser -u deploy -- git -c safe.directory="$cdir" -C "$cdir" checkout -q --detach "refs/tags/$tag"
+    echo "→ $name at $tag"
+  done <<< "$lines"
+}
 case "$action" in
   deploy)
     g remote set-url origin "$REMOTE"
     g fetch --prune --force --tags origin
     g checkout -q -B "$env" "origin/$env"
     g reset -q --hard "origin/$env"
+    pins
     # The header's version text; best effort, and gone when the ref predates site-version.sh (a rollback).
     runuser -u deploy -- bash scripts/site-version.sh "$env" "$dir" 2>/dev/null || rm -f services/shared/version.json
     "${compose[@]}" pull --ignore-pull-failures --quiet

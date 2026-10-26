@@ -30,6 +30,26 @@ PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
 	-f $(PREPROD_DIR)/docker-compose.base.yml -f $(PREPROD_DIR)/docker-compose.preprod.yml
 
+# components.toml pins each child repo to a tag (scripts/components.py reads it). $(call checkout-pins,<engineerfamily dir>,<env>)
+# checks each child out at its pin in /srv/<Child>-<env>, as scripts/vps/engineerfamily-deploy does for prod. A ref
+# without components.toml (a rollback to before the pins) leaves the child checkouts as they are.
+define checkout-pins
+@if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
+		pins=$$(python3 $(1)/scripts/components.py --file $(1)/components.toml list) || exit 1; \
+		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
+			case $$name in \
+				strelitzia) cdir=/srv/Strelitzia-$(2) ;; \
+				wordle) cdir=/srv/Wordle-$(2) ;; \
+				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
+			esac; \
+			git -C $$cdir fetch -q --prune --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
+			echo "→ $$name at $$tag"; \
+		done; \
+	fi
+endef
+# A component's tag as pinned in the prod checkout: the default ref of strelitzia-deploy and wordle-deploy.
+pin = $$(python3 $(CURDIR)/scripts/components.py --file $(PROD_DIR)/components.toml get $(1) tag)
+
 # Make does not load interactive shell configuration, so also check the
 # standard Homebrew locations used on macOS.
 GH ?= $(shell command -v gh 2>/dev/null || { \
@@ -63,14 +83,14 @@ help:
 	@echo "    site-db-init     Create the engineerfamily role + DB (site permissions) in postgres-db (idempotent)"
 	@echo "    strelitzia-db-init Create the strelitzia role + DBs in postgres-db (idempotent)"
 	@echo "    strelitzia-up    Rebuild + restart only the Strelitzia dashboard (from /srv/Strelitzia-prod as checked out)"
-	@echo "    strelitzia-deploy Check out Strelitzia origin/trunk (or ref=<sha|tag>) in /srv/Strelitzia-prod, then strelitzia-up"
+	@echo "    strelitzia-deploy Check out Strelitzia at its pin (or ref=<sha|tag|origin/trunk>) in /srv/Strelitzia-prod, then strelitzia-up"
 	@echo "    strelitzia-logs  Tail the Strelitzia dashboard logs"
-	@echo "    wordle-deploy    Check out Wordle origin/main (or ref=<sha|tag>) in $(WORDLE_PROD_DIR), rebuild only wordle"
+	@echo "    wordle-deploy    Check out Wordle at its pin (or ref=<sha|tag|origin/main>) in $(WORDLE_PROD_DIR), rebuild only wordle"
 	@echo "    wordle-logs      Tail the Wordle solver logs"
 	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
-	@echo "    preprod-deploy   Check out origin/main (or ref=<sha|tag|origin/branch>) in $(PREPROD_DIR), rebuild, reload nginx"
+	@echo "    preprod-deploy   Check out origin/main (or ref=<sha|tag|origin/branch>) in $(PREPROD_DIR) and the children at their pins, rebuild, reload nginx"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
 	@echo "    preprod-build    Rebuild preprod images"
@@ -154,20 +174,20 @@ strelitzia-db-init:
 strelitzia-up:
 	$(PROD) up -d --build --force-recreate --no-deps strelitzia
 
-# Prod Strelitzia builds from a detached, pinned commit; nobody edits /srv/Strelitzia-prod by hand.
+# Prod Strelitzia builds from a detached commit, by default its components.toml pin; nobody edits /srv/Strelitzia-prod by hand.
 strelitzia-deploy:
-	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune origin
-	git -C $(STRELITZIA_PROD_DIR) checkout -q --detach $(or $(ref),origin/trunk)
+	git -C $(STRELITZIA_PROD_DIR) fetch -q --prune --tags origin
+	r=$(or $(ref),$(call pin,strelitzia)) && git -C $(STRELITZIA_PROD_DIR) checkout -q --detach $$r
 	@echo "→ Strelitzia-prod at $$(git -C $(STRELITZIA_PROD_DIR) log --oneline -1)"
 	$(PROD) up -d --build --force-recreate --no-deps strelitzia
 
 strelitzia-logs:
 	$(PROD) logs -f --tail=100 strelitzia
 
-# Wordle solver, same shape as strelitzia-deploy: a detached, pinned commit of SiddharthEngineer/Wordle in /srv/Wordle-prod.
+# Wordle solver, same shape as strelitzia-deploy: a detached commit of SiddharthEngineer/Wordle in /srv/Wordle-prod.
 wordle-deploy:
-	git -C $(WORDLE_PROD_DIR) fetch -q --prune origin
-	git -C $(WORDLE_PROD_DIR) checkout -q --detach $(or $(ref),origin/main)
+	git -C $(WORDLE_PROD_DIR) fetch -q --prune --tags origin
+	r=$(or $(ref),$(call pin,wordle)) && git -C $(WORDLE_PROD_DIR) checkout -q --detach $$r
 	@echo "→ Wordle-prod at $$(git -C $(WORDLE_PROD_DIR) log --oneline -1)"
 	$(PROD) up -d --build --force-recreate --no-deps wordle
 
@@ -182,6 +202,7 @@ preprod-deploy:
 	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
 	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
 	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
+	$(call checkout-pins,$(PREPROD_DIR),preprod)
 	@bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR) 2>/dev/null \
 		|| { rm -f $(PREPROD_DIR)/services/shared/version.json; echo "→ no version.json (no site-version.sh at this ref)"; }
 	$(PREPROD) up -d --build --remove-orphans
