@@ -24,7 +24,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E10 | Site permissions 3/4: nginx enforces Site + per-page access, no-access pages | [site-perms-3-gate](plans/site-perms-3-gate.md) | review | ✅ built 2026-10-24, PR open (preprod checks after M2) | E9, M2 (preprod half) |
 | E11 | Version in the header's account menu (prod `vX.Y`, preprod `vX.Y.Z` or the PR branch, dashboard too); `make prod-release` deploys the newest tag and promotes its release; old tag flow retired | [site-version](plans/site-version.md) | review | ✅ (#74) | E3, agent-runner A21 |
 | E12 | Pins 1/2: `components.toml` pins Strelitzia and Wordle to tags; every engineerfamily deploy (prod and preprod) checks the pins out before it builds | [components-1-pins](plans/components-1-pins.md) | review | ✅ (#80); prod needs M5 | M4, E11 |
-| E13 | Pins 2/2: `make prod-release` ships one engineerfamily tag with its pins (one preview, one y/N, health checks), then promotes every release it moved | [components-2-release](plans/components-2-release.md) | review | ⏳ | E12, M5 before the first real run |
+| E13 | Pins 2/2: `make prod-release` ships one engineerfamily tag with its pins (one preview, one y/N, health checks), then promotes every release it moved | [components-2-release](plans/components-2-release.md) | review | ✅ (PR in review); first real run after M5 | E12, M5 before the first real run |
 
 ## Backlog
 - Dark mode for the engineerfamily pages and the site header (user, 2026-10-22: "future change"). Today the header is always light.

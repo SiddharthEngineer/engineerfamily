@@ -1,5 +1,5 @@
 # Plan: `make prod-release` ships one engineerfamily tag with its pins and promotes every release it moved
-**Status:** ❌ Not started
+**Status:** ✅ 2026-10-27 (all tasks; PR in review)
 **Risk:** review (the prod deploy path: `Makefile`, `scripts/`)
 **Depends on:** components-1-pins (E12)
 
@@ -37,7 +37,7 @@ pin, with `log_with_links` over that range from the dev clone, or `nothing new`.
 newer than the pin, naming the open `pin-bump` PR if there is one. `--plan` prints only `name<TAB>prod_ref<TAB>pin<TAB>new|same|older`
 lines (engineerfamily first) for Task 2. A target older than prod's engineerfamily tag prints `older`.
 **Validate:** `bash -n scripts/prod-changes.sh`; Task 3's test covers the output.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 2: `scripts/prod-release.sh`
 **Runs:** unattended
@@ -51,7 +51,7 @@ promotes nothing and prints `make deploy-prod ref=<prod's previous tag>`. (6) `v
 `versions promote <child> <pin>` for each child that was `new`. Print `✓ <tag> on prod: strelitzia <pin>, wordle <pin>`.
 `dry=1`: sync with `--dry-run`, the preview, and the commands it would run; no prompt.
 **Validate:** `bash -n scripts/prod-release.sh`; `make -n prod-release` prints the script call; Task 3's test passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 3: test it without prod
 **Runs:** unattended
@@ -64,7 +64,7 @@ one deploy, then promotes for engineerfamily and strelitzia only; (b) both pins 
 or promote calls; (h) a child tag newer than the pin with an open `pin-bump` PR → `not pinned yet` names it.
 `scripts/validate.sh` gets a `prod-release test` step.
 **Validate:** `bash tests/prod-release-test.sh` → 8 `ok` lines; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 4: docs and tracking
 **Runs:** unattended
@@ -74,7 +74,7 @@ rollback (`deploy-prod ref=` moves the children too and promotes nothing). `stre
 hand fixes only, and leave prod off its pins until the next deploy. AGENTS.md's Deploys bullet (drop "The Strelitzia
 dashboard ships on its own"). ROADMAP: E13 row.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes (including `prod-release test`); CI is green.
