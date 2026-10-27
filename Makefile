@@ -273,7 +273,7 @@ prod-changes:
 # promote engineerfamily and each child whose pin moved. dry=1 previews and lists the commands; nothing is deployed.
 prod-release:
 	@$(MAKE) check-github-cli
-	PROD='$(PROD)' GH='$(GH)' STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) \
+	@PROD='$(PROD)' GH='$(GH)' STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) \
 		bash $(CURDIR)/scripts/prod-release.sh $(if $(filter 1 yes true,$(dry)),--dry-run) $(if $(v),v$(patsubst v%,%,$(v)))
 
 deploy-prod:

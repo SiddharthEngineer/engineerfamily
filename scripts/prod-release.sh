@@ -56,6 +56,7 @@ git rev-parse -q --verify "refs/tags/$tag" >/dev/null || die "no tag $tag"
 
 plan=$(bash scripts/prod-changes.sh --plan "$tag") || die "scripts/prod-changes.sh --plan $tag failed"
 prod_tag=
+site_rel=
 moved=()        # children whose pin is new: "name<TAB>pin"
 pins=()         # every child: "name pin", for the summary
 changed=0
@@ -63,6 +64,7 @@ while IFS=$'\t' read -r name from to rel; do
     [ -n "$name" ] || continue
     if [ "$name" = engineerfamily ]; then
         prod_tag=$from
+        site_rel=$rel
         [ "$rel" != older ] || die "$tag is older than prod's $from; roll back with make deploy-prod ref=$tag (it promotes nothing)"
     else
         pins+=("$name $to")
@@ -79,14 +81,15 @@ fi
 # ─── 3. preview and the one question ────────────────────
 bash scripts/prod-changes.sh "$tag"
 echo
-promotes=("engineerfamily $tag")
+promotes=()     # "repo tag": engineerfamily unless prod already runs its (promoted) tag, and each moved child
+[ "$site_rel" = same ] || promotes+=("engineerfamily $tag")
 for m in ${moved[@]+"${moved[@]}"}; do promotes+=("${m%%$'\t'*} ${m#*$'\t'}"); done
 if [ "$dry" = 1 ]; then
     echo "Dry run. Would run:"
     echo "  $gh workflow run deploy.yml --ref main -f environment=prod -f ref=$tag"
     echo "  $gh run watch <run> --exit-status"
     echo "  health checks: $site/healthz, strelitzia api/health (in its container), $site/strelitzia/privacy, $site/wordle/api/health"
-    for p in "${promotes[@]}"; do echo "  agent-runner versions promote $p"; done
+    for p in ${promotes[@]+"${promotes[@]}"}; do echo "  agent-runner versions promote $p"; done
     exit 0
 fi
 printf 'Ship %s to prod? [y/N] ' "$tag"
@@ -135,9 +138,12 @@ check "$site/healthz" http_200 "$site/healthz" \
     || die "a health check failed; nothing promoted. Roll back: make deploy-prod ref=$prod_tag"
 
 # ─── 6. promote what moved ──────────────────────────────
-for p in "${promotes[@]}"; do
-    # shellcheck disable=SC2086  # "name tag"
-    agent-runner versions promote $p
+for i in "${!promotes[@]}"; do
+    # shellcheck disable=SC2086  # "repo tag"
+    agent-runner versions promote ${promotes[$i]} || {
+        left=$(printf 'agent-runner versions promote %s; ' "${promotes[@]:$i}")
+        die "$tag is on prod, but a promote failed. Still to run: ${left%; }"
+    }
 done
 summary=$(for p in ${pins[@]+"${pins[@]}"}; do echo "$p"; done | paste -sd, - | sed 's/,/, /g')
 echo "✓ $tag on prod${summary:+: $summary}"

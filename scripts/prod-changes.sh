@@ -23,7 +23,7 @@ target=
 for arg in "$@"; do
     case $arg in
         --plan) plan=1 ;;
-        -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*) echo "usage: scripts/prod-changes.sh [--plan] [<target tag>]" >&2; exit 2 ;;
         *) target=$arg ;;
     esac
@@ -69,14 +69,15 @@ relation() {  # relation <git dir> <prod commit> <target commit>: new, same, or 
 
 pin_prs=
 pin_prs_read=0
-pin_pr() {  # pin_pr <name> <tag>: "#NN" of the open pin-bump PR titled "Pin <name> <tag>", if any
-    if [ "$pin_prs_read" = 0 ]; then
-        pin_prs_read=1
-        if have_gh; then
-            pin_prs=$("$gh" pr list --repo "$site_repo" --label pin-bump --state open --json number,title \
-                --jq '.[] | "\(.number)\t\(.title)"' 2>/dev/null) || pin_prs=
-        fi
+read_pin_prs() {  # the open pin-bump PRs, "number<TAB>title" lines; once, outside $(…) so the result is kept
+    [ "$pin_prs_read" = 0 ] || return 0
+    pin_prs_read=1
+    if have_gh; then
+        pin_prs=$("$gh" pr list --repo "$site_repo" --label pin-bump --state open --json number,title \
+            --jq '.[] | "\(.number)\t\(.title)"' 2>/dev/null) || pin_prs=
     fi
+}
+pin_pr() {  # pin_pr <name> <tag>: "#NN" of the open pin-bump PR titled "Pin <name> <tag>", if any (read_pin_prs first)
     local n title
     while IFS=$'\t' read -r n title; do
         [ -n "$n" ] || continue
@@ -97,8 +98,12 @@ git rev-parse -q --verify "refs/tags/$target" >/dev/null || die "no tag $target"
 
 prod_tag=
 if have_gh; then
+    # --plan decides what prod-release ships, so it doesn't guess when GitHub can't be asked.
     prod_tag=$("$gh" release list --repo "$site_repo" --exclude-pre-releases --exclude-drafts --limit 1 \
-        --json tagName --jq '.[0].tagName // empty' 2>/dev/null) || true
+        --json tagName --jq '.[0].tagName // empty' 2>/dev/null) \
+        || { [ "$plan" = 0 ] || die "gh release list failed: can't tell which tag prod runs"; prod_tag=; }
+elif [ "$plan" = 1 ]; then
+    die "gh not found: can't tell which tag prod runs"
 fi
 if [ -z "$prod_tag" ]; then
     # No full release found (gh missing or signed out, or none promoted yet): prod's own tag, else the newest tag.
@@ -179,6 +184,7 @@ while IFS=$'\t' read -r name repo pin _service; do
     esac
     newer=$(git -C "$dev_dir" tag -l 'v[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
         | awk -v p="$pin" 'found { print } $0 == p { found = 1 }' || true)
+    [ -z "$newer" ] || read_pin_prs
     for t in $newer; do
         pr=$(pin_pr "$name" "$t")
         echo "  not pinned yet: $t${pr:+ (pin-bump PR $pr  https://github.com/$site_repo/pull/${pr#\#})}"

@@ -1,5 +1,5 @@
 # Plan: `make prod-release` ships one engineerfamily tag with its pins and promotes every release it moved
-**Status:** 🔄 In progress
+**Status:** ✅ 2026-10-27 (all tasks; PR in review)
 **Risk:** review (the prod deploy path: `Makefile`, `scripts/`)
 **Depends on:** components-1-pins (E12)
 

@@ -98,9 +98,9 @@ One engineerfamily tag is the site's version: its `components.toml` pins say whi
 5. Health checks, 6 tries 10 s apart: `https://engineerfamily.net/healthz` → 200; Strelitzia's
    `/strelitzia/dashboard/api/health` inside its container (the dashboard is behind the Site gate); `/strelitzia/privacy`
    → 200; `/wordle/api/health` → `"ok": true`. A failure promotes nothing and prints `make deploy-prod ref=<prod's tag>`.
-6. Only then `agent-runner versions promote engineerfamily <tag>`, and `versions promote <child> <pin>` for each child
-   whose pin moved, so no Latest release names a version that isn't on prod. It ends with `✓ <tag> on prod: strelitzia
-   <pin>, wordle <pin>`.
+6. Only then `agent-runner versions promote engineerfamily <tag>` (unless prod already ran it), and `versions promote
+   <child> <pin>` for each child whose pin moved, so no Latest release names a version that isn't on prod. A failed
+   promote prints the ones still to run. It ends with `✓ <tag> on prod: strelitzia <pin>, wordle <pin>`.
 
 **Rollback:** `make deploy-prod ref=<older tag>`. It triggers the same workflow, which checks the children out at that
 tag's pins too, so they roll back with it; it promotes nothing, so the Latest releases keep naming the versions you rolled
