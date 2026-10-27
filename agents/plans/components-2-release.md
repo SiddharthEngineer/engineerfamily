@@ -51,7 +51,7 @@ promotes nothing and prints `make deploy-prod ref=<prod's previous tag>`. (6) `v
 `versions promote <child> <pin>` for each child that was `new`. Print `✓ <tag> on prod: strelitzia <pin>, wordle <pin>`.
 `dry=1`: sync with `--dry-run`, the preview, and the commands it would run; no prompt.
 **Validate:** `bash -n scripts/prod-release.sh`; `make -n prod-release` prints the script call; Task 3's test passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 3: test it without prod
 **Runs:** unattended

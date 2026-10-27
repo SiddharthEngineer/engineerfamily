@@ -105,9 +105,9 @@ help:
 	@echo "    preprod-wordle-logs        Tail the preprod Wordle solver logs"
 	@echo ""
 	@echo "  Releases:"
-	@echo "    prod-release     Deploy the newest tag (or v=X.Y.Z) to prod and promote its GitHub release (asks first)"
+	@echo "    prod-release     Ship the newest tag (or v=X.Y.Z) and its pins to prod, then promote what moved (asks; dry=1 previews)"
 	@echo "    deploy-prod      Deploy a tag to prod without promoting, for rollbacks (e.g. make deploy-prod ref=v1.4.2)"
-	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last full release, Strelitzia and Wordle since prod)"
+	@echo "    prod-changes     Show what the next prod deploy would ship (engineerfamily since the last full release, each child from prod to its pin; v=X.Y.Z)"
 	@echo ""
 	@echo "  Utilities:"
 	@echo "    shell-app        Open shell in app container"
@@ -258,8 +258,9 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 
 # ─── Releases ────────────────────────────────────────────
 # The runner tags every PR merge (vX.Y.Z) and keeps a vX.Y pre-release on GitHub (agent-runner `versions`).
-#   make prod-release [v=X.Y.Z]    → deploy the newest tag (or vX.Y.Z) to prod, then promote its release to full
-#   make deploy-prod ref=vX.Y.Z    → deploy a tag without promoting anything: rollbacks
+#   make prod-release [v=X.Y.Z] [dry=1] → deploy the newest tag (or vX.Y.Z) and its pins to prod, then promote its release
+#                                         and each moved child's to full
+#   make deploy-prod ref=vX.Y.Z    → deploy a tag (children at its pins) without promoting anything: rollbacks
 # Both are the user's; agents never run them.
 
 # Read-only: what prod-release would ship next (the newest tag, or v=X.Y.Z), with PR links: engineerfamily since prod's
@@ -268,35 +269,12 @@ prod-changes:
 	@STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) GH='$(GH)' \
 		bash $(CURDIR)/scripts/prod-changes.sh $(if $(v),v$(patsubst v%,%,$(v)))
 
-# Same trigger as deploy-prod (inlined, so `make -n prod-release` runs nothing). A failed or cancelled deploy run stops
-# here, before promote. The run is the first deploy.yml run newer than the trigger titled "Deploy <tag> to prod".
+# scripts/prod-release.sh: sync tags, preview, one y/N, deploy.yml for the tag (its pins come along), health checks, then
+# promote engineerfamily and each child whose pin moved. dry=1 previews and lists the commands; nothing is deployed.
 prod-release:
 	@$(MAKE) check-github-cli
-	agent-runner versions sync engineerfamily
-	git -C $(CURDIR) fetch -q --tags origin
-	@set -eu; \
-	tag='$(if $(v),v$(patsubst v%,%,$(v)))'; \
-	tag=$${tag:-$$(git -C $(CURDIR) tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n 1)}; \
-	test -n "$$tag" || { echo "prod-release: no vX.Y.Z tag found"; exit 1; }; \
-	echo "$$tag" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "prod-release: $$tag is not a vX.Y.Z tag"; exit 1; }; \
-	git -C $(CURDIR) rev-parse -q --verify "refs/tags/$$tag" >/dev/null || { echo "prod-release: no tag $$tag"; exit 1; }; \
-	bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR); \
-	echo; echo "Deploying $$tag. Not in it (on origin/main after the tag):"; \
-	git -C $(CURDIR) log --oneline --first-parent "$$tag..origin/main" | sed 's/^/  /'; \
-	printf 'Deploy %s to prod? [y/N] ' "$$tag"; read -r answer; \
-	case "$$answer" in y|Y|yes) ;; *) echo "Not deployed."; exit 1 ;; esac; \
-	last=$$("$(GH)" run list --workflow deploy.yml --limit 1 --json databaseId --jq '.[0].databaseId // 0'); \
-	echo "→ Triggering deploy of $$tag to production..."; \
-	"$(GH)" workflow run deploy.yml --ref main -f environment=prod -f ref="$$tag"; \
-	run=; for i in $$(seq 30); do \
-		run=$$("$(GH)" run list --workflow deploy.yml --event workflow_dispatch --limit 5 --json databaseId,displayTitle \
-			--jq "[.[] | select(.databaseId > $$last and .displayTitle == \"Deploy $$tag to prod\")] | last | .databaseId // empty"); \
-		[ -n "$$run" ] && break; sleep 2; \
-	done; \
-	test -n "$$run" || { echo "prod-release: no deploy.yml run started; nothing promoted"; exit 1; }; \
-	"$(GH)" run watch "$$run" --exit-status || { echo "prod-release: deploy run $$run failed; nothing promoted"; exit 1; }; \
-	agent-runner versions promote engineerfamily "$$tag"; \
-	echo "✓ $$tag is on prod and its release is promoted"
+	PROD='$(PROD)' GH='$(GH)' STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) \
+		bash $(CURDIR)/scripts/prod-release.sh $(if $(filter 1 yes true,$(dry)),--dry-run) $(if $(v),v$(patsubst v%,%,$(v)))
 
 deploy-prod:
 	@test -n "$(ref)" || (echo "Usage: make deploy-prod ref=v1.2.3" && exit 1)
