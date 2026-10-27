@@ -171,12 +171,7 @@
         return;
       }
       const label = me.name || me.email;
-      // An older app's /auth/me has no `pages`: keep the dashboard link it always had.
-      const strelitzia = !Array.isArray(me.pages) || me.pages.includes('strelitzia');
-      const links = [
-        strelitzia ? '<a class="item" href="/strelitzia/dashboard/">Strelitzia dashboard</a>' : '',
-        me.admin ? '<a class="item users" href="/users/">Users</a>' : '',
-      ].join('');
+      const links = me.admin ? '<a class="item users" href="/users/">Users</a>' : '';
       root.innerHTML = `${css}
         <button class="pill avatar" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="ef-menu"
           aria-label="Account: ${escapeHtml(label)}" title="${escapeHtml(label)}">${escapeHtml(initials(me.name, me.email))}</button>
@@ -241,7 +236,7 @@
     }
   }
 
-  // The page header for every engineerfamily.net page but the Strelitzia dashboard: a solid bar like the dashboard's
+  // The page header for every engineerfamily.net page but Strelitzia's dashboard: a solid bar like the dashboard's
   // top bar, always light, scrolling away with the page. Light DOM, so `header nav` is queryable; one <style> in <head>.
   const SITE_HEADER_CSS = `
     ef-site-header {
