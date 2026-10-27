@@ -1,5 +1,5 @@
 # Plan: Drop "Strelitzia dashboard" from the account menu (Strelitzia issue #98, item 2)
-**Status:** ❌ Not started (planned with the user 2026-10-27)
+**Status:** ✅ Done 2026-10-27 (planned with the user 2026-10-27)
 **Risk:** low (one link in the shared header)
 **Depends on:** —
 
@@ -22,7 +22,7 @@ header's Strelitzia link.
 **What:** Delete the `strelitzia` constant and its item; `links` keeps only the Users item. Leave `me.pages` in
 `/auth/me` (the gate and other pages use it). Update any comment that mentions the dashboard link.
 **Validate:** the repo's validate script passes; `grep -n "Strelitzia dashboard" services/shared/site-header.js` → none.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (d933be3)
 
 ## Human test steps (preprod)
 1. Signed in, any page: the account menu shows name, email, version, Users (admins) and Sign out; no dashboard item.
