@@ -2,7 +2,7 @@
 # The runner opens a "Pin <name> <tag>" PR after each child merge (agent-runner A29); `hold` stops that for one component.
 [strelitzia]
 repo = "SiddharthEngineer/Strelitzia"
-tag = "v1.1.5"
+tag = "v1.1.6"
 service = "strelitzia"
 
 [wordle]
