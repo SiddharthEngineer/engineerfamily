@@ -7,6 +7,6 @@ service = "strelitzia"
 
 [wordle]
 repo = "SiddharthEngineer/Wordle"
-tag = "v1.0.0"
+tag = "v1.1.0"
 service = "wordle"
 # hold = "reason"   # optional: the runner leaves this pin alone and logs the reason
