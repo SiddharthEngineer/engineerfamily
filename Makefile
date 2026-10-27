@@ -262,9 +262,11 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 #   make deploy-prod ref=vX.Y.Z    → deploy a tag without promoting anything: rollbacks
 # Both are the user's; agents never run them.
 
-# Read-only: what deploy-prod / strelitzia-deploy / wordle-deploy would ship next, with PR links. Run it before a prod deploy.
+# Read-only: what prod-release would ship next (the newest tag, or v=X.Y.Z), with PR links: engineerfamily since prod's
+# release, and each child from what prod runs to the tag's pin.
 prod-changes:
-	@bash $(CURDIR)/scripts/prod-changes.sh $(STRELITZIA_PROD_DIR) $(WORDLE_PROD_DIR)
+	@STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) GH='$(GH)' \
+		bash $(CURDIR)/scripts/prod-changes.sh $(if $(v),v$(patsubst v%,%,$(v)))
 
 # Same trigger as deploy-prod (inlined, so `make -n prod-release` runs nothing). A failed or cancelled deploy run stops
 # here, before promote. The run is the first deploy.yml run newer than the trigger titled "Deploy <tag> to prod".

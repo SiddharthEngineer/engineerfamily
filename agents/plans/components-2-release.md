@@ -1,5 +1,5 @@
 # Plan: `make prod-release` ships one engineerfamily tag with its pins and promotes every release it moved
-**Status:** ❌ Not started
+**Status:** 🔄 In progress
 **Risk:** review (the prod deploy path: `Makefile`, `scripts/`)
 **Depends on:** components-1-pins (E12)
 
@@ -37,7 +37,7 @@ pin, with `log_with_links` over that range from the dev clone, or `nothing new`.
 newer than the pin, naming the open `pin-bump` PR if there is one. `--plan` prints only `name<TAB>prod_ref<TAB>pin<TAB>new|same|older`
 lines (engineerfamily first) for Task 2. A target older than prod's engineerfamily tag prints `older`.
 **Validate:** `bash -n scripts/prod-changes.sh`; Task 3's test covers the output.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 2: `scripts/prod-release.sh`
 **Runs:** unattended
