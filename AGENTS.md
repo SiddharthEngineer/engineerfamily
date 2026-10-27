@@ -23,10 +23,10 @@ for each conf. CI runs the same on every PR.
 
 ## Deploys
 - **Preprod:** `make preprod-deploy [ref=<sha|tag|origin/branch>]` on the VPS. No tag needed. Push first, because it deploys what is on GitHub.
-- **Prod:** only with the user's explicit go-ahead, every time. `make prod-release [v=X.Y.Z]` deploys the newest tag and
-  promotes its GitHub release. Every deploy checks Strelitzia and Wordle out at their `components.toml` pins first. Rollback: `make deploy-prod ref=<previous tag>`. The Strelitzia dashboard ships on its own
-  with `make strelitzia-deploy [ref=<sha>]` (default: its pin).
-  Run `make prod-changes` first to see what will ship.
+- **Prod:** only with the user's explicit go-ahead, every time. `make prod-release [v=X.Y.Z] [dry=1]` ships the newest tag
+  with its `components.toml` pins (one preview, one y/N), health-checks, then promotes the engineerfamily release and each
+  child release whose pin moved. Rollback: `make deploy-prod ref=<previous tag>` (children follow its pins; promotes nothing).
+  `make prod-changes` shows what will ship. `strelitzia-deploy`/`wordle-deploy` are for hand fixes only.
 - After a deploy, check from outside, through Cloudflare: `curl -s -o /dev/null -w "%{http_code}" https://<host>/`. A check
   against `127.0.0.1:8080` doesn't prove the public hostname routes to the right nginx.
 

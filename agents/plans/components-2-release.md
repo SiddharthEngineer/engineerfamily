@@ -74,7 +74,7 @@ rollback (`deploy-prod ref=` moves the children too and promotes nothing). `stre
 hand fixes only, and leave prod off its pins until the next deploy. AGENTS.md's Deploys bullet (drop "The Strelitzia
 dashboard ships on its own"). ROADMAP: E13 row.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes (including `prod-release test`); CI is green.

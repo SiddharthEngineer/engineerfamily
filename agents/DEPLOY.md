@@ -78,16 +78,36 @@ The runner deploys each PR's head this way, and `main` again after a merge (once
 Prod deploys are always a tag, and always the user's call:
 
 ```bash
+make prod-changes            # read-only: what would ship (v=1.4.3 for another tag)
+make prod-release dry=1      # the same preview, plus the commands prod-release would run; nothing deployed or promoted
 make prod-release            # the newest tag; or: make prod-release v=1.4.3
 ```
 
-It runs `agent-runner versions sync engineerfamily` (tags any merge not tagged yet), picks the tag, shows
-`make prod-changes` (the commits since the newest full release, plus Strelitzia and Wordle since what prod runs, with PR
-links), asks `Deploy <tag> to prod? [y/N]`, triggers `deploy.yml`, waits for the run (`gh run watch`), and only if it
-succeeds runs `agent-runner versions promote engineerfamily <tag>`. A failed deploy promotes nothing.
+One engineerfamily tag is the site's version: its `components.toml` pins say which Strelitzia and Wordle it runs, and one
+`deploy.yml` run builds them all. `make prod-release` (`scripts/prod-release.sh`):
 
-**Rollback:** `make deploy-prod ref=<older tag>`. It triggers the same workflow and promotes nothing, so the Latest
-release keeps naming the version you rolled back from until the next `prod-release`.
+1. `agent-runner versions sync` for engineerfamily, strelitzia and wordle (tags any merge not tagged yet). Exit 3 (waiting
+   for a promote) or 4 (not set up for releases) stops it, with a pointer to ROADMAP M4.
+2. Picks the tag. A tag older than prod's (the newest full release) is refused: rollbacks are `deploy-prod`. If neither
+   engineerfamily nor any pin moved: "Nothing to ship."
+3. The preview (`scripts/prod-changes.sh <tag>`): engineerfamily from prod's tag to the target with PR links, then `not in
+   it:` (what `origin/main` has after the tag); for each child, the tag its `/srv/<Repo>-prod` checkout is on → the pin,
+   with its commits, and `not pinned yet:` for its tags newer than the pin, naming the open `pin-bump` PR. Then one
+   `Ship <tag> to prod? [y/N]`.
+4. Triggers `deploy.yml` and waits for the run (`gh run watch`). A failed run promotes nothing.
+5. Health checks, 6 tries 10 s apart: `https://engineerfamily.net/healthz` → 200; Strelitzia's
+   `/strelitzia/dashboard/api/health` inside its container (the dashboard is behind the Site gate); `/strelitzia/privacy`
+   → 200; `/wordle/api/health` → `"ok": true`. A failure promotes nothing and prints `make deploy-prod ref=<prod's tag>`.
+6. Only then `agent-runner versions promote engineerfamily <tag>`, and `versions promote <child> <pin>` for each child
+   whose pin moved, so no Latest release names a version that isn't on prod. It ends with `✓ <tag> on prod: strelitzia
+   <pin>, wordle <pin>`.
+
+**Rollback:** `make deploy-prod ref=<older tag>`. It triggers the same workflow, which checks the children out at that
+tag's pins too, so they roll back with it; it promotes nothing, so the Latest releases keep naming the versions you rolled
+back from until the next `prod-release`.
+
+**Hand fixes:** `make strelitzia-deploy` / `make wordle-deploy` rebuild one child outside a release. They leave prod off
+its pins until the next engineerfamily deploy puts the pins back; use them only for a fix that can't wait for a pin PR.
 
 Merging to `main` never ships prod: until the next `prod-release`, prod keeps running its tag. Check with
 `git -C /srv/engineerfamily-prod describe --tags`, and compare with `git describe --tags origin/main`.
