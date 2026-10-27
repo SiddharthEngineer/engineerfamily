@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One validation gate for humans, agents and CI. Run from anywhere; it works on the checkout it lives in.
 #
-#   scripts/validate.sh [--offline]   # bash -n on the shell scripts, components.toml, compose config for each env,
+#   scripts/validate.sh [--offline]   # bash -n on the shell scripts, components.toml, the prod-release test, compose config for each env,
 #                                     # nginx -t for each conf; --offline skips checking the pinned tags exist on GitHub
 #
 # Prints one PASS/FAIL line per step and exits non-zero on the first failure. Uses .env.template, not the
@@ -45,6 +45,7 @@ else
     step "components" python3 scripts/components.py check
 fi
 step "components test" bash tests/components-test.sh
+step "prod-release test" bash tests/prod-release-test.sh
 
 for env in local preprod prod; do
     step "compose $env" docker compose --env-file .env.template -f docker-compose.base.yml -f "docker-compose.$env.yml" config -q

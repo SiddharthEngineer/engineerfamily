@@ -64,7 +64,7 @@ one deploy, then promotes for engineerfamily and strelitzia only; (b) both pins 
 or promote calls; (h) a child tag newer than the pin with an open `pin-bump` PR → `not pinned yet` names it.
 `scripts/validate.sh` gets a `prod-release test` step.
 **Validate:** `bash tests/prod-release-test.sh` → 8 `ok` lines; `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-27 (this commit)
 
 ### Task 4: docs and tracking
 **Runs:** unattended
