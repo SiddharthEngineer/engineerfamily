@@ -27,9 +27,10 @@ high_risk = [
 doc_or_test = ["*.md", "agents/*", ".claude/commands/*", "tests/*"]
 
 [preprod]
-# {sha} is the PR head; preprod-deploy fetches every branch into /srv/engineerfamily-preprod, so agent/<slug> is there.
-deploy = "make -C /srv/engineerfamily-preprod preprod-deploy ref={branch}"
-release = "make -C /srv/engineerfamily-preprod preprod-deploy ref=main"
+# preprod-deploy fetches origin into /srv/engineerfamily-preprod but makes no local branches, so both refs name origin/:
+# a bare `main` would be that checkout's stale local main, and a bare agent/<slug> doesn't exist there.
+deploy = "make -C /srv/engineerfamily-preprod preprod-deploy ref=origin/{branch}"
+release = "make -C /srv/engineerfamily-preprod preprod-deploy ref=origin/main"
 netrc_env = "PREPROD_NETRC"
 # Only paths that answer signed out, before and after the Site gate (site-perms-3): preprod's Everyone row has no Site
 # grant, so `/`, `/strelitzia/` and the API health URLs are 401 through Cloudflare. The public ones go through
