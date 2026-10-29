@@ -31,49 +31,6 @@ PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
 	-f $(PREPROD_DIR)/docker-compose.base.yml -f $(PREPROD_DIR)/docker-compose.preprod.yml
 
-# components.toml pins each child repo to a tag (scripts/components.py reads it). $(call checkout-pins,<engineerfamily dir>,<env>)
-# checks each child out at its pin in /srv/<Child>-<env>, as scripts/vps/engineerfamily-deploy does for prod. A ref
-# without components.toml (a rollback to before the pins) leaves the child checkouts as they are.
-define checkout-pins
-@if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
-		pins=$$(python3 $(1)/scripts/components.py --file $(1)/components.toml list) || exit 1; \
-		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
-			[ -n "$$name" ] || continue; \
-			case $$name in \
-				strelitzia) cdir=/srv/Strelitzia-$(2) ;; \
-				wordle) cdir=/srv/Wordle-$(2) ;; \
-				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
-			esac; \
-			git -C $$cdir fetch -q --prune --force --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
-			echo "→ $$name at $$tag"; \
-		done; \
-	fi
-endef
-# Preprod floats: $(call checkout-preprod,<engineerfamily dir>) checks each child out at its newest vX.Y.Z tag on origin,
-# not at its pin. strelitzia=<tag|branch> / wordle=<tag|branch> override one child; else a component's `preprod` key
-# freezes it. Every ref goes through scripts/preprod-ref.sh (a tag or a branch, never a sha). The scripts come from the
-# checkout being deployed, or from this Makefile's checkout for a ref that predates them.
-define checkout-preprod
-@if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
-		s=$(1)/scripts; [ -f $$s/preprod-ref.sh ] || s=$(CURDIR)/scripts; \
-		c="python3 $$s/components.py --file $(1)/components.toml"; \
-		pins=$$($$c list) || exit 1; \
-		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
-			[ -n "$$name" ] || continue; \
-			case $$name in \
-				strelitzia) cdir=$(STRELITZIA_PREPROD_DIR); want='$(strelitzia)' ;; \
-				wordle) cdir=$(WORDLE_PREPROD_DIR); want='$(wordle)' ;; \
-				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
-			esac; \
-			if [ -n "$$want" ]; then why=override; \
-			elif want=$$($$c get $$name preprod 2>/dev/null); then why="preprod key"; \
-			else why=newest; want=$$($$c newest $$name --remote "$$(git -C $$cdir remote get-url origin)") || exit 1; fi; \
-			r=$$(bash $$s/preprod-ref.sh $$cdir "$$want") || exit 2; \
-			git -C $$cdir checkout -q --detach $$r || exit 1; \
-			echo "→ $$name at $$want ($$why)"; \
-		done; \
-	fi
-endef
 # A component's tag as pinned in the prod checkout: the default ref of strelitzia-deploy and wordle-deploy.
 pin = $$(python3 $(PROD_DIR)/scripts/components.py get $(1) tag || { echo "no $(1) pin in $(PROD_DIR) (a ref before components.toml?); pass ref=" >&2; exit 1; })
 
@@ -224,15 +181,24 @@ wordle-logs:
 # ─── Preprod ─────────────────────────────────────────────
 # The everyday way to put an engineerfamily change on preprod: no GitHub workflow, run from the VPS.
 #   make preprod-deploy ref=<tag|branch> [strelitzia=<tag|branch>] [wordle=<tag|branch>]
-# ref= is required: a vX.Y.Z tag or a branch (main, agent/x, origin/agent/x), never a sha. The children float on their
-# newest tags (checkout-preprod above). The local `preprod` branch is just a name here.
+# ref= is required: a vX.Y.Z tag or a branch (main, agent/x, origin/agent/x), never a sha. Preprod floats: each child
+# goes to its newest vX.Y.Z tag, its `preprod` key in components.toml, or the strelitzia=/wordle= override
+# (scripts/preprod-pins.sh). Every ref is resolved before anything is checked out. `preprod` is just a local branch name.
 # site-version.sh writes services/shared/version.json for the header's version text.
 preprod-deploy:
 	@test -n '$(ref)' || { echo "preprod-deploy needs ref=<tag|branch> (e.g. ref=main)" >&2; exit 2; }
-	@for w in '$(strelitzia)' '$(wordle)'; do [ -z "$$w" ] || bash $(CURDIR)/scripts/preprod-ref.sh --check "$$w" || exit 2; done
-	r=$$(bash $(CURDIR)/scripts/preprod-ref.sh $(PREPROD_DIR) '$(ref)') && git -C $(PREPROD_DIR) checkout -q -B preprod $$r
-	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
-	$(call checkout-preprod,$(PREPROD_DIR))
+	@export STRELITZIA_PREPROD_DIR=$(STRELITZIA_PREPROD_DIR) WORDLE_PREPROD_DIR=$(WORDLE_PREPROD_DIR); s=$(CURDIR)/scripts; \
+		r=$$(bash $$s/preprod-ref.sh $(PREPROD_DIR) '$(ref)') || exit 2; \
+		toml=$$(mktemp); trap 'rm -f "$$toml"' EXIT; children=; \
+		if git -C $(PREPROD_DIR) show "$$r:components.toml" >"$$toml" 2>/dev/null; then \
+			children=$$(bash $$s/preprod-pins.sh "$$toml" strelitzia='$(strelitzia)' wordle='$(wordle)') || exit 2; \
+		fi; \
+		git -C $(PREPROD_DIR) checkout -q -B preprod $$r || exit 1; \
+		echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"; \
+		[ -n "$$children" ] || echo "→ no components.toml at this ref; child checkouts left as they are"; \
+		echo "$$children" | while IFS="$$(printf '\t')" read -r name dir cref want why; do \
+			[ -z "$$name" ] || { git -C $$dir checkout -q --detach $$cref && echo "→ $$name at $$want ($$why)"; } || exit 1; \
+		done
 	@bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR) 2>/dev/null \
 		|| { rm -f $(PREPROD_DIR)/services/shared/version.json; echo "→ no version.json (no site-version.sh at this ref)"; }
 	$(PREPROD) up -d --build --remove-orphans
@@ -267,11 +233,13 @@ preprod-strelitzia-up:
 preprod-strelitzia-logs:
 	$(PREPROD) logs -f --tail=100 strelitzia
 
-# Wordle alone on preprod: ref=<tag|branch>, default its newest vX.Y.Z tag.
+# Wordle alone on preprod: ref=<tag|branch>, else its `preprod` key in the preprod checkout's components.toml, else its
+# newest vX.Y.Z tag (scripts/preprod-pins.sh).
 preprod-wordle-deploy:
-	w='$(ref)'; [ -n "$$w" ] || w=$$(python3 $(CURDIR)/scripts/components.py newest wordle \
-		--remote "$$(git -C $(WORDLE_PREPROD_DIR) remote get-url origin)") || exit 1; \
-		r=$$(bash $(CURDIR)/scripts/preprod-ref.sh $(WORDLE_PREPROD_DIR) "$$w") && git -C $(WORDLE_PREPROD_DIR) checkout -q --detach $$r
+	@line=$$(WORDLE_PREPROD_DIR=$(WORDLE_PREPROD_DIR) bash $(CURDIR)/scripts/preprod-pins.sh \
+		$(PREPROD_DIR)/components.toml --only wordle wordle='$(ref)') || exit 2; \
+		git -C $(WORDLE_PREPROD_DIR) checkout -q --detach "$$(echo "$$line" | cut -f3)" || exit 1; \
+		echo "→ wordle at $$(echo "$$line" | cut -f4) ($$(echo "$$line" | cut -f5))"
 	@echo "→ Wordle-preprod at $$(git -C $(WORDLE_PREPROD_DIR) log --oneline -1)"
 	$(PREPROD) up -d --build --force-recreate --no-deps wordle
 

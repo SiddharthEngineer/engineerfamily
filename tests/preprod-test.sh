@@ -84,7 +84,7 @@ done
 echo "ok  preprod-ref.sh: tags and branches resolve; sha, HEAD~1, HEAD and missing refs refused"
 
 # No ref, a sha or HEAD~1: refused before anything is checked out.
-before=$(at "$tmp/Strelitzia-preprod")
+before=$(at "$tmp/Strelitzia-preprod")$(at "$tmp/Wordle-preprod")
 deploy
 expect "no ref" "exit non-zero" [ "$rc" != 0 ]
 expect "no ref" "message" has "preprod-deploy needs ref=<tag|branch> (e.g. ref=main)"
@@ -93,12 +93,14 @@ for bad in "$sha" HEAD~1 no-such-branch; do
     expect "ref=$bad" "exit non-zero" [ "$rc" != 0 ]
     expect "ref=$bad" "message" has "preprod: $bad is not a vX.Y.Z tag or a branch on origin"
 done
-deploy ref=main strelitzia=HEAD~1
-expect "strelitzia=HEAD~1" "exit non-zero" [ "$rc" != 0 ]
-expect "strelitzia=HEAD~1" "message" has "preprod: HEAD~1 is not a vX.Y.Z tag or a branch on origin"
-expect "refusals" "no checkout" [ "$(at "$tmp/ef-preprod")$(at "$tmp/Strelitzia-preprod")" = "$sha$before" ]
+for bad in HEAD~1 no-such-branch; do
+    deploy ref=agent/x wordle=v1.2.0 strelitzia="$bad"
+    expect "strelitzia=$bad" "exit non-zero" [ "$rc" != 0 ]
+    expect "strelitzia=$bad" "message" has "preprod: $bad is not a vX.Y.Z tag or a branch on origin"
+done
+expect "refusals" "no checkout" [ "$(at "$tmp/ef-preprod")$(at "$tmp/Strelitzia-preprod")$(at "$tmp/Wordle-preprod")" = "$sha$before" ]
 expect "refusals" "still on main" [ "$(git -C "$tmp/ef-preprod" branch --show-current)" = main ]
-echo "ok  preprod-deploy: no ref, a sha, HEAD~1, a missing branch and a bad override refused before any checkout"
+echo "ok  preprod-deploy: no ref, a sha, HEAD~1, a missing branch and bad overrides refused before any checkout"
 
 # ref=main: both children float to their newest tag, v1.10.0.
 deploy ref=main
@@ -129,3 +131,19 @@ deploy ref=v1.0.0
 expect tag "exit 0" [ "$rc" = 0 ]
 expect tag "at the tag" [ "$(at "$tmp/ef-preprod")" = "$(tag_sha "$tmp/ef-preprod" v1.0.0)" ]
 echo "ok  ref=v1.0.0 deploys the tag"
+
+# preprod-wordle-deploy: newest by default, ref= a branch, a sha refused.
+wordle() {  # wordle <make args...>
+    rc=0
+    out=$(make -s -C "$src" preprod-wordle-deploy PREPROD=true PREPROD_DIR="$tmp/ef-preprod" \
+        WORDLE_PREPROD_DIR="$tmp/Wordle-preprod" "$@" 2>&1) || rc=$?
+}
+wordle
+expect wordle "exit 0" [ "$rc" = 0 ]
+expect wordle "newest" has "→ wordle at v1.10.0 (newest)"
+wordle ref=agent/x
+expect wordle "branch" has "→ wordle at agent/x (override)"
+wordle ref=HEAD~1
+expect wordle "sha refused" [ "$rc" != 0 ]
+expect wordle "still on agent/x" [ "$(at "$tmp/Wordle-preprod")" = "$(tag_sha "$tmp/Wordle-preprod" origin/agent/x)" ]
+echo "ok  preprod-wordle-deploy: newest by default, a branch, HEAD~1 refused"

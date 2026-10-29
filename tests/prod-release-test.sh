@@ -81,6 +81,7 @@ case "$1 $2" in
         git -C "$d/c" merge -q --no-ff -m "Merge pull request #99 from SiddharthEngineer/$branch" "origin/$branch"
         git -C "$d/c" push -q origin main ":$branch"
         rm -rf "$d" ;;
+    "pr view") git -C "$EF_ORIGIN" rev-parse main ;;
     "api "*|"workflow run"|"run watch"|"label create") ;;
     *) echo "gh stub: unexpected $*" >&2; exit 1 ;;
 esac
@@ -252,3 +253,7 @@ expect k "nothing" has "Nothing to ship: prod runs v1.4.0 and its pins."
 expect k "held" has "held: strelitzia (waiting on a fix)"
 expect k "no PR or deploy" [ "$(calls 'gh pr ')$(calls 'workflow run')" = 00 ]
 echo "ok  (k) hold respected; nothing newer: Nothing to ship"
+out=$(bash "$tmp/dev-ef/scripts/prod-changes.sh" v1.4.0 2>&1)
+expect k "v= shows the hold" has "held: waiting on a fix"
+expect k "v= no pin hint for a held child" lacks "newer tag, not in v1.4.0: v1.3.0"
+echo "ok  (k) prod-changes v=: a held child shows the hold, not the pin hint"

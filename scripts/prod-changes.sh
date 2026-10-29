@@ -90,7 +90,8 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 comp() { python3 scripts/components.py "$@"; }
 declare -A how=() reason=() to=()
-if [ -z "$target" ] && git show origin/main:components.toml >"$tmp/main.toml" 2>/dev/null; then
+explicit=$target
+if git show origin/main:components.toml >"$tmp/main.toml" 2>/dev/null; then
     main_pins=$(comp --file "$tmp/main.toml" list) || die "can't read origin/main:components.toml"
     while IFS=$'\t' read -r name repo pin _service; do
         [ -n "$name" ] || continue
@@ -99,6 +100,7 @@ if [ -z "$target" ] && git show origin/main:components.toml >"$tmp/main.toml" 2>
             reason[$name]=$r
             continue
         fi
+        [ -z "$explicit" ] || continue
         dirs_of "$name" "$repo"
         url=
         ! is_checkout "$dev_dir" || url=$(git -C "$dev_dir" remote get-url origin)
@@ -108,7 +110,7 @@ if [ -z "$target" ] && git show origin/main:components.toml >"$tmp/main.toml" 2>
             to[$name]=$newest
         fi
     done <<<"$main_pins"
-    [ "${#to[@]}" = 0 ] || target=main
+    [ -n "$explicit" ] || [ "${#to[@]}" = 0 ] || target=main
 fi
 
 # ─── engineerfamily ─────────────────────────────────────

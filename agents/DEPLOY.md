@@ -139,7 +139,7 @@ runs in env-only mode, and with no admin anywhere everyone keeps Site, so nothin
 anything. Real addresses go only in the `/srv` `.env` files, never in the repo, an issue or a PR.
 
 1. Preprod, in `/srv/engineerfamily-preprod/.env`: `SITE_DB_PASSWORD_PREPROD=` (`openssl rand -hex 24`) and
-   `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy`.
+   `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy ref=main`.
 2. Prod, **before the first prod deploy containing site-perms parts 1-3** (the nginx gate ships in part 3): in
    `/srv/engineerfamily-prod/.env` `SITE_DB_PASSWORD=`, `SITE_ADMIN_EMAILS=` and `SITE_MEMBER_EMAILS=`, then
    `make site-db-init` from the dev clone at `origin/main` (`git pull` first). It runs the clone's
@@ -168,9 +168,9 @@ anything. Real addresses go only in the `/srv` `.env` files, never in the repo, 
 | `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
 | `/srv/Strelitzia-prod` | Prod dashboard build context, detached at its pinned tag (every prod deploy, `make strelitzia-deploy`). |
-| `/srv/Strelitzia-preprod` | Preprod dashboard build context, at its pinned tag after `preprod-deploy`; moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
+| `/srv/Strelitzia-preprod` | Preprod dashboard build context, at its newest tag after `preprod-deploy`; moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
 | `/srv/Wordle-prod` | Prod Wordle solver build context, detached at its pinned tag (every prod deploy, `make wordle-deploy [ref=<sha>]`). |
-| `/srv/Wordle-preprod` | Preprod Wordle solver build context, at its pinned tag after `preprod-deploy` (`make preprod-wordle-deploy [ref=<sha>]`). |
+| `/srv/Wordle-preprod` | Preprod Wordle solver build context, at its newest tag after `preprod-deploy` (`make preprod-wordle-deploy [ref=<tag|branch>]`). |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
@@ -180,5 +180,5 @@ Every prod and preprod `make` target acts on these `/srv` checkouts, so it can b
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
 Edits reach preprod with `make preprod-deploy` and prod with `make prod-release`, or for
 Strelitzia with `make strelitzia-deploy`, and for the Wordle solver with `make wordle-deploy [ref=<sha>]`
-(preprod: `make preprod-wordle-deploy [ref=<sha>]`). `prod-release`, `deploy-prod` and `preprod-deploy` build `wordle` too, so
+(preprod: `make preprod-wordle-deploy [ref=<tag|branch>]`). `prod-release`, `deploy-prod` and `preprod-deploy` build `wordle` too, so
 `/srv/Wordle-prod` and `/srv/Wordle-preprod` must exist first. Use `make local-up` to run the dev tree.

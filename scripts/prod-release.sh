@@ -86,7 +86,7 @@ if [ "$changed" = 0 ] && [ "${#pin_moves[@]}" = 0 ]; then
     echo "Nothing to ship: prod runs $tag and its pins."
     exit 0
 fi
-release_title="Release pins: $(printf '%s, ' "${pin_moves[@]}")"
+release_title="Release pins: $(printf '%s, ' ${pin_moves[@]+"${pin_moves[@]}"})"
 release_title=${release_title%, }
 release_branch=release/pins-$(date -u +%Y-%m-%d-%H%M%S)
 
@@ -100,7 +100,7 @@ if [ "$dry" = 1 ]; then
     echo "Dry run. Would run:"
     if [ "$tag" = main ]; then
         echo "  git worktree add --detach <tmp> origin/main"
-        for m in "${pin_moves[@]}"; do echo "  scripts/components.py --file <tmp>/components.toml set ${m% *} tag ${m#* }"; done
+        for m in ${pin_moves[@]+"${pin_moves[@]}"}; do echo "  scripts/components.py --file <tmp>/components.toml set ${m% *} tag ${m#* }"; done
         echo "  git commit -am \"$release_title\"; git push origin HEAD:refs/heads/$release_branch"
         echo "  $gh pr create --repo $site_repo --base main --head $release_branch --label release-pins --title \"$release_title\""
         echo "  $gh pr checks <pr> --watch --fail-fast; $gh pr merge <pr> --merge --delete-branch"
@@ -123,7 +123,7 @@ if [ "$tag" = main ]; then
     wt=$(mktemp -d)
     trap 'git worktree remove --force "$wt/main" >/dev/null 2>&1 || true; rm -rf "$wt"' EXIT
     git worktree add -q --detach "$wt/main" origin/main
-    for m in "${pin_moves[@]}"; do
+    for m in ${pin_moves[@]+"${pin_moves[@]}"}; do
         python3 scripts/components.py --file "$wt/main/components.toml" set "${m% *}" tag "${m#* }"
     done
     git -C "$wt/main" commit -qam "$release_title"
@@ -147,8 +147,10 @@ if [ "$tag" = main ]; then
         || die "merging release-pins PR #$pr failed ($url); nothing deployed or promoted"
     agent-runner versions sync engineerfamily || die "PR #$pr merged, but agent-runner versions sync engineerfamily failed; nothing deployed. Run it, then make prod-release"
     git fetch -q --prune --tags origin
-    tag=$(git tag --points-at origin/main | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1) || true
-    [ -n "$tag" ] || die "PR #$pr merged, but origin/main has no vX.Y.Z tag; nothing deployed. Run agent-runner versions sync engineerfamily, then make prod-release"
+    merge=$("$gh" pr view "$pr" --repo "$site_repo" --json mergeCommit --jq '.mergeCommit.oid // empty') || merge=
+    [ -n "$merge" ] || die "PR #$pr merged, but gh can't name its merge commit; nothing deployed. Run make prod-release v=<its tag>"
+    tag=$(git tag --points-at "$merge" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1) || true
+    [ -n "$tag" ] || die "PR #$pr merged, but its merge ${merge:0:12} has no vX.Y.Z tag; nothing deployed. Run agent-runner versions sync engineerfamily, then make prod-release v=<its tag>"
     echo "→ PR #$pr merged as $tag"
     promotes=("engineerfamily $tag" ${promotes[@]+"${promotes[@]}"})
 fi
