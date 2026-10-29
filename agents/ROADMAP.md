@@ -26,7 +26,7 @@ New engineerfamily plans go here. E1 ([header-fit](plans/done/header-fit.md), #5
 | E12 | Pins 1/2: `components.toml` pins Strelitzia and Wordle to tags; every engineerfamily deploy (prod and preprod) checks the pins out before it builds | [components-1-pins](plans/components-1-pins.md) | review | ✅ (#80); prod needs M5 | M4, E11 |
 | E13 | Pins 2/2: `make prod-release` ships one engineerfamily tag with its pins (one preview, one y/N, health checks), then promotes every release it moved | [components-2-release](plans/components-2-release.md) | review | ✅ (PR in review); first real run after M5 | E12, M5 before the first real run |
 | E14 | Account menu: drop the "Strelitzia dashboard" item (Strelitzia #98) | [header-no-dashboard-link](plans/header-no-dashboard-link.md) | low | ✅ 2026-10-27: built, PR open | - |
-| E15 | Pins 3/3: preprod floats on each child's newest tag (overrides and a `preprod` freeze key); `preprod-deploy` needs `ref=<tag|branch>`, never a sha; `components.toml` is prod's and only `make prod-release` moves it (one release-pins PR per release) | [components-3-float](plans/components-3-float.md) | review | ⏳ queued after agent-runner A33 (+ AM11) | E13, agent-runner A33 |
+| E15 | Pins 3/3: preprod floats on each child's newest tag (overrides and a `preprod` freeze key); `preprod-deploy` needs `ref=<tag|branch>`, never a sha; `components.toml` is prod's and only `make prod-release` moves it (one release-pins PR per release) | [components-3-float](plans/components-3-float.md) | review | ✅ 2026-10-29 | E13, agent-runner A33 |
 
 ## Backlog
 - Dark mode for the engineerfamily pages and the site header (user, 2026-10-22: "future change"). Today the header is always light.

@@ -1,5 +1,5 @@
 # Plan: preprod floats on the children's newest tags; `components.toml` pins prod and only `make prod-release` moves it
-**Status:** 🔄 In progress
+**Status:** ✅ Done 2026-10-29
 **Risk:** review (the prod release path: `scripts/prod-release.sh`, `Makefile`)
 **Depends on:** E12 [components-1-pins](components-1-pins.md), E13 [components-2-release](components-2-release.md);
 agent-runner A33 [runner-18-float-pins](https://github.com/SiddharthEngineer/agent-runner/blob/main/agents/plans/runner-18-float-pins.md)
@@ -87,7 +87,7 @@ newest tags with the overrides and the `preprod` key; `preprod-deploy` needs `re
 `ref=main`, `ref=agent/x`, `ref=v1.6.6`); the prod-release steps gain the release-pins PR. `components.toml`'s header
 comment says the same (no more "the runner opens a Pin PR"). ROADMAP: E15 ✅.
 **Validate:** `scripts/validate.sh` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-29 (this commit)
 
 ## Validation
 - `scripts/validate.sh` passes; CI is green.

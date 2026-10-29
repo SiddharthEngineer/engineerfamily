@@ -183,7 +183,7 @@ Why this is preferred:
 make ps              # container status
 make logs            # tail all logs
 make restart         # rebuild + restart changed services
-make preprod-deploy  # put origin/main (or ref=…) on preprod
+make preprod-deploy ref=main  # put main (or ref=<tag|branch>) on preprod
 make preprod-up      # restart preprod as checked out
 make run-app         # run Flask locally without Docker
 make run-streamlit   # run Streamlit locally without Docker

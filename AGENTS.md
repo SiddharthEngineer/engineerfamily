@@ -8,7 +8,7 @@ Layout and routing are in `README.md`; how deploys work is in `agents/DEPLOY.md`
 - `services/`: `app/` (Flask home page and site auth), `nginx/` (`nginx.{local,preprod,prod}.conf`), `strelitzia/` and
   `shared/` (static files nginx serves), `streamlit/`.
 - `docker-compose.base.yml` + `docker-compose.{local,preprod,prod}.yml`; `.env.template` (the real `.env` files live in `/srv`).
-- `components.toml`: the Strelitzia and Wordle tags every deploy builds (`scripts/components.py` reads it); a pin change is a PR.
+- `components.toml`: the Strelitzia and Wordle tags prod runs (`scripts/components.py` reads it); only `make prod-release` moves them.
 - `Makefile`: dev, preprod and prod targets (they act on the `/srv` checkouts wherever make runs); `make prod-changes`.
 - `scripts/`: `validate.sh`, `prod-changes.sh`, `site-version.sh` (header version), DB setup, `vps/` (deploy user and SSH hardening).
 - `agents/ROADMAP.md`: the only status tracker. `agents/plans/<slug>.md`: one spec per change (`done/` holds the archive).
@@ -22,7 +22,8 @@ for each conf. CI runs the same on every PR.
 → `/validate` → `/ship` (risk gate: auto-merge low, else PR on preprod). Bugs start with `/rca`.
 
 ## Deploys
-- **Preprod:** `make preprod-deploy [ref=<sha|tag|origin/branch>]` on the VPS. No tag needed. Push first, because it deploys what is on GitHub.
+- **Preprod:** `make preprod-deploy ref=<tag|branch>` on the VPS (`ref=main`, `ref=agent/x`, `ref=v1.6.6`; never a sha). The
+  children float on their newest tags (`strelitzia=`/`wordle=` override). Push first, because it deploys what is on GitHub.
 - **Prod:** only with the user's explicit go-ahead, every time. `make prod-release [v=X.Y.Z] [dry=1]` ships the newest tag
   with its `components.toml` pins (one preview, one y/N), health-checks, then promotes the engineerfamily release and each
   child release whose pin moved. Rollback: `make deploy-prod ref=<previous tag>` (children follow its pins; promotes nothing).
