@@ -289,19 +289,21 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 
 # ─── Releases ────────────────────────────────────────────
 # The runner tags every PR merge (vX.Y.Z) and keeps a vX.Y pre-release on GitHub (agent-runner `versions`).
-#   make prod-release [v=X.Y.Z] [dry=1] → deploy the newest tag (or vX.Y.Z) and its pins to prod, then promote its release
-#                                         and each moved child's to full
+#   make prod-release [v=X.Y.Z] [dry=1] → move components.toml to the children's newest tags (one release-pins PR, which
+#                                         gets the next tag), or the newest tag (or vX.Y.Z) as tagged; deploy it to prod,
+#                                         then promote its release and each moved child's to full
 #   make deploy-prod ref=vX.Y.Z    → deploy a tag (children at its pins) without promoting anything: rollbacks
 # Both are the user's; agents never run them.
 
-# Read-only: what prod-release would ship next (the newest tag, or v=X.Y.Z), with PR links: engineerfamily since prod's
-# release, and each child from what prod runs to the tag's pin.
+# Read-only: what prod-release would ship next (main with the children at their newest tags, or the newest tag, or
+# v=X.Y.Z), with PR links: engineerfamily since prod's release, and each child from what prod runs to its new pin.
 prod-changes:
 	@STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) GH='$(GH)' \
 		bash $(CURDIR)/scripts/prod-changes.sh $(if $(v),v$(patsubst v%,%,$(v)))
 
-# scripts/prod-release.sh: sync tags, preview, one y/N, deploy.yml for the tag (its pins come along), health checks, then
-# promote engineerfamily and each child whose pin moved. dry=1 previews and lists the commands; nothing is deployed.
+# scripts/prod-release.sh: sync tags, preview, one y/N, the release-pins PR if a child has a newer tag (merged and tagged),
+# deploy.yml for the tag (its pins come along), health checks, then promote engineerfamily and each child whose pin
+# moved. dry=1 previews and lists the commands; nothing is created or deployed.
 prod-release:
 	@$(MAKE) check-github-cli
 	@PROD='$(PROD)' GH='$(GH)' STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) \

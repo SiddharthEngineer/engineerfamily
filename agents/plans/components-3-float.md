@@ -77,7 +77,7 @@ no branch. `hold` children are listed as `held: <reason>`. Drop the `pin-bump` P
 **Validate:** `bash tests/prod-release-test.sh`: a newer child tag → one release PR changing only tag lines, merged, tagged,
 deployed; nothing newer and engineerfamily unchanged → "Nothing to ship."; red CI → nothing deployed or promoted; `v=`
 skips the moves; `hold` respected; dry run creates nothing.
-**Status:** ❌
+**Status:** ✅ 2026-10-29 (this commit)
 
 ### Task 3: docs and tracking
 **Runs:** unattended
