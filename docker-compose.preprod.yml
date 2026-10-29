@@ -124,7 +124,7 @@ services:
       - dashboard
 
   # ─── Wordle solver (preprod.engineerfamily.net/wordle/, health at 127.0.0.1:8080, public, rate-limited in nginx) ───
-  # Built from /srv/Wordle-preprod, a detached commit of SiddharthEngineer/Wordle; `make preprod-wordle-deploy` moves it (or `make preprod-deploy` rebuilds it with the rest).
+  # Built from /srv/Wordle-preprod, a detached checkout of SiddharthEngineer/Wordle (its newest tag by default); `make preprod-wordle-deploy` moves it (or `make preprod-deploy` rebuilds it with the rest).
   wordle:
     build:
       context: ../Wordle-preprod

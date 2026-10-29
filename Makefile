@@ -24,30 +24,13 @@ PROD_DIR ?= /srv/engineerfamily-prod
 PREPROD_DIR ?= /srv/engineerfamily-preprod
 STRELITZIA_PROD_DIR ?= /srv/Strelitzia-prod
 WORDLE_PROD_DIR ?= /srv/Wordle-prod
+STRELITZIA_PREPROD_DIR ?= /srv/Strelitzia-preprod
 WORDLE_PREPROD_DIR ?= /srv/Wordle-preprod
 PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 	-f $(PROD_DIR)/docker-compose.base.yml -f $(PROD_DIR)/docker-compose.prod.yml
 PREPROD = docker compose -p engineerfamily-preprod --project-directory $(PREPROD_DIR) \
 	-f $(PREPROD_DIR)/docker-compose.base.yml -f $(PREPROD_DIR)/docker-compose.preprod.yml
 
-# components.toml pins each child repo to a tag (scripts/components.py reads it). $(call checkout-pins,<engineerfamily dir>,<env>)
-# checks each child out at its pin in /srv/<Child>-<env>, as scripts/vps/engineerfamily-deploy does for prod. A ref
-# without components.toml (a rollback to before the pins) leaves the child checkouts as they are.
-define checkout-pins
-@if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
-		pins=$$(python3 $(1)/scripts/components.py --file $(1)/components.toml list) || exit 1; \
-		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
-			[ -n "$$name" ] || continue; \
-			case $$name in \
-				strelitzia) cdir=/srv/Strelitzia-$(2) ;; \
-				wordle) cdir=/srv/Wordle-$(2) ;; \
-				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
-			esac; \
-			git -C $$cdir fetch -q --prune --force --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
-			echo "→ $$name at $$tag"; \
-		done; \
-	fi
-endef
 # A component's tag as pinned in the prod checkout: the default ref of strelitzia-deploy and wordle-deploy.
 pin = $$(python3 $(PROD_DIR)/scripts/components.py get $(1) tag || { echo "no $(1) pin in $(PROD_DIR) (a ref before components.toml?); pass ref=" >&2; exit 1; })
 
@@ -91,7 +74,7 @@ help:
 	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
-	@echo "    preprod-deploy   Check out origin/main (or ref=<sha|tag|origin/branch>) in $(PREPROD_DIR) and the children at their pins, rebuild, reload nginx"
+	@echo "    preprod-deploy   ref=<tag|branch> (required) in $(PREPROD_DIR), the children at their newest tags (strelitzia=/wordle= override), rebuild, reload nginx"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
 	@echo "    preprod-build    Rebuild preprod images"
@@ -101,7 +84,7 @@ help:
 	@echo "    preprod-strelitzia-db-init Create the strelitzia role + strelitzia_preprod DB (idempotent)"
 	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
 	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
-	@echo "    preprod-wordle-deploy      Check out Wordle origin/main (or ref=<sha>) in $(WORDLE_PREPROD_DIR), rebuild only wordle"
+	@echo "    preprod-wordle-deploy      Check out Wordle's newest tag (or ref=<tag|branch>) in $(WORDLE_PREPROD_DIR), rebuild only wordle"
 	@echo "    preprod-wordle-logs        Tail the preprod Wordle solver logs"
 	@echo ""
 	@echo "  Releases:"
@@ -196,14 +179,26 @@ wordle-logs:
 	$(PROD) logs -f --tail=100 wordle
 
 # ─── Preprod ─────────────────────────────────────────────
-# The everyday way to put an engineerfamily change on preprod: no tag and no GitHub workflow, run from the VPS.
-# Same steps as scripts/vps/engineerfamily-deploy, but at any commit; the local `preprod` branch is just a name here.
+# The everyday way to put an engineerfamily change on preprod: no GitHub workflow, run from the VPS.
+#   make preprod-deploy ref=<tag|branch> [strelitzia=<tag|branch>] [wordle=<tag|branch>]
+# ref= is required: a vX.Y.Z tag or a branch (main, agent/x, origin/agent/x), never a sha. Preprod floats: each child
+# goes to its newest vX.Y.Z tag, its `preprod` key in components.toml, or the strelitzia=/wordle= override
+# (scripts/preprod-pins.sh). Every ref is resolved before anything is checked out. `preprod` is just a local branch name.
 # site-version.sh writes services/shared/version.json for the header's version text.
 preprod-deploy:
-	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
-	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
-	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
-	$(call checkout-pins,$(PREPROD_DIR),preprod)
+	@test -n '$(ref)' || { echo "preprod-deploy needs ref=<tag|branch> (e.g. ref=main)" >&2; exit 2; }
+	@export STRELITZIA_PREPROD_DIR=$(STRELITZIA_PREPROD_DIR) WORDLE_PREPROD_DIR=$(WORDLE_PREPROD_DIR); s=$(CURDIR)/scripts; \
+		r=$$(bash $$s/preprod-ref.sh $(PREPROD_DIR) '$(ref)') || exit 2; \
+		toml=$$(mktemp); trap 'rm -f "$$toml"' EXIT; children=; \
+		if git -C $(PREPROD_DIR) show "$$r:components.toml" >"$$toml" 2>/dev/null; then \
+			children=$$(bash $$s/preprod-pins.sh "$$toml" strelitzia='$(strelitzia)' wordle='$(wordle)') || exit 2; \
+		fi; \
+		git -C $(PREPROD_DIR) checkout -q -B preprod $$r || exit 1; \
+		echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"; \
+		[ -n "$$children" ] || echo "→ no components.toml at this ref; child checkouts left as they are"; \
+		echo "$$children" | while IFS="$$(printf '\t')" read -r name dir cref want why; do \
+			[ -z "$$name" ] || { git -C $$dir checkout -q --detach $$cref && echo "→ $$name at $$want ($$why)"; } || exit 1; \
+		done
 	@bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR) 2>/dev/null \
 		|| { rm -f $(PREPROD_DIR)/services/shared/version.json; echo "→ no version.json (no site-version.sh at this ref)"; }
 	$(PREPROD) up -d --build --remove-orphans
@@ -238,9 +233,13 @@ preprod-strelitzia-up:
 preprod-strelitzia-logs:
 	$(PREPROD) logs -f --tail=100 strelitzia
 
+# Wordle alone on preprod: ref=<tag|branch>, else its `preprod` key in the preprod checkout's components.toml, else its
+# newest vX.Y.Z tag (scripts/preprod-pins.sh).
 preprod-wordle-deploy:
-	git -C $(WORDLE_PREPROD_DIR) fetch -q --prune origin
-	git -C $(WORDLE_PREPROD_DIR) checkout -q --detach $(or $(ref),origin/main)
+	@line=$$(WORDLE_PREPROD_DIR=$(WORDLE_PREPROD_DIR) bash $(CURDIR)/scripts/preprod-pins.sh \
+		$(PREPROD_DIR)/components.toml --only wordle wordle='$(ref)') || exit 2; \
+		git -C $(WORDLE_PREPROD_DIR) checkout -q --detach "$$(echo "$$line" | cut -f3)" || exit 1; \
+		echo "→ wordle at $$(echo "$$line" | cut -f4) ($$(echo "$$line" | cut -f5))"
 	@echo "→ Wordle-preprod at $$(git -C $(WORDLE_PREPROD_DIR) log --oneline -1)"
 	$(PREPROD) up -d --build --force-recreate --no-deps wordle
 
@@ -258,19 +257,21 @@ preprod-applypilot-logs: preprod-strelitzia-logs
 
 # ─── Releases ────────────────────────────────────────────
 # The runner tags every PR merge (vX.Y.Z) and keeps a vX.Y pre-release on GitHub (agent-runner `versions`).
-#   make prod-release [v=X.Y.Z] [dry=1] → deploy the newest tag (or vX.Y.Z) and its pins to prod, then promote its release
-#                                         and each moved child's to full
+#   make prod-release [v=X.Y.Z] [dry=1] → move components.toml to the children's newest tags (one release-pins PR, which
+#                                         gets the next tag), or the newest tag (or vX.Y.Z) as tagged; deploy it to prod,
+#                                         then promote its release and each moved child's to full
 #   make deploy-prod ref=vX.Y.Z    → deploy a tag (children at its pins) without promoting anything: rollbacks
 # Both are the user's; agents never run them.
 
-# Read-only: what prod-release would ship next (the newest tag, or v=X.Y.Z), with PR links: engineerfamily since prod's
-# release, and each child from what prod runs to the tag's pin.
+# Read-only: what prod-release would ship next (main with the children at their newest tags, or the newest tag, or
+# v=X.Y.Z), with PR links: engineerfamily since prod's release, and each child from what prod runs to its new pin.
 prod-changes:
 	@STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) GH='$(GH)' \
 		bash $(CURDIR)/scripts/prod-changes.sh $(if $(v),v$(patsubst v%,%,$(v)))
 
-# scripts/prod-release.sh: sync tags, preview, one y/N, deploy.yml for the tag (its pins come along), health checks, then
-# promote engineerfamily and each child whose pin moved. dry=1 previews and lists the commands; nothing is deployed.
+# scripts/prod-release.sh: sync tags, preview, one y/N, the release-pins PR if a child has a newer tag (merged and tagged),
+# deploy.yml for the tag (its pins come along), health checks, then promote engineerfamily and each child whose pin
+# moved. dry=1 previews and lists the commands; nothing is created or deployed.
 prod-release:
 	@$(MAKE) check-github-cli
 	@PROD='$(PROD)' GH='$(GH)' STRELITZIA_PROD_DIR=$(STRELITZIA_PROD_DIR) WORDLE_PROD_DIR=$(WORDLE_PROD_DIR) \

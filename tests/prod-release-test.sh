@@ -60,18 +60,29 @@ done
 export STRELITZIA_DEV_DIR=$tmp/dev-Strelitzia WORDLE_DEV_DIR=$tmp/dev-Wordle
 export STRELITZIA_PROD_DIR=$tmp/Strelitzia-prod WORDLE_PROD_DIR=$tmp/Wordle-prod
 
-# Stubs: each logs its call to $CALLS. FAKE_RELEASE is prod's full release; FAKE_PIN_PRS the open pin-bump PRs
-# ("number<TAB>title" lines); FAKE_SYNC_FAIL a repo whose sync exits 3; FAKE_CURL_FAIL a URL part that never answers.
+# Stubs: each logs its call to $CALLS. FAKE_RELEASE is prod's full release; FAKE_SYNC_FAIL a repo whose sync exits 3;
+# FAKE_CURL_FAIL a URL part that never answers; FAKE_CI_RED makes the release-pins PR's checks fail. `gh pr merge`
+# really merges the PR's branch into $EF_ORIGIN's main, and `versions sync engineerfamily` tags an untagged release-pins
+# merge there with $FAKE_NEXT_TAG, as the runner would.
 mkdir "$tmp/bin"
 cat >"$tmp/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 echo "gh $*" >>"$CALLS"
+arg() { local want=$1; shift; while [ $# -gt 1 ]; do [ "$1" != "$want" ] || { echo "$2"; return; }; shift; done; }
 case "$1 $2" in
     "auth status") ;;
     "release list") echo "${FAKE_RELEASE:-}" ;;
-    "pr list") [ -z "${FAKE_PIN_PRS:-}" ] || printf '%b\n' "$FAKE_PIN_PRS" ;;
     "run list") if [[ " $* " == *" --event "* ]]; then echo 42; else echo 41; fi ;;
-    "api "*|"workflow run"|"run watch") ;;
+    "pr create") arg --head "$@" >"$CALLS.head"; echo "https://github.com/SiddharthEngineer/engineerfamily/pull/99" ;;
+    "pr checks") if [[ " $* " == *" --json "* ]]; then echo 1; elif [ -n "${FAKE_CI_RED:-}" ]; then exit 1; fi ;;
+    "pr merge")
+        branch=$(cat "$CALLS.head") d=$(mktemp -d)
+        git clone -q "$EF_ORIGIN" "$d/c"
+        git -C "$d/c" merge -q --no-ff -m "Merge pull request #99 from SiddharthEngineer/$branch" "origin/$branch"
+        git -C "$d/c" push -q origin main ":$branch"
+        rm -rf "$d" ;;
+    "pr view") git -C "$EF_ORIGIN" rev-parse main ;;
+    "api "*|"workflow run"|"run watch"|"label create") ;;
     *) echo "gh stub: unexpected $*" >&2; exit 1 ;;
 esac
 EOF
@@ -79,6 +90,10 @@ cat >"$tmp/bin/agent-runner" <<'EOF'
 #!/usr/bin/env bash
 echo "agent-runner $*" >>"$CALLS"
 [ "$1 $2 $3" != "versions sync ${FAKE_SYNC_FAIL:-none}" ] || exit 3
+if [ "$*" = "versions sync engineerfamily" ] && git -C "$EF_ORIGIN" log -1 --format=%s main | grep -q '/release/pins-' \
+    && [ -z "$(git -C "$EF_ORIGIN" tag --points-at main)" ]; then
+    git -C "$EF_ORIGIN" tag -a "$FAKE_NEXT_TAG" -m "$FAKE_NEXT_TAG" main
+fi
 EOF
 cat >"$tmp/bin/curl" <<'EOF'
 #!/usr/bin/env bash
@@ -96,7 +111,7 @@ echo "docker $*" >>"$CALLS"
 EOF
 chmod +x "$tmp/bin/"*
 export PATH=$tmp/bin:$PATH GH=$tmp/bin/gh HEALTH_WAIT=0 PROD="docker compose -p engineerfamily-test"
-export CALLS=$tmp/calls.log
+export CALLS=$tmp/calls.log EF_ORIGIN=$tmp/ef.git FAKE_NEXT_TAG=v1.3.0
 
 release() {  # release <answer> <args...>: run prod-release.sh with a fresh call log; output in $out, exit code in $rc
     : >"$CALLS"
@@ -129,14 +144,16 @@ expect a "summary" has "✓ v1.1.0 on prod: strelitzia v1.1.0, wordle v1.0.0"
 expect a "preview" has "strelitzia: v1.0.0 → v1.1.0"
 echo "ok  (a) only strelitzia moved: deploy, promote engineerfamily + strelitzia"
 
-# (b) both pins moved (the default target, the newest tag v1.2.0).
-release y
+# (b) v=v1.2.0 with a Strelitzia tag newer than its pin: ships the pins as tagged, no release-pins PR.
+release y v1.2.0
 expect b "exit 0" [ "$rc" = 0 ]
 expect b "deploy v1.2.0" [ "$(calls 'gh workflow run deploy.yml --ref main -f environment=prod -f ref=v1.2.0')" = 1 ]
 expect b "promotes" [ "$(calls 'versions promote engineerfamily v1.2.0')$(calls 'versions promote strelitzia v1.1.0')$(calls 'versions promote wordle v1.0.1')" = 111 ]
+expect b "no PR" [ "$(calls 'gh pr ')" = 0 ]
 expect b "not in it" has "site after (#22)"
 expect b "wordle log" has "wordle two (#5)"
-echo "ok  (b) both pins moved: both children promoted"
+expect b "names the newer tag" has "newer tag, not in v1.2.0: v1.2.0 (make prod-release without v= pins it)"
+echo "ok  (b) v= ships the tag's pins: no release-pins PR"
 
 # (c) answer n: no deploy, no promote.
 release n v1.2.0
@@ -172,22 +189,71 @@ expect f "no prompt" lacks "Ship "
 expect f "no deploy" [ "$(calls 'workflow run')" = 0 ]
 echo "ok  (f) sync exit 3 for wordle: stops with the M4 hint"
 
-# (g) --dry-run (make prod-release dry=1): sync --dry-run, the preview and the commands; no deploy or promote.
+# (g) --dry-run (make prod-release dry=1) with Strelitzia v1.2.0 newer than main's pin: sync --dry-run, the preview
+# and the release-pins commands; no branch, PR, deploy or promote.
 release y --dry-run
 expect g "exit 0" [ "$rc" = 0 ]
 expect g "sync dry" [ "$(calls 'versions sync .* --dry-run')" = 3 ]
 expect g "no prompt" lacks "Ship "
-expect g "lists the promote" has "agent-runner versions promote wordle v1.0.1"
-expect g "no deploy" [ "$(calls 'workflow run')$(calls 'versions promote')$(calls 'run watch')" = 000 ]
-echo "ok  (g) dry run: preview and commands, nothing deployed or promoted"
+expect g "preview" has "strelitzia: v1.0.0 → v1.2.0 (newest tag, pinned by this release)"
+expect g "target main" has "engineerfamily: v1.0.0 → main"
+expect g "lists the set" has "set strelitzia tag v1.2.0"
+expect g "lists the PR" has "pr create --repo SiddharthEngineer/engineerfamily --base main"
+expect g "lists the promote" has "agent-runner versions promote strelitzia v1.2.0"
+expect g "nothing made" [ "$(calls 'workflow run')$(calls 'versions promote')$(calls 'run watch')$(calls 'gh pr ')" = 0000 ]
+expect g "no branch" [ -z "$(git -C "$tmp/ef.git" branch --list 'release/*')" ]
+expect g "no worktree" [ "$(git -C "$tmp/dev-ef" worktree list | wc -l)" = 1 ]
+echo "ok  (g) dry run: preview and commands, no branch, PR, deploy or promote"
 
-# (h) a child tag newer than the pin, with an open pin-bump PR: `not pinned yet` names it.
-: >"$CALLS"
-rc=0
-out=$(FAKE_PIN_PRS='83\tPin strelitzia v1.2.0' bash "$tmp/dev-ef/scripts/prod-changes.sh" v1.2.0 2>&1) || rc=$?
-expect h "exit 0" [ "$rc" = 0 ]
-expect h "names the PR" has "not pinned yet: v1.2.0 (pin-bump PR #83"
-expect h "wordle has none" lacks "not pinned yet: v1.0"
+# (h) the plan lines: a tag as tagged, and the next release (strelitzia moves to its newest tag).
 out=$(bash "$tmp/dev-ef/scripts/prod-changes.sh" --plan v1.2.0 2>&1)
-expect h "plan lines" [ "$out" = "$(printf 'engineerfamily\tv1.0.0\tv1.2.0\tnew\nstrelitzia\tv1.0.0\tv1.1.0\tnew\nwordle\tv1.0.0\tv1.0.1\tnew')" ]
-echo "ok  (h) a newer child tag: not pinned yet names the open pin-bump PR"
+expect h "tag plan" [ "$out" = "$(printf 'engineerfamily\tv1.0.0\tv1.2.0\tnew\nstrelitzia\tv1.0.0\tv1.1.0\tnew\tpin\nwordle\tv1.0.0\tv1.0.1\tnew\tpin')" ]
+out=$(bash "$tmp/dev-ef/scripts/prod-changes.sh" --plan 2>&1)
+expect h "next plan" [ "$out" = "$(printf 'engineerfamily\tv1.0.0\tmain\tnew\nstrelitzia\tv1.0.0\tv1.2.0\tnew\tmove\nwordle\tv1.0.0\tv1.0.1\tnew\tpin')" ]
+echo "ok  (h) plan lines: as tagged, and the next release's move"
+
+# (i) red CI on the release-pins PR: stops naming the PR; nothing merged, deployed or promoted.
+main_before=$(git -C "$tmp/ef.git" rev-parse main)
+FAKE_CI_RED=1 release y
+expect i "exit non-zero" [ "$rc" != 0 ]
+expect i "names the PR" has "CI on release-pins PR #99 is not green"
+expect i "PR made" [ "$(calls 'gh pr create')" = 1 ]
+expect i "not merged" [ "$(calls 'gh pr merge')$(git -C "$tmp/ef.git" rev-parse main)" = "0$main_before" ]
+expect i "nothing deployed" [ "$(calls 'workflow run')$(calls 'versions promote')" = 00 ]
+expect i "worktree removed" [ "$(git -C "$tmp/dev-ef" worktree list | wc -l)" = 1 ]
+git -C "$tmp/ef.git" for-each-ref --format='%(refname:short)' 'refs/heads/release/' | xargs -r git -C "$tmp/ef.git" branch -qD
+echo "ok  (i) red CI: stops at the PR, nothing deployed or promoted"
+
+# (j) the release: one PR changing only Strelitzia's tag line, merged, tagged v1.3.0, deployed, then promoted.
+release y
+expect j "exit 0" [ "$rc" = 0 ]
+expect j "prompt" has "Ship to prod (Release pins: strelitzia v1.2.0)? [y/N]"
+expect j "one PR" [ "$(calls 'gh pr create')$(calls 'gh pr merge 99 --repo SiddharthEngineer/engineerfamily --merge --delete-branch')" = 11 ]
+expect j "title and label" [ "$(calls 'gh pr create .*--label release-pins --title Release pins: strelitzia v1.2.0 ')" = 1 ]
+expect j "only the tag line" [ "$(git -C "$tmp/ef.git" diff main^1 main | grep -E '^[-+][^-+]')" = "$(printf -- '-tag = "v1.1.0"\n+tag = "v1.2.0"')" ]
+expect j "deploy v1.3.0" [ "$(calls 'gh workflow run deploy.yml --ref main -f environment=prod -f ref=v1.3.0')" = 1 ]
+expect j "promotes" [ "$(calls 'versions promote engineerfamily v1.3.0')$(calls 'versions promote strelitzia v1.2.0')$(calls 'versions promote wordle v1.0.1')" = 111 ]
+expect j "summary" has "✓ v1.3.0 on prod: strelitzia v1.2.0, wordle v1.0.1"
+expect j "branch deleted" [ -z "$(git -C "$tmp/ef.git" for-each-ref 'refs/heads/release/')" ]
+echo "ok  (j) release: one release-pins PR (tag line only), merged, tagged v1.3.0, deployed, promoted"
+
+# (k) Strelitzia v1.3.0 appears but main holds Strelitzia, and prod runs main's tag and pins: nothing to ship.
+commit "$tmp/work-Strelitzia" "strelitzia four (#13)" v1.3.0
+git -C "$tmp/work-Strelitzia" push -q --tags origin main
+git -C "$ef" pull -q --no-rebase origin main
+sed -i '/^service = "strelitzia"/a hold = "waiting on a fix"' "$ef/components.toml"
+commit "$ef" "Hold strelitzia (#23)" v1.4.0
+git -C "$ef" push -q --tags origin main
+git -C "$tmp/Strelitzia-prod" fetch -q --tags
+git -C "$tmp/Strelitzia-prod" checkout -q --detach v1.2.0
+git -C "$tmp/Wordle-prod" checkout -q --detach v1.0.1
+FAKE_RELEASE=v1.4.0 release y
+expect k "exit 0" [ "$rc" = 0 ]
+expect k "nothing" has "Nothing to ship: prod runs v1.4.0 and its pins."
+expect k "held" has "held: strelitzia (waiting on a fix)"
+expect k "no PR or deploy" [ "$(calls 'gh pr ')$(calls 'workflow run')" = 00 ]
+echo "ok  (k) hold respected; nothing newer: Nothing to ship"
+out=$(bash "$tmp/dev-ef/scripts/prod-changes.sh" v1.4.0 2>&1)
+expect k "v= shows the hold" has "held: waiting on a fix"
+expect k "v= no pin hint for a held child" lacks "newer tag, not in v1.4.0: v1.3.0"
+echo "ok  (k) prod-changes v=: a held child shows the hold, not the pin hint"

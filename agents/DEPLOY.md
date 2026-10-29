@@ -42,19 +42,25 @@ it once per page with `cache: 'no-store'`, so a deploy shows up on the next page
 
 ### Child repo pins (`components.toml`)
 
-`components.toml` at the repo root pins each child repo (Strelitzia, Wordle) to a tag. Every engineerfamily deploy, prod
-and preprod, checks each child out at its pin in `/srv/<Repo>-<env>` before it builds, and prints `→ <name> at <tag>`. So an
-engineerfamily tag names one exact set of versions: deploying it deploys its pins, and rolling back rolls the children back
-too. A ref from before the pins (no `components.toml`) leaves the child checkouts as they are.
+`components.toml` at the repo root pins each child repo (Strelitzia, Wordle) to a tag: `tag` is the version **prod**
+runs. Prod deploys check each child out at its pin in `/srv/<Repo>-prod` before they build, so an engineerfamily tag names
+one exact set of versions: deploying it deploys its pins, and rolling back rolls the children back too. A ref from before
+the pins (no `components.toml`) leaves the child checkouts as they are.
 
-- **A pin change is an ordinary PR.** The runner opens a `Pin <name> <tag>` PR after each child merge (agent-runner A28);
-  `hold = "reason"` on a component stops that for it. A plan can also raise, hold or pair pins.
-- **Reading them:** `python3 scripts/components.py list` (or `get <name> tag`); `check [--remote]` is the validation
-  `scripts/validate.sh` runs (`--offline` skips checking the tags exist on GitHub).
+- **Only `make prod-release` moves a pin.** When a child has a tag newer than main's pin, prod-release opens, merges and
+  tags one "Release pins: strelitzia vA, wordle vB" PR, then ships that tag. Child merges don't touch this repo.
+  `hold = "reason"` on a component keeps prod-release from moving it (listed as `held: <reason>`).
+- **Preprod floats.** `preprod-deploy` checks each child out at its newest `vX.Y.Z` tag on GitHub, not at the pin, and
+  prints `→ <name> at <ref> (newest|override|preprod key)`. `strelitzia=<tag|branch>` / `wordle=<tag|branch>` override one
+  child for one deploy (e.g. an engineerfamily branch with a child branch); an optional `preprod = "<tag|branch>"` key on a
+  component freezes preprod on it.
+- **Reading them:** `python3 scripts/components.py list` (or `get <name> tag`, `newest <name>`); `check [--remote]` is the
+  validation `scripts/validate.sh` runs (`--offline` skips checking the tags exist on GitHub). `set <name> tag <vX.Y.Z>` is
+  prod-release's edit.
 - **Preprod for a child PR** still runs that PR's head: the runner's `preprod.sh` checks the PR sha out in
-  `/srv/<Repo>-preprod` and rebuilds only that service, without `preprod-deploy`. The next `preprod-deploy` puts the pin back.
+  `/srv/<Repo>-preprod` and rebuilds only that service, without `preprod-deploy`. The next `preprod-deploy` puts the newest tag back.
 - **`make strelitzia-deploy` / `make wordle-deploy`** default to the pin in `/srv/engineerfamily-prod/components.toml`;
-  `ref=` still overrides (e.g. `ref=origin/trunk` for a hand deploy of the head).
+  `ref=` still overrides (e.g. `ref=origin/trunk` for a hand deploy of the head). Prod's pins never float.
 - The root deploy script maps component names to `/srv` dirs itself and takes only a `vX.Y.Z` tag from the repo.
 
 ### Deploying
@@ -64,14 +70,19 @@ too. A ref from before the pins (no `components.toml`) leaves the child checkout
 Run on the VPS, from any directory (e.g. the dev clone):
 
 ```bash
-make preprod-deploy                     # origin/main
-make preprod-deploy ref=origin/my-branch # a pushed branch, before merging
-make preprod-deploy ref=<sha|tag>
+make preprod-deploy ref=main                       # main
+make preprod-deploy ref=agent/x                    # a pushed branch, before merging (origin/agent/x works too)
+make preprod-deploy ref=v1.6.6                     # a tag
+make preprod-deploy ref=agent/x strelitzia=agent/y # with one child on a branch instead of its newest tag
 ```
 
-It checks that commit out in `/srv/engineerfamily-preprod`, checks the children out at its pins, writes `version.json`, rebuilds the stack
-(`up -d --build --remove-orphans`) and recreates nginx. Push the commit first, because it deploys what is on GitHub.
-The runner deploys each PR's head this way, and `main` again after a merge (once the tag exists, so the header shows it).
+`ref=` is required and must be a `vX.Y.Z` tag or a branch on origin; a sha, `HEAD~1` or anything else is refused before
+anything is checked out (`scripts/preprod-ref.sh`), and so are the child overrides, the `preprod` key and
+`make preprod-wordle-deploy [ref=<tag|branch>]` (default: Wordle's newest tag). It checks the ref out in
+`/srv/engineerfamily-preprod`, the children at their newest tags (or override, or `preprod` key), writes `version.json`
+(the header shows the tag, the branch, or `vX.Y.Z+N` for main), rebuilds the stack (`up -d --build --remove-orphans`) and
+recreates nginx. Push first, because it deploys what is on GitHub. The runner deploys each PR's branch this way
+(`ref={branch}` in `agents/runner.toml`), and `ref=main` again after a merge.
 
 #### Prod Deploy
 
@@ -80,7 +91,7 @@ Prod deploys are always a tag, and always the user's call:
 ```bash
 make prod-changes            # read-only: what would ship (v=1.4.3 for another tag)
 make prod-release dry=1      # the same preview, plus the commands prod-release would run; nothing deployed or promoted
-make prod-release            # the newest tag; or: make prod-release v=1.4.3
+make prod-release            # the children's newest tags via a release-pins PR, or the newest tag; or: v=1.4.3 as tagged
 ```
 
 One engineerfamily tag is the site's version: its `components.toml` pins say which Strelitzia and Wordle it runs, and one
@@ -88,12 +99,19 @@ One engineerfamily tag is the site's version: its `components.toml` pins say whi
 
 1. `agent-runner versions sync` for engineerfamily, strelitzia and wordle (tags any merge not tagged yet). Exit 3 (waiting
    for a promote) or 4 (not set up for releases) stops it, with a pointer to ROADMAP M4.
-2. Picks the tag. A tag older than prod's (the newest full release) is refused: rollbacks are `deploy-prod`. If neither
+2. Picks what ships. With no `v=`: each child without `hold` whose newest tag is newer than main's pin moves to that tag,
+   and the target is main; if none moves, the newest engineerfamily tag. With `v=`: that tag and its pins as tagged (no
+   moves). A target older than prod's tag (the newest full release) is refused: rollbacks are `deploy-prod`. If neither
    engineerfamily nor any pin moved: "Nothing to ship."
-3. The preview (`scripts/prod-changes.sh <tag>`): engineerfamily from prod's tag to the target with PR links, then `not in
-   it:` (what `origin/main` has after the tag); for each child, the tag its `/srv/<Repo>-prod` checkout is on → the pin,
-   with its commits, and `not pinned yet:` for its tags newer than the pin, naming the open `pin-bump` PR. Then one
-   `Ship <tag> to prod? [y/N]`.
+3. The preview (`scripts/prod-changes.sh [<tag>]`): engineerfamily from prod's tag to the target with PR links, then `not
+   in it:` (what `origin/main` has after a target tag); for each child, the tag its `/srv/<Repo>-prod` checkout is on → its
+   new pin (`newest tag, pinned by this release`) or the tag's pin, with its commits; `held: <reason>` for a held child.
+   Then one `Ship … to prod? [y/N]`.
+3b. When pins move, after the `y`: a `release/pins-<UTC time>` branch from `origin/main` (in a temporary worktree, so the
+   dev clone isn't touched) with `components.py set` per move, one "Release pins: strelitzia vA, wordle vB" PR (label
+   `release-pins`, made by your `gh` login), `gh pr checks --watch`, `gh pr merge --merge --delete-branch`, then
+   `agent-runner versions sync engineerfamily` tags the merge and that tag ships. Red CI or a failed merge stops here,
+   naming the PR; nothing is deployed or promoted.
 4. Triggers `deploy.yml` and waits for the run (`gh run watch`). A failed run promotes nothing.
 5. Health checks, 6 tries 10 s apart: `https://engineerfamily.net/healthz` → 200; Strelitzia's
    `/strelitzia/dashboard/api/health` inside its container (the dashboard is behind the Site gate); `/strelitzia/privacy`
@@ -107,7 +125,7 @@ tag's pins too, so they roll back with it; it promotes nothing, so the Latest re
 back from until the next `prod-release`.
 
 **Hand fixes:** `make strelitzia-deploy` / `make wordle-deploy` rebuild one child outside a release. They leave prod off
-its pins until the next engineerfamily deploy puts the pins back; use them only for a fix that can't wait for a pin PR.
+its pins until the next engineerfamily deploy puts the pins back; use them only for a fix that can't wait for a release.
 
 Merging to `main` never ships prod: until the next `prod-release`, prod keeps running its tag. Check with
 `git -C /srv/engineerfamily-prod describe --tags`, and compare with `git describe --tags origin/main`.
@@ -121,7 +139,7 @@ runs in env-only mode, and with no admin anywhere everyone keeps Site, so nothin
 anything. Real addresses go only in the `/srv` `.env` files, never in the repo, an issue or a PR.
 
 1. Preprod, in `/srv/engineerfamily-preprod/.env`: `SITE_DB_PASSWORD_PREPROD=` (`openssl rand -hex 24`) and
-   `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy`.
+   `SITE_ADMIN_EMAILS=` (comma-separated), then `make preprod-site-db-init` and `make preprod-deploy ref=main`.
 2. Prod, **before the first prod deploy containing site-perms parts 1-3** (the nginx gate ships in part 3): in
    `/srv/engineerfamily-prod/.env` `SITE_DB_PASSWORD=`, `SITE_ADMIN_EMAILS=` and `SITE_MEMBER_EMAILS=`, then
    `make site-db-init` from the dev clone at `origin/main` (`git pull` first). It runs the clone's
@@ -150,9 +168,9 @@ anything. Real addresses go only in the `/srv` `.env` files, never in the repo, 
 | `/srv/engineerfamily-prod` | Prod checkout (branch `prod`, compose project `engineerfamily`). |
 | `/srv/engineerfamily-preprod` | Preprod checkout (branch `preprod`, compose project `engineerfamily-preprod`, port 8080). |
 | `/srv/Strelitzia-prod` | Prod dashboard build context, detached at its pinned tag (every prod deploy, `make strelitzia-deploy`). |
-| `/srv/Strelitzia-preprod` | Preprod dashboard build context, at its pinned tag after `preprod-deploy`; moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
+| `/srv/Strelitzia-preprod` | Preprod dashboard build context, at its newest tag after `preprod-deploy`; moved to review-PR heads by Strelitzia's `scripts/agent/preprod.sh`. |
 | `/srv/Wordle-prod` | Prod Wordle solver build context, detached at its pinned tag (every prod deploy, `make wordle-deploy [ref=<sha>]`). |
-| `/srv/Wordle-preprod` | Preprod Wordle solver build context, at its pinned tag after `preprod-deploy` (`make preprod-wordle-deploy [ref=<sha>]`). |
+| `/srv/Wordle-preprod` | Preprod Wordle solver build context, at its newest tag after `preprod-deploy` (`make preprod-wordle-deploy [ref=<tag|branch>]`). |
 
 `/srv` checkouts are `deploy:srv`, setgid and group-writable, and are never edited by hand. Compose project names are
 pinned with `-p` (Makefile, deploy script) and `COMPOSE_PROJECT_NAME` in each checkout's `.env`, so a directory rename
@@ -162,5 +180,5 @@ Every prod and preprod `make` target acts on these `/srv` checkouts, so it can b
 `make up` in `~/src/engineerfamily` restarts what is deployed in `/srv/engineerfamily-prod`, not your local edits.
 Edits reach preprod with `make preprod-deploy` and prod with `make prod-release`, or for
 Strelitzia with `make strelitzia-deploy`, and for the Wordle solver with `make wordle-deploy [ref=<sha>]`
-(preprod: `make preprod-wordle-deploy [ref=<sha>]`). `prod-release`, `deploy-prod` and `preprod-deploy` build `wordle` too, so
+(preprod: `make preprod-wordle-deploy [ref=<tag|branch>]`). `prod-release`, `deploy-prod` and `preprod-deploy` build `wordle` too, so
 `/srv/Wordle-prod` and `/srv/Wordle-preprod` must exist first. Use `make local-up` to run the dev tree.

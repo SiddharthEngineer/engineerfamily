@@ -1,5 +1,6 @@
-# Which version of each child repo the site runs. Every engineerfamily deploy checks these tags out before it builds.
-# The runner opens a "Pin <name> <tag>" PR after each child merge (agent-runner A29); `hold` stops that for one component.
+# Which version of each child repo prod runs. Prod deploys check these tags out before they build; only
+# `make prod-release` moves them (one "Release pins: …" PR per release), and `hold` keeps it from moving one.
+# Preprod floats on each child's newest tag instead; `preprod = "<tag|branch>"` freezes it (see agents/DEPLOY.md).
 [strelitzia]
 repo = "SiddharthEngineer/Strelitzia"
 tag = "v1.2.7"
@@ -9,4 +10,4 @@ service = "strelitzia"
 repo = "SiddharthEngineer/Wordle"
 tag = "v1.1.0"
 service = "wordle"
-# hold = "reason"   # optional: the runner leaves this pin alone and logs the reason
+# hold = "reason"   # optional: prod-release leaves this pin alone and lists the reason
