@@ -24,6 +24,7 @@ PROD_DIR ?= /srv/engineerfamily-prod
 PREPROD_DIR ?= /srv/engineerfamily-preprod
 STRELITZIA_PROD_DIR ?= /srv/Strelitzia-prod
 WORDLE_PROD_DIR ?= /srv/Wordle-prod
+STRELITZIA_PREPROD_DIR ?= /srv/Strelitzia-preprod
 WORDLE_PREPROD_DIR ?= /srv/Wordle-preprod
 PROD = docker compose -p engineerfamily --project-directory $(PROD_DIR) \
 	-f $(PROD_DIR)/docker-compose.base.yml -f $(PROD_DIR)/docker-compose.prod.yml
@@ -45,6 +46,31 @@ define checkout-pins
 			esac; \
 			git -C $$cdir fetch -q --prune --force --tags origin && git -C $$cdir checkout -q --detach refs/tags/$$tag || exit 1; \
 			echo "→ $$name at $$tag"; \
+		done; \
+	fi
+endef
+# Preprod floats: $(call checkout-preprod,<engineerfamily dir>) checks each child out at its newest vX.Y.Z tag on origin,
+# not at its pin. strelitzia=<tag|branch> / wordle=<tag|branch> override one child; else a component's `preprod` key
+# freezes it. Every ref goes through scripts/preprod-ref.sh (a tag or a branch, never a sha). The scripts come from the
+# checkout being deployed, or from this Makefile's checkout for a ref that predates them.
+define checkout-preprod
+@if [ ! -f $(1)/components.toml ]; then echo "→ no components.toml at this ref; child checkouts left as they are"; else \
+		s=$(1)/scripts; [ -f $$s/preprod-ref.sh ] || s=$(CURDIR)/scripts; \
+		c="python3 $$s/components.py --file $(1)/components.toml"; \
+		pins=$$($$c list) || exit 1; \
+		echo "$$pins" | while IFS="$$(printf '\t')" read -r name repo tag service; do \
+			[ -n "$$name" ] || continue; \
+			case $$name in \
+				strelitzia) cdir=$(STRELITZIA_PREPROD_DIR); want='$(strelitzia)' ;; \
+				wordle) cdir=$(WORDLE_PREPROD_DIR); want='$(wordle)' ;; \
+				*) echo "unknown component '$$name' in components.toml" >&2; exit 1 ;; \
+			esac; \
+			if [ -n "$$want" ]; then why=override; \
+			elif want=$$($$c get $$name preprod 2>/dev/null); then why="preprod key"; \
+			else why=newest; want=$$($$c newest $$name --remote "$$(git -C $$cdir remote get-url origin)") || exit 1; fi; \
+			r=$$(bash $$s/preprod-ref.sh $$cdir "$$want") || exit 2; \
+			git -C $$cdir checkout -q --detach $$r || exit 1; \
+			echo "→ $$name at $$want ($$why)"; \
 		done; \
 	fi
 endef
@@ -91,7 +117,7 @@ help:
 	@echo "    (applypilot-* names still work as deprecated aliases)"
 	@echo ""
 	@echo "  Preprod (acts on $(PREPROD_DIR), from any directory):"
-	@echo "    preprod-deploy   Check out origin/main (or ref=<sha|tag|origin/branch>) in $(PREPROD_DIR) and the children at their pins, rebuild, reload nginx"
+	@echo "    preprod-deploy   ref=<tag|branch> (required) in $(PREPROD_DIR), the children at their newest tags (strelitzia=/wordle= override), rebuild, reload nginx"
 	@echo "    preprod-up       Start preprod containers"
 	@echo "    preprod-down     Stop preprod containers"
 	@echo "    preprod-build    Rebuild preprod images"
@@ -101,7 +127,7 @@ help:
 	@echo "    preprod-strelitzia-db-init Create the strelitzia role + strelitzia_preprod DB (idempotent)"
 	@echo "    preprod-strelitzia-up      Rebuild + restart only the preprod dashboard (from /srv/Strelitzia-preprod)"
 	@echo "    preprod-strelitzia-logs    Tail the preprod dashboard logs"
-	@echo "    preprod-wordle-deploy      Check out Wordle origin/main (or ref=<sha>) in $(WORDLE_PREPROD_DIR), rebuild only wordle"
+	@echo "    preprod-wordle-deploy      Check out Wordle's newest tag (or ref=<tag|branch>) in $(WORDLE_PREPROD_DIR), rebuild only wordle"
 	@echo "    preprod-wordle-logs        Tail the preprod Wordle solver logs"
 	@echo ""
 	@echo "  Releases:"
@@ -196,14 +222,17 @@ wordle-logs:
 	$(PROD) logs -f --tail=100 wordle
 
 # ─── Preprod ─────────────────────────────────────────────
-# The everyday way to put an engineerfamily change on preprod: no tag and no GitHub workflow, run from the VPS.
-# Same steps as scripts/vps/engineerfamily-deploy, but at any commit; the local `preprod` branch is just a name here.
+# The everyday way to put an engineerfamily change on preprod: no GitHub workflow, run from the VPS.
+#   make preprod-deploy ref=<tag|branch> [strelitzia=<tag|branch>] [wordle=<tag|branch>]
+# ref= is required: a vX.Y.Z tag or a branch (main, agent/x, origin/agent/x), never a sha. The children float on their
+# newest tags (checkout-preprod above). The local `preprod` branch is just a name here.
 # site-version.sh writes services/shared/version.json for the header's version text.
 preprod-deploy:
-	git -C $(PREPROD_DIR) fetch -q --prune --tags origin
-	git -C $(PREPROD_DIR) checkout -q -B preprod $(or $(ref),origin/main)
+	@test -n '$(ref)' || { echo "preprod-deploy needs ref=<tag|branch> (e.g. ref=main)" >&2; exit 2; }
+	@for w in '$(strelitzia)' '$(wordle)'; do [ -z "$$w" ] || bash $(CURDIR)/scripts/preprod-ref.sh --check "$$w" || exit 2; done
+	r=$$(bash $(CURDIR)/scripts/preprod-ref.sh $(PREPROD_DIR) '$(ref)') && git -C $(PREPROD_DIR) checkout -q -B preprod $$r
 	@echo "→ engineerfamily-preprod at $$(git -C $(PREPROD_DIR) log --oneline -1)"
-	$(call checkout-pins,$(PREPROD_DIR),preprod)
+	$(call checkout-preprod,$(PREPROD_DIR))
 	@bash $(PREPROD_DIR)/scripts/site-version.sh preprod $(PREPROD_DIR) 2>/dev/null \
 		|| { rm -f $(PREPROD_DIR)/services/shared/version.json; echo "→ no version.json (no site-version.sh at this ref)"; }
 	$(PREPROD) up -d --build --remove-orphans
@@ -238,9 +267,11 @@ preprod-strelitzia-up:
 preprod-strelitzia-logs:
 	$(PREPROD) logs -f --tail=100 strelitzia
 
+# Wordle alone on preprod: ref=<tag|branch>, default its newest vX.Y.Z tag.
 preprod-wordle-deploy:
-	git -C $(WORDLE_PREPROD_DIR) fetch -q --prune origin
-	git -C $(WORDLE_PREPROD_DIR) checkout -q --detach $(or $(ref),origin/main)
+	w='$(ref)'; [ -n "$$w" ] || w=$$(python3 $(CURDIR)/scripts/components.py newest wordle \
+		--remote "$$(git -C $(WORDLE_PREPROD_DIR) remote get-url origin)") || exit 1; \
+		r=$$(bash $(CURDIR)/scripts/preprod-ref.sh $(WORDLE_PREPROD_DIR) "$$w") && git -C $(WORDLE_PREPROD_DIR) checkout -q --detach $$r
 	@echo "→ Wordle-preprod at $$(git -C $(WORDLE_PREPROD_DIR) log --oneline -1)"
 	$(PREPROD) up -d --build --force-recreate --no-deps wordle
 

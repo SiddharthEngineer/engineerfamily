@@ -1,5 +1,5 @@
 # Plan: preprod floats on the children's newest tags; `components.toml` pins prod and only `make prod-release` moves it
-**Status:** ❌ Not started
+**Status:** 🔄 In progress
 **Risk:** review (the prod release path: `scripts/prod-release.sh`, `Makefile`)
 **Depends on:** E12 [components-1-pins](components-1-pins.md), E13 [components-2-release](components-2-release.md);
 agent-runner A33 [runner-18-float-pins](https://github.com/SiddharthEngineer/agent-runner/blob/main/agents/plans/runner-18-float-pins.md)
@@ -44,7 +44,7 @@ User, 2026-10-28: "prod pinned in Git, preprod floating", and "preprod deploys a
 `agent-runner version` is at or past the release with A33 (`agent-runner pins` is gone). If not, stop with a question for
 the user: "install the runner with A33 and do agent-runner AM11 first".
 **Validate:** both true.
-**Status:** ❌
+**Status:** ✅ 2026-10-29: runner.toml on main has ref={branch} and ref=main (#96); agent-runner v0.2.12, no `pins`
 
 ### Task 1: refs must be a tag or a branch; preprod floats
 **Runs:** unattended
@@ -60,7 +60,7 @@ unchanged. `preprod-wordle-deploy` uses the same resolver (default: newest tag).
 **Validate:** the components tests: a sha, `HEAD~1` and a missing branch are refused with exit 2 before any checkout;
 `main`, `origin/agent/x` and `v1.2.3` resolve; `preprod-deploy` without `ref` fails; the float picks the newest tag;
 an override and a `preprod` key win in that order. `scripts/validate.sh --offline` passes.
-**Status:** ❌
+**Status:** ✅ 2026-10-29 (this commit)
 
 ### Task 2: `make prod-release` moves the pins
 **Runs:** unattended

@@ -35,3 +35,22 @@ bad "bad tag"     "bad tag 'v1.0'"        's/tag = "v1.0.0"/tag = "v1.0"/'
 bad "missing key" "missing 'service'"     '/service = "wordle"/d'
 bad "unknown key" "unknown key 'branch'"  's/^hold = .*/branch = "main"/'
 bad "bad name"    "Wordle: bad name"      's/^\[wordle\]/[Wordle]/'
+
+# set rewrites only that component's tag line; newest picks the highest vX.Y.Z on a remote.
+printf '%s\n' "$good" | sed 's/^service = "wordle"/&  # keep me/' > "$tmp/c.toml"
+cp "$tmp/c.toml" "$tmp/before.toml"
+run set wordle tag v1.4.0
+[ "$(run get wordle tag)" = v1.4.0 ] && [ "$(run get strelitzia tag)" = v1.0.0 ] || fail "set: wrong tag moved"
+[ "$(diff "$tmp/before.toml" "$tmp/c.toml" | grep -c '^[<>]')" = 2 ] || fail "set: more than the tag line changed"
+grep -q '# keep me' "$tmp/c.toml" || fail "set: comment lost"
+if run set wordle tag 1.4 2>/dev/null; then fail "set: accepted a bad tag"; fi
+echo "ok  set wordle tag"
+git init -q "$tmp/r"
+git -C "$tmp/r" -c user.name=t -c user.email=t@e commit -q --allow-empty -m one
+for t in v1.2.0 v1.10.0 v1.9.9 v2.0.0-rc1 latest; do git -C "$tmp/r" tag "$t"; done
+[ "$(run newest wordle --remote "$tmp/r")" = v1.10.0 ] || fail "newest: want v1.10.0"
+echo "ok  newest picks v1.10.0 over v1.9.9 and ignores non-vX.Y.Z tags"
+printf '%s\n' "$good" | sed 's/^hold = .*/preprod = "agent\/x"/' > "$tmp/c.toml"
+run check >/dev/null || fail "preprod key: check exited non-zero"
+[ "$(run get wordle preprod)" = agent/x ] || fail "preprod key: get"
+echo "ok  preprod key"
