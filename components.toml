@@ -3,7 +3,7 @@
 # Preprod floats on each child's newest tag instead; `preprod = "<tag|branch>"` freezes it (see agents/DEPLOY.md).
 [strelitzia]
 repo = "SiddharthEngineer/Strelitzia"
-tag = "v1.2.7"
+tag = "v1.2.10"
 service = "strelitzia"
 
 [wordle]
